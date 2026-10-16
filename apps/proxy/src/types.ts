@@ -1,0 +1,11 @@
+import type { KVNamespaceLike } from "./quota/budget";
+
+export interface Env {
+  POMONA_QUOTA_KV?: KVNamespaceLike;
+  GEMINI_API_KEY?: string;
+  OPENAI_API_KEY?: string;
+  COOKIE_SIGNING_SECRET: string;
+  ACTIVE_PROMPT_VERSION?: string;
+  ACTIVE_PROVIDER?: string;
+  DEFAULT_MODEL?: string;
+}

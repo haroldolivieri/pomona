@@ -82,6 +82,16 @@ export async function runVerifiedVisionScan(
 
   let repairErrors: string[] | null = null;
 
+  function isRateLimitError(err: unknown): boolean {
+    const e = err as any;
+    return (
+      e?.statusCode === 429 ||
+      e?.status === 429 ||
+      String(e?.message || "").includes("429") ||
+      String(e?.message || "").toLowerCase().includes("resource has been exhausted")
+    );
+  }
+
   // Attempt 1: Initial model inference
   try {
     const raw1 = await adapter.analyzeProduce(
@@ -111,6 +121,9 @@ export async function runVerifiedVisionScan(
 
     repairErrors = verify1.errors;
   } catch (err) {
+    if (isRateLimitError(err)) {
+      throw err;
+    }
     repairErrors = [err instanceof Error ? err.message : String(err)];
   }
 
@@ -145,7 +158,10 @@ export async function runVerifiedVisionScan(
         attempts: 2,
       };
     }
-  } catch {
+  } catch (err) {
+    if (isRateLimitError(err)) {
+      throw err;
+    }
     // Repair attempt failed, proceed to fallback
   }
 

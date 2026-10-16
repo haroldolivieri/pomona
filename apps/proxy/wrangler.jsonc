@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pomona-proxy",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-03-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "kv_namespaces": [
+    {
+      "binding": "POMONA_QUOTA_KV",
+      "id": "POMONA_QUOTA_KV_ID",
+      "preview_id": "POMONA_QUOTA_KV_PREVIEW_ID"
+    }
+  ],
+  "assets": {
+    "directory": "../web/dist"
+  },
+  "vars": {
+    "ACTIVE_PROMPT_VERSION": "v1",
+    "ACTIVE_PROVIDER": "gemini",
+    "DEFAULT_MODEL": "gemini-2.5-flash"
+  }
+}

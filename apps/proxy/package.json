@@ -12,6 +12,7 @@
     "@ai-sdk/openai": "^4.0.95",
     "@pomona/contract": "workspace:*",
     "ai": "^7.0.142",
+    "hono": "^4.13.13",
     "zod": "^3.24.2"
   },
   "devDependencies": {
