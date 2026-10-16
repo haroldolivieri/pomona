@@ -222,4 +222,172 @@ describe("geometry & semantic verifier", () => {
       expect(res.errors.join(" ")).toContain("produce");
     }
   });
+
+  it("resolves Round 3 when 1st Pick reclaims win with higher score (9.3 > 9.0) and forces followUp to null", () => {
+    const res = verifyAndResolveScanResponse(
+      {
+        status: "ok",
+        message: null,
+        produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+        candidates: [
+          { id: "c1", box: [200, 200, 800, 800], score: 9.3, ripeness: "ripe", traits: ["Deep creamy spot"], flipSummary: "perfect creamy spot" },
+        ],
+        verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy your 1st pick." },
+        followUp: {
+          targetCandidateId: "c2",
+          targetRole: "runner_up",
+          bannerText: "Extra check banner",
+          flipHeadline: "Flip candidate",
+          instruction: "Show other angle",
+        },
+        afterPurchase: {
+          readyInDays: { min: 0, max: 0 },
+          eatWithinDays: { min: 3, max: 5 },
+          eatWithinLabel: "3–5 days",
+          storage: {
+            beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · whole", tip: "Room temp" },
+            afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · wrapped", tip: "Wrap" },
+          },
+        },
+      },
+      {
+        promptVersion: "v1",
+        modelId: "gemini-2.5-flash",
+        request: {
+          schemaVersion: "1.0",
+          sessionId: "550e8400-e29b-41d4-a716-446655440000",
+          round: 3,
+          locale: "en-GB",
+          imageBase64: "abc",
+          imageMimeType: "image/webp",
+          focusPolygon: null,
+          followUpContext: {
+            produceType: "watermelon",
+            produceDisplayName: "Watermelon",
+            targetCandidateId: "c1",
+            targetRole: "first_pick",
+            requestedInstruction: "Show the other side",
+            previousWinner: { id: "c2", role: "runner_up", score: 9.0, ripeness: "ripe", traits: ["Deep creamy spot"], anglesInspected: 2 },
+            previousRunnerUp: { id: "c1", role: "first_pick", score: 8.6, ripeness: "ripe", traits: ["Yellow field spot"], anglesInspected: 1 },
+          },
+        },
+      }
+    );
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.response.verdict?.winnerId).toBe("c1");
+      expect(res.response.verdict?.runnerUpId).toBe("c2");
+      expect(res.response.followUp).toBeNull();
+    }
+  });
+
+  it("resolves Round 3 on tie score (9.0 vs 9.0) by letting 1st Pick reclaim the win and forcing followUp to null", () => {
+    const res = verifyAndResolveScanResponse(
+      {
+        status: "ok",
+        message: null,
+        produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+        candidates: [
+          { id: "c1", box: [200, 200, 800, 800], score: 9.0, ripeness: "ripe", traits: ["Creamy spot"], flipSummary: "creamy spot" },
+        ],
+        verdict: { winnerId: "c2", runnerUpId: "c1", confidence: "high", headline: "Buy this one." },
+        followUp: null,
+        afterPurchase: {
+          readyInDays: { min: 0, max: 0 },
+          eatWithinDays: { min: 3, max: 5 },
+          eatWithinLabel: "3–5 days",
+          storage: {
+            beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · whole", tip: "Room temp" },
+            afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · wrapped", tip: "Wrap" },
+          },
+        },
+      },
+      {
+        promptVersion: "v1",
+        modelId: "gemini-2.5-flash",
+        request: {
+          schemaVersion: "1.0",
+          sessionId: "550e8400-e29b-41d4-a716-446655440000",
+          round: 3,
+          locale: "en-GB",
+          imageBase64: "abc",
+          imageMimeType: "image/webp",
+          focusPolygon: null,
+          followUpContext: {
+            produceType: "watermelon",
+            produceDisplayName: "Watermelon",
+            targetCandidateId: "c1",
+            targetRole: "first_pick",
+            requestedInstruction: "Show the other side",
+            previousWinner: { id: "c2", role: "runner_up", score: 9.0, ripeness: "ripe", traits: ["Deep creamy spot"], anglesInspected: 2 },
+            previousRunnerUp: { id: "c1", role: "first_pick", score: 8.6, ripeness: "ripe", traits: ["Yellow field spot"], anglesInspected: 1 },
+          },
+        },
+      }
+    );
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.response.verdict?.winnerId).toBe("c1");
+      expect(res.response.verdict?.runnerUpId).toBe("c2");
+      expect(res.response.followUp).toBeNull();
+    }
+  });
+
+  it("resolves Round 3 when Runner-Up retains win with higher score (8.4 < 9.0) and forces followUp to null", () => {
+    const res = verifyAndResolveScanResponse(
+      {
+        status: "ok",
+        message: null,
+        produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+        candidates: [
+          { id: "c1", box: [200, 200, 800, 800], score: 8.4, ripeness: "ripe", traits: ["Faded spot"], flipSummary: "faded spot" },
+        ],
+        verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy your 1st pick." },
+        followUp: {
+          targetCandidateId: "c2",
+          targetRole: "runner_up",
+          bannerText: "Another check",
+          flipHeadline: "Flip",
+          instruction: "Turn over",
+        },
+        afterPurchase: {
+          readyInDays: { min: 0, max: 0 },
+          eatWithinDays: { min: 3, max: 5 },
+          eatWithinLabel: "3–5 days",
+          storage: {
+            beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · whole", tip: "Room temp" },
+            afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · wrapped", tip: "Wrap" },
+          },
+        },
+      },
+      {
+        promptVersion: "v1",
+        modelId: "gemini-2.5-flash",
+        request: {
+          schemaVersion: "1.0",
+          sessionId: "550e8400-e29b-41d4-a716-446655440000",
+          round: 3,
+          locale: "en-GB",
+          imageBase64: "abc",
+          imageMimeType: "image/webp",
+          focusPolygon: null,
+          followUpContext: {
+            produceType: "watermelon",
+            produceDisplayName: "Watermelon",
+            targetCandidateId: "c1",
+            targetRole: "first_pick",
+            requestedInstruction: "Show the other side",
+            previousWinner: { id: "c2", role: "runner_up", score: 9.0, ripeness: "ripe", traits: ["Deep creamy spot"], anglesInspected: 2 },
+            previousRunnerUp: { id: "c1", role: "first_pick", score: 8.6, ripeness: "ripe", traits: ["Yellow field spot"], anglesInspected: 1 },
+          },
+        },
+      }
+    );
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.response.verdict?.winnerId).toBe("c2");
+      expect(res.response.verdict?.runnerUpId).toBe("c1");
+      expect(res.response.followUp).toBeNull();
+    }
+  });
 });

@@ -290,7 +290,7 @@ export function verifyAndResolveScanResponse(
     }
 
     const prevWinner = followUpContext.previousWinner;
-    if (firstPickCandidate.score > prevWinner.score) {
+    if (firstPickCandidate.score >= prevWinner.score) {
       resolvedVerdict.winnerId = firstPickCandidate.id;
       resolvedVerdict.runnerUpId = prevWinner.id;
     } else {
