@@ -1,0 +1,44 @@
+{
+  "app": {
+    "name": "Pomona",
+    "tagline": "Produce Picker"
+  },
+  "camera": {
+    "shutter": "Take Photo",
+    "uploadFallback": "Upload photo",
+    "permissionDenied": "Camera access denied. Please upload a photo instead.",
+    "switchCamera": "Switch Camera"
+  },
+  "draw": {
+    "instruction": "Draw a loop around the produce to focus, or analyse whole photo",
+    "analyseDrawn": "Analyse Drawn Area",
+    "wholePhoto": "Whole Photo",
+    "retake": "Retake"
+  },
+  "analysing": {
+    "headline": "Inspecting produce...",
+    "subhead": "Grading ripeness, skin texture, and freshness traits",
+    "tips": [
+      "Heavy for its size usually means higher water content and juiciness.",
+      "Check the stem base for fresh green color rather than dry grey mold.",
+      "Uniform shape often indicates even pollination and sweetness."
+    ]
+  },
+  "result": {
+    "eatWithin": "Eat within",
+    "beforeCut": "Before cut",
+    "afterCut": "After cut",
+    "winnerToBeat": "Winner to beat: {{score}} / 10",
+    "compareWithRunnerUp": "Compare with Runner-Up",
+    "flipFinalCheckFirstPick": "Flip 1st Pick for Final Check",
+    "scanAnother": "Scan Another",
+    "tryAgain": "Try Again"
+  },
+  "errors": {
+    "noProduce": "Couldn't spot any produce clearly. Move closer and try again.",
+    "unclearPhoto": "Photo was too blurry or dim. Please hold steady and try again.",
+    "multipleTypes": "Multiple types of produce detected. Focus on one crate.",
+    "analysisFailed": "Produce analysis could not be completed. Please try again.",
+    "rateLimited": "Daily scan limit reached. Please come back tomorrow!"
+  }
+}

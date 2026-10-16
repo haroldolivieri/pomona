@@ -1,0 +1,21 @@
+{
+  "short_name": "Pomona",
+  "name": "Pomona Produce Picker",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#FBFAF6",
+  "theme_color": "#2F5D34",
+  "display": "standalone",
+  "orientation": "portrait"
+}
