@@ -1,0 +1,461 @@
+import { test, expect } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+
+// Mock payloads matching Pomona contract schema
+const mockRound1Response = {
+  schemaVersion: "1.0",
+  promptVersion: "v1",
+  modelId: "gemini-2.5-flash",
+  round: 1,
+  status: "ok",
+  message: null,
+  produce: { type: "avocado", displayName: "Hass Avocado", variety: "Hass" },
+  candidates: [
+    {
+      id: "c1",
+      box: [385, 370, 625, 655],
+      score: 8.6,
+      ripeness: "ripe",
+      traits: ["Dark pebbled skin", "Intact stem"],
+      flipSummary: null,
+    },
+    {
+      id: "c2",
+      box: [380, 645, 590, 925],
+      score: 8.1,
+      ripeness: "almost_ripe",
+      traits: ["Even shape"],
+      flipSummary: null,
+    },
+  ],
+  verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy it." },
+  followUp: {
+    targetCandidateId: "c2",
+    targetRole: "runner_up",
+    bannerText: "The blue-marked Hass Avocado could be better. Flip it and snap.",
+    flipHeadline: "Flip the Hass Avocado over",
+    instruction: "Turn the blue-marked Hass Avocado to show its stem base.",
+  },
+  afterPurchase: {
+    readyInDays: { min: 0, max: 0 },
+    eatWithinDays: { min: 2, max: 3 },
+    eatWithinLabel: "2–3 days",
+    storage: {
+      beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · whole", tip: "Keep at room temperature" },
+      afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · wrapped", tip: "Spritz with lime and wrap tightly" },
+    },
+  },
+};
+
+// Round 2 - Runner-Up Beaten (score 7.8 <= 8.6)
+const mockRound2RunnerUpBeaten = {
+  ...mockRound1Response,
+  round: 2,
+  candidates: [
+    {
+      id: "c2",
+      box: [200, 200, 800, 800],
+      score: 7.8,
+      ripeness: "ripe",
+      traits: ["Small bruise under label"],
+      flipSummary: "slight bruise underside",
+    },
+  ],
+  verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy your 1st pick." },
+  followUp: null,
+};
+
+// Round 2 - Runner-Up Takes Lead (score 9.0 > 8.6)
+const mockRound2RunnerUpTookLead = {
+  ...mockRound1Response,
+  round: 2,
+  candidates: [
+    {
+      id: "c2",
+      box: [200, 200, 800, 800],
+      score: 9.0,
+      ripeness: "ripe",
+      traits: ["Green stem base", "No bruising"],
+      flipSummary: "clean green stem base",
+    },
+  ],
+  verdict: { winnerId: "c2", runnerUpId: "c1", confidence: "high", headline: "Buy this one." },
+  followUp: {
+    targetCandidateId: "c1",
+    targetRole: "first_pick",
+    bannerText: "1st Pick (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
+    flipHeadline: "Flip your 1st pick over",
+    instruction: "Turn the yellow-marked Hass Avocado to show its stem base.",
+  },
+};
+
+// Round 3 - 1st Pick Wins Final Flip (score 9.3 >= 9.0)
+const mockRound3FirstPickWon = {
+  ...mockRound1Response,
+  round: 3,
+  candidates: [
+    {
+      id: "c1",
+      box: [200, 200, 800, 800],
+      score: 9.3,
+      ripeness: "ripe",
+      traits: ["Bright green stem", "Uniform give"],
+      flipSummary: "bright green stem base",
+    },
+  ],
+  verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy your 1st pick." },
+  followUp: null,
+};
+
+// Round 3 - 1st Pick Loses Final Flip (score 8.4 < 9.0)
+const mockRound3FirstPickLost = {
+  ...mockRound1Response,
+  round: 3,
+  candidates: [
+    {
+      id: "c1",
+      box: [200, 200, 800, 800],
+      score: 8.4,
+      ripeness: "ripe",
+      traits: ["Dry stem cavity"],
+      flipSummary: "dry stem base",
+    },
+  ],
+  verdict: { winnerId: "c2", runnerUpId: "c1", confidence: "high", headline: "Buy the new winner." },
+  followUp: null,
+};
+
+test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
+  test.beforeEach(async ({ page }) => {
+    // Intercept quota endpoint
+    await page.route("**/api/v1/quota", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ remainingDeviceScans: 10, budgetOpen: true }),
+      });
+    });
+  });
+
+  test("Journey 1: Whole-Photo Quick Pick (S1 -> S2 -> S3 -> S4)", async ({ page }) => {
+    await page.route("**/api/v1/scan", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+      });
+    });
+
+    await page.goto("/");
+
+    // S1: Live Camera Viewfinder
+    const s1Stage = page.getByTestId("stage-S1_LiveCamera");
+    await expect(s1Stage).toBeVisible();
+    const shutter = page.getByTestId("shutter-button");
+    await expect(shutter).toBeVisible();
+
+    // Snap photo -> S2: Draw Focus Area
+    await shutter.click();
+    const s2Stage = page.getByTestId("stage-S2_DrawFocusArea");
+    await expect(s2Stage).toBeVisible();
+
+    // Whole-photo button click -> S3: Analysing -> S4: Initial Result
+    const wholePhotoButton = page.getByTestId("whole-photo-button");
+    await expect(wholePhotoButton).toBeVisible();
+    await wholePhotoButton.click();
+
+    // S4: Initial Result
+    const s4Stage = page.getByTestId("stage-S4_InitialResult");
+    await expect(s4Stage).toBeVisible();
+    await expect(page.getByText("Buy it.")).toBeVisible();
+    await expect(page.getByText("Counter · whole")).toBeVisible();
+    await expect(page.getByText("Fridge · wrapped")).toBeVisible();
+    await expect(page.getByTestId("cta-compare-runner-up")).toHaveText("Compare with Runner-Up");
+  });
+
+  test("Journey 2: Freehand Drawn Focus Area + Runner-Up Beaten (S1 -> S2 [pointer drag loop] -> S3 -> S4 -> S5A -> S5B1)", async ({ page }) => {
+    let scanCount = 0;
+    await page.route("**/api/v1/scan", async (route) => {
+      scanCount++;
+      if (scanCount === 1) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ remainingScans: 8, response: mockRound2RunnerUpBeaten }),
+        });
+      }
+    });
+
+    await page.goto("/");
+
+    // S1 -> Snap
+    await page.getByTestId("shutter-button").click();
+    await expect(page.getByTestId("stage-S2_DrawFocusArea")).toBeVisible();
+
+    // Pointer drag loop to draw a focus area polygon in S2
+    const drawStage = page.getByTestId("stage-S2_DrawFocusArea");
+    const box = await drawStage.boundingBox();
+    expect(box).not.toBeNull();
+
+    if (box) {
+      const startX = box.x + box.width * 0.2;
+      const startY = box.y + box.height * 0.2;
+      const drawWidth = box.width * 0.5;
+      const drawHeight = box.height * 0.5;
+      await page.mouse.move(startX, startY);
+      await page.mouse.down();
+      // Draw closed loop with significant area
+      await page.mouse.move(startX + drawWidth, startY, { steps: 10 });
+      await page.mouse.move(startX + drawWidth, startY + drawHeight, { steps: 10 });
+      await page.mouse.move(startX, startY + drawHeight, { steps: 10 });
+      await page.mouse.move(startX, startY, { steps: 10 });
+      await page.mouse.up();
+    }
+
+    // Now analyse-drawn-button should be enabled
+    const analyseDrawnBtn = page.getByTestId("analyse-drawn-button");
+    await expect(analyseDrawnBtn).toBeEnabled();
+    await analyseDrawnBtn.click();
+
+    // Reaches S4
+    await expect(page.getByTestId("stage-S4_InitialResult")).toBeVisible();
+
+    // Tap CTA -> S5A_FlipRunnerUpCamera
+    const compareBtn = page.getByTestId("cta-compare-runner-up");
+    await compareBtn.click();
+    await expect(page.getByTestId("stage-S5A_FlipRunnerUpCamera")).toBeVisible();
+    await expect(page.getByText("Flip the Hass Avocado over")).toBeVisible();
+    await expect(page.getByText(/Winner to beat: 8\.6 \/ 10/)).toBeVisible();
+
+    // Snap flipped produce -> S5B1_RunnerUpBeaten
+    await page.getByTestId("flip-shutter-button").click();
+    await expect(page.getByTestId("stage-S5B1_RunnerUpBeaten")).toBeVisible();
+    await expect(page.getByText("Buy your 1st pick.")).toBeVisible();
+    await expect(page.getByText(/Runner-Up scored 7\.8 after flip/)).toBeVisible();
+    await expect(page.getByTestId("cta-scan-another")).toBeVisible();
+  });
+
+  test("Journey 3: Runner-Up Takes Lead + 1st Pick Wins Final Flip (S1 -> S2 -> S3 -> S4 -> S5A -> S5B2 -> S6 -> S7A)", async ({ page }) => {
+    let scanCount = 0;
+    await page.route("**/api/v1/scan", async (route) => {
+      scanCount++;
+      if (scanCount === 1) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+        });
+      } else if (scanCount === 2) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ remainingScans: 8, response: mockRound2RunnerUpTookLead }),
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ remainingScans: 7, response: mockRound3FirstPickWon }),
+        });
+      }
+    });
+
+    await page.goto("/");
+
+    // S1 -> Snap -> S2
+    await page.getByTestId("shutter-button").click();
+    await expect(page.getByTestId("stage-S2_DrawFocusArea")).toBeVisible();
+
+    // S2 -> Whole photo -> S3 -> S4
+    await page.getByTestId("whole-photo-button").click();
+    await expect(page.getByTestId("stage-S4_InitialResult")).toBeVisible();
+
+    // S4 -> Compare with Runner-Up -> S5A
+    await page.getByTestId("cta-compare-runner-up").click();
+    await expect(page.getByTestId("stage-S5A_FlipRunnerUpCamera")).toBeVisible();
+
+    // S5A -> Snap flipped runner-up -> S5B2_RunnerUpTookLead (9.0 beats 8.6)
+    await page.getByTestId("flip-shutter-button").click();
+    await expect(page.getByTestId("stage-S5B2_RunnerUpTookLead")).toBeVisible();
+    await expect(page.getByText(/Beats 1st Pick \(9\.0 vs 8\.6\)/i)).toBeVisible();
+    const finalCheckBtn = page.getByTestId("cta-final-check-first-pick");
+    await expect(finalCheckBtn).toHaveText("Flip 1st Pick for Final Check");
+
+    // S5B2 -> Flip 1st pick -> S6_FlipFirstPickCamera
+    await finalCheckBtn.click();
+    await expect(page.getByTestId("stage-S6_FlipFirstPickCamera")).toBeVisible();
+    await expect(page.getByText(/Winner to beat: 9\.0 \/ 10/)).toBeVisible();
+
+    // S6 -> Snap flipped 1st pick -> S7A_FirstPickWonFinal (9.3 beats 9.0)
+    await page.getByTestId("flip-shutter-button").click();
+    await expect(page.getByTestId("stage-S7A_FirstPickWonFinal")).toBeVisible();
+    await expect(page.getByText(/1st Pick Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeVisible();
+    await expect(page.getByText("Buy your 1st pick.")).toBeVisible();
+    await expect(page.getByTestId("cta-scan-another")).toBeVisible();
+  });
+
+  test("Journey 4: Runner-Up Takes Lead + 1st Pick Loses Final Flip (... -> S5B2 -> S6 -> S7B)", async ({ page }) => {
+    let scanCount = 0;
+    await page.route("**/api/v1/scan", async (route) => {
+      scanCount++;
+      if (scanCount === 1) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+        });
+      } else if (scanCount === 2) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ remainingScans: 8, response: mockRound2RunnerUpTookLead }),
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ remainingScans: 7, response: mockRound3FirstPickLost }),
+        });
+      }
+    });
+
+    await page.goto("/");
+
+    // S1 -> S2 -> S4
+    await page.getByTestId("shutter-button").click();
+    await page.getByTestId("whole-photo-button").click();
+    await expect(page.getByTestId("stage-S4_InitialResult")).toBeVisible();
+
+    // S4 -> S5A -> S5B2
+    await page.getByTestId("cta-compare-runner-up").click();
+    await expect(page.getByTestId("stage-S5A_FlipRunnerUpCamera")).toBeVisible();
+    await page.getByTestId("flip-shutter-button").click();
+    await expect(page.getByTestId("stage-S5B2_RunnerUpTookLead")).toBeVisible();
+
+    // S5B2 -> S6
+    await page.getByTestId("cta-final-check-first-pick").click();
+    await expect(page.getByTestId("stage-S6_FlipFirstPickCamera")).toBeVisible();
+
+    // S6 -> Snap -> S7B_FirstPickLostFinal (8.4 lost to 9.0)
+    await page.getByTestId("flip-shutter-button").click();
+    await expect(page.getByTestId("stage-S7B_FirstPickLostFinal")).toBeVisible();
+    await expect(page.getByText(/Runner-Up Wins \(9\.0 vs 8\.4\)/i)).toBeVisible();
+    await expect(page.getByText("Buy the new winner.")).toBeVisible();
+    await expect(page.getByTestId("cta-scan-another")).toBeVisible();
+  });
+
+  test("Journey 5: Light and Dark theme toggle + axe WCAG 2.2 AA audit across states", async ({ page }) => {
+    let scanCount = 0;
+    await page.route("**/api/v1/scan", async (route) => {
+      scanCount++;
+      if (scanCount === 1) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ remainingScans: 8, response: mockRound2RunnerUpTookLead }),
+        });
+      }
+    });
+
+    await page.goto("/");
+
+    // Audit S1 in Light Theme
+    let accessibilityScanResults = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag22aa"])
+      .analyze();
+    let criticalOrSerious = accessibilityScanResults.violations.filter(
+      (v) => v.impact === "critical" || v.impact === "serious"
+    );
+    expect(criticalOrSerious).toEqual([]);
+
+    // Toggle to Dark Theme
+    const themeBtn = page.getByTestId("theme-toggle-button");
+    await expect(themeBtn).toBeVisible();
+    await themeBtn.click();
+
+    // Verify dark theme applied
+    const htmlTheme = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
+    expect(htmlTheme).toBe("dark");
+
+    // Audit S1 in Dark Theme
+    accessibilityScanResults = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag22aa"])
+      .analyze();
+    criticalOrSerious = accessibilityScanResults.violations.filter(
+      (v) => v.impact === "critical" || v.impact === "serious"
+    );
+    expect(criticalOrSerious).toEqual([]);
+
+    // Progress S1 -> S2 (Dark Theme)
+    await page.getByTestId("shutter-button").click();
+    await expect(page.getByTestId("stage-S2_DrawFocusArea")).toBeVisible();
+
+    accessibilityScanResults = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag22aa"])
+      .analyze();
+    criticalOrSerious = accessibilityScanResults.violations.filter(
+      (v) => v.impact === "critical" || v.impact === "serious"
+    );
+    expect(criticalOrSerious).toEqual([]);
+
+    // Progress S2 -> S4 (Dark Theme)
+    await page.getByTestId("whole-photo-button").click();
+    await expect(page.getByTestId("stage-S4_InitialResult")).toBeVisible();
+
+    accessibilityScanResults = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag22aa"])
+      .analyze();
+    criticalOrSerious = accessibilityScanResults.violations.filter(
+      (v) => v.impact === "critical" || v.impact === "serious"
+    );
+    expect(criticalOrSerious).toEqual([]);
+
+    // Progress S4 -> S5A (Dark Theme)
+    await page.getByTestId("cta-compare-runner-up").click();
+    await expect(page.getByTestId("stage-S5A_FlipRunnerUpCamera")).toBeVisible();
+
+    accessibilityScanResults = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag22aa"])
+      .analyze();
+    criticalOrSerious = accessibilityScanResults.violations.filter(
+      (v) => v.impact === "critical" || v.impact === "serious"
+    );
+    expect(criticalOrSerious).toEqual([]);
+
+    // Progress S5A -> S5B2 (Dark Theme)
+    await page.getByTestId("flip-shutter-button").click();
+    await expect(page.getByTestId("stage-S5B2_RunnerUpTookLead")).toBeVisible();
+
+    accessibilityScanResults = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag22aa"])
+      .analyze();
+    criticalOrSerious = accessibilityScanResults.violations.filter(
+      (v) => v.impact === "critical" || v.impact === "serious"
+    );
+    expect(criticalOrSerious).toEqual([]);
+
+    // Toggle back to Light Theme to confirm theme persistence / accessibility across light mode
+    await page.evaluate(() => {
+      document.documentElement.setAttribute("data-theme", "light");
+    });
+    accessibilityScanResults = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag22aa"])
+      .analyze();
+    criticalOrSerious = accessibilityScanResults.violations.filter(
+      (v) => v.impact === "critical" || v.impact === "serious"
+    );
+    expect(criticalOrSerious).toEqual([]);
+  });
+});
