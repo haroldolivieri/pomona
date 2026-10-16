@@ -313,3 +313,5 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
 
 const app = createProxyApp();
 export default app;
+export { verifyAndResolveScanResponse } from "./verifier/verify-response";
+

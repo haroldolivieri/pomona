@@ -1,0 +1,18 @@
+{
+  "name": "@pomona/evals",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pomona/contract": "workspace:*",
+    "@pomona/proxy": "workspace:*"
+  },
+  "devDependencies": {
+    "promptfoo": "^0.113.0",
+    "typescript": "^5.8.2",
+    "vitest": "^3.2.7"
+  }
+}

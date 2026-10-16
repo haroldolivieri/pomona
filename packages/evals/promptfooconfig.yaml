@@ -1,0 +1,106 @@
+# Pomona Evaluation Suite (Promptfoo)
+# Benchmarking LLM/VLM models against Pomona contract & verifier invariants
+#
+# Providers evaluated:
+# - google:gemini-2.5-flash
+# - google:gemini-2.5-flash-lite
+# - openai:gpt-4o-mini
+
+description: "Pomona Multi-Round Produce Selection Evaluation"
+
+prompts:
+  - file://prompts/system-and-user.json
+
+providers:
+  - id: "google:gemini-2.5-flash"
+    config:
+      temperature: 0.1
+      response_format:
+        type: "json_object"
+  - id: "google:gemini-2.5-flash-lite"
+    config:
+      temperature: 0.1
+      response_format:
+        type: "json_object"
+  - id: "openai:gpt-4o-mini"
+    config:
+      temperature: 0.1
+      response_format:
+        type: "json_object"
+
+defaultTest:
+  assert:
+    - type: javascript
+      value: file://assertions/verify-contract.ts
+
+tests:
+  # Scenario 1: Round 1 whole pile scan
+  - description: "Round 1 - Watermelon pile scan"
+    vars:
+      round: 1
+      expectedProduceType: "watermelon"
+      produceDisplayName: "Watermelon"
+      imageDescription: "A pile of whole watermelons at a supermarket display"
+    assert:
+      - type: javascript
+        value: file://assertions/verify-contract.ts
+
+  # Scenario 2: Round 1 drawn focus polygon
+  - description: "Round 1 - Drawn focus polygon targeting central melon"
+    vars:
+      round: 1
+      expectedProduceType: "cantaloupe"
+      produceDisplayName: "Cantaloupe"
+      focusPolygon: [[300, 300], [700, 300], [700, 700], [300, 700]]
+      imageDescription: "Cantaloupes with a bounded region of interest"
+    assert:
+      - type: javascript
+        value: file://assertions/verify-contract.ts
+
+  # Scenario 3: Round 2 runner-up flip
+  - description: "Round 2 - Runner-up flip comparison"
+    vars:
+      round: 2
+      expectedProduceType: "watermelon"
+      produceDisplayName: "Watermelon"
+      followUpContext:
+        targetCandidateId: "c2"
+        targetRole: "runner_up"
+        produceDisplayName: "Watermelon"
+        requestedInstruction: "Turn watermelon #2 over to inspect its ground spot and webbing"
+        previousWinner:
+          id: "c1"
+          score: 8.7
+          ripeness: "ripe"
+        previousRunnerUp:
+          id: "c2"
+          score: 8.3
+          ripeness: "ripe"
+      imageDescription: "Close-up underside of watermelon #2 showing ground spot"
+    assert:
+      - type: javascript
+        value: file://assertions/verify-contract.ts
+
+  # Scenario 4: Round 3 first pick final flip
+  - description: "Round 3 - First pick final flip check"
+    vars:
+      round: 3
+      expectedProduceType: "watermelon"
+      produceDisplayName: "Watermelon"
+      followUpContext:
+        targetCandidateId: "c1"
+        targetRole: "first_pick"
+        produceDisplayName: "Watermelon"
+        requestedInstruction: "Check watermelon #1 underside to confirm field spot before final purchase"
+        previousWinner:
+          id: "c2"
+          score: 9.1
+          ripeness: "peak"
+        previousRunnerUp:
+          id: "c1"
+          score: 8.7
+          ripeness: "ripe"
+      imageDescription: "Close-up underside of watermelon #1 for final confirmation"
+    assert:
+      - type: javascript
+        value: file://assertions/verify-contract.ts

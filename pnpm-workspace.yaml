@@ -2,4 +2,7 @@ packages:
   - "packages/*"
   - "apps/*"
 allowBuilds:
+  '@playwright/browser-chromium': true
+  better-sqlite3: true
   esbuild: true
+  sharp: true
