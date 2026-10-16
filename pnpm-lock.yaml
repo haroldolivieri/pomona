@@ -15,6 +15,22 @@ importers:
         specifier: ^3.2.7
         version: 3.2.7
 
+  apps/proxy:
+    dependencies:
+      '@pomona/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7
+
   packages/contract:
     dependencies:
       zod:
