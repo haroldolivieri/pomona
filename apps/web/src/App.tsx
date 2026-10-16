@@ -16,6 +16,8 @@ import { ResultStage } from "./components/ResultStage";
 import { FlipCameraStage } from "./components/FlipCameraStage";
 import "./styles/index.css";
 
+import { createMockApiClient } from "./lib/mock-api-client";
+
 export interface PomonaAppProps {
   apiClient: PomonaApiClient;
   telemetry: TelemetryProvider;
@@ -23,7 +25,7 @@ export interface PomonaAppProps {
 }
 
 export const PomonaApp: React.FC<PomonaAppProps> = ({
-  apiClient,
+  apiClient: realApiClient,
   telemetry,
   initialState,
 }) => {
@@ -31,6 +33,80 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     ...initialScanMachineState(),
     ...initialState,
   });
+
+  const [isMockMode, setIsMockMode] = useState<boolean>(() => {
+    try {
+      if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+        const saved = localStorage.getItem("pomona-mock-mode");
+        if (saved !== null) return saved === "true";
+      }
+    } catch {}
+    // If running in Vitest or Playwright with injected mock apiClient, don't force mock mode
+    if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
+      return false;
+    }
+    return true;
+  });
+
+  const [toastMessage, setToastMessage] = useState<string | null>(() => {
+    return isMockMode ? "🧪 Mock Mode ON (Shake device to toggle)" : null;
+  });
+
+  const [mockApiClient] = useState<PomonaApiClient>(() => createMockApiClient());
+  const activeApiClient = isMockMode ? mockApiClient : realApiClient;
+
+  // Shake detection listener
+  useEffect(() => {
+    let lastX: number | null = null;
+    let lastY: number | null = null;
+    let lastZ: number | null = null;
+    let lastTime = 0;
+    const SHAKE_THRESHOLD = 25; // acceleration magnitude threshold
+
+    const handleMotion = (event: DeviceMotionEvent) => {
+      const current = event.accelerationIncludingGravity;
+      if (!current || current.x === null || current.y === null || current.z === null) return;
+
+      const now = Date.now();
+      if (now - lastTime > 100) {
+        const diffTime = now - lastTime;
+        lastTime = now;
+
+        if (lastX !== null && lastY !== null && lastZ !== null) {
+          const deltaX = Math.abs(current.x - lastX);
+          const deltaY = Math.abs(current.y - lastY);
+          const deltaZ = Math.abs(current.z - lastZ);
+          const speed = ((deltaX + deltaY + deltaZ) / diffTime) * 1000;
+
+          if (speed > SHAKE_THRESHOLD) {
+            setIsMockMode((prev) => {
+              const next = !prev;
+              try {
+                localStorage.setItem("pomona-mock-mode", String(next));
+              } catch {}
+              setToastMessage(next ? "🧪 Mock Mode ENABLED" : "🌐 Live Mode (real API) ENABLED");
+              setTimeout(() => setToastMessage(null), 3000);
+              return next;
+            });
+          }
+        }
+
+        lastX = current.x;
+        lastY = current.y;
+        lastZ = current.z;
+      }
+    };
+
+    if (typeof window !== "undefined" && window.DeviceMotionEvent) {
+      window.addEventListener("devicemotion", handleMotion, false);
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("devicemotion", handleMotion);
+      }
+    };
+  }, []);
 
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     try {
@@ -92,7 +168,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
         followUpContext: round > 1 ? buildFollowUpRequestContext(currentState) : null,
       };
 
-      const result = await apiClient.submitScan(request);
+      const result = await activeApiClient.submitScan(request);
       telemetry.capture("scan_completed", { round, status: result.response.status });
       dispatch({ type: "SCAN_SUCCEEDED", response: result.response });
     } catch (err: any) {
@@ -203,5 +279,69 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     }
   };
 
-  return <div className="pomona-root">{renderCurrentStage()}</div>;
+  return (
+    <div className="pomona-root">
+      {renderCurrentStage()}
+
+      {/* Shake / Debug Mock Mode Indicator & Toast */}
+      {toastMessage && (
+        <div
+          role="status"
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            backgroundColor: "rgba(17, 29, 21, 0.92)",
+            color: "#F5D547",
+            padding: "8px 16px",
+            borderRadius: "9999px",
+            fontSize: "13px",
+            fontWeight: 600,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            zIndex: 9999,
+            pointerEvents: "none",
+            textAlign: "center",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          {toastMessage}
+        </div>
+      )}
+
+      {/* Discrete tap target in top right corner to toggle if shake permission is blocked on iOS */}
+      <button
+        type="button"
+        onClick={() => {
+          setIsMockMode((prev) => {
+            const next = !prev;
+            try {
+              localStorage.setItem("pomona-mock-mode", String(next));
+            } catch {}
+            setToastMessage(next ? "🧪 Mock Mode ENABLED" : "🌐 Live Mode (real API) ENABLED");
+            setTimeout(() => setToastMessage(null), 3000);
+            return next;
+          });
+        }}
+        aria-label="Toggle Mock Mode"
+        style={{
+          position: "fixed",
+          top: "14px",
+          right: "72px",
+          zIndex: 80,
+          background: isMockMode ? "rgba(245, 213, 71, 0.2)" : "rgba(0,0,0,0.2)",
+          border: isMockMode ? "1px solid #F5D547" : "1px solid rgba(255,255,255,0.3)",
+          color: isMockMode ? "#F5D547" : "rgba(255,255,255,0.7)",
+          padding: "4px 8px",
+          borderRadius: "12px",
+          fontSize: "11px",
+          fontWeight: 600,
+          cursor: "pointer",
+          backdropFilter: "blur(6px)",
+        }}
+      >
+        {isMockMode ? "🧪 MOCK" : "🌐 LIVE"}
+      </button>
+    </div>
+  );
 };
