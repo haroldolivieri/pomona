@@ -4,8 +4,10 @@ import { bodyLimit } from "hono/body-limit";
 import { getCookie, setCookie } from "hono/cookie";
 import {
   ScanRequestSchema,
+  lookupProduceSeasonality,
   type ScanRequest,
   type ScanResponse,
+  type SeasonalityInfo,
 } from "@pomona/contract";
 import type { Env } from "./types";
 import {
@@ -363,7 +365,24 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
       });
 
       c.header(REMAINING_SCANS_HEADER, recordResult.remainingDeviceScans.toString());
-      return c.json(scanOutcome.response, 200);
+
+      // Deterministic seasonality enrichment: never part of the LLM prompt or model schema.
+      const baseResponse = scanOutcome.response;
+      let seasonality: SeasonalityInfo | null = null;
+      if (baseResponse.status === "ok" && baseResponse.produce?.type) {
+        const cf = (c.req.raw as { cf?: { country?: string; latitude?: string } }).cf;
+        seasonality = lookupProduceSeasonality(
+          baseResponse.produce.type,
+          {
+            cfCountry: cf?.country,
+            cfLatitude: cf?.latitude,
+            locale: scanRequest.locale,
+          },
+          new Date().getUTCMonth() + 1
+        );
+      }
+      return c.json({ ...baseResponse, seasonality } satisfies ScanResponse, 200);
+
     } catch (err: any) {
       // Catch upstream provider rate limits (429) and translate to status: "rate_limited"
       const is429 =
