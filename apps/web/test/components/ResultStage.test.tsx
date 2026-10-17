@@ -91,8 +91,8 @@ describe("ResultStage (Mockup Parity)", () => {
     // Runner-Up badge / tag
     expect(screen.getByTestId("runner-up-tag")).toHaveTextContent("Runner-Up");
 
-    // Eyebrow & Headline & Subhead
-    expect(screen.getByText(/BEST IN VIEW/i)).toBeInTheDocument();
+    // Headline & Subhead (eyebrow removed in S4 to reduce clutter)
+    expect(screen.queryByText(/BEST IN VIEW/i)).not.toBeInTheDocument();
     expect(screen.getByText("Buy it.")).toBeInTheDocument();
     expect(screen.getByText(/High confidence · 3 compared in view/i)).toBeInTheDocument();
 
@@ -110,8 +110,9 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(screen.getByText(/❄️ After cut/i)).toBeInTheDocument();
     expect(screen.getByText("Fridge · wrapped")).toBeInTheDocument();
 
-    // Hint box directly above CTA
+    // Hint box directly above CTA with flip icon
     expect(screen.getByTestId("follow-up-hint")).toHaveTextContent("The blue one could be sweeter. Flip it and snap.");
+    expect(screen.getByTestId("flip-hint-icon")).toBeInTheDocument();
     expect(screen.getByTestId("cta-compare-runner-up")).toBeInTheDocument();
   });
 

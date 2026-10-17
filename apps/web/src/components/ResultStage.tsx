@@ -615,16 +615,16 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           color: "var(--text-primary)",
           borderTopLeftRadius: "26px",
           borderTopRightRadius: "26px",
-          paddingTop: "4px",
-          paddingLeft: "20px",
-          paddingRight: "20px",
+          paddingTop: "2px",
+          paddingLeft: "18px",
+          paddingRight: "18px",
           paddingBottom: isFullyOpen
-            ? "calc(max(24px, env(safe-area-inset-bottom)) + 24px)"
-            : "calc(max(18px, env(safe-area-inset-bottom)) + 8px)",
+            ? "calc(max(20px, env(safe-area-inset-bottom)) + 12px)"
+            : "calc(max(14px, env(safe-area-inset-bottom)) + 4px)",
           zIndex: 15,
           display: "flex",
           flexDirection: "column",
-          gap: "10px",
+          gap: "8px",
           boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.28)",
           transform: isFullyOpen
             ? `translate3d(0, ${Math.max(0, dragOffsetY)}px, 0)`
@@ -682,7 +682,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "10px",
+            gap: "8px",
             touchAction: "none",
             cursor: "pointer",
           }}
@@ -691,7 +691,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           <div
             style={{
               width: "100%",
-              padding: "8px 0 6px 0",
+              padding: "6px 0 3px 0",
               display: "flex",
               justifyContent: "center",
               cursor: "pointer",
@@ -839,23 +839,25 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
         {/* Eyebrow & Headline */}
         <div>
-          <span
-            style={{
-              fontSize: "11px",
-              fontWeight: 700,
-              letterSpacing: "0.12em",
-              color: phase === "S4_InitialResult" ? "var(--text-muted)" : "var(--eyebrow-accent)",
-              textTransform: "uppercase",
-              display: "block",
-              marginBottom: "4px",
-            }}
-          >
-            {eyebrow}
-          </span>
+          {phase !== "S4_InitialResult" && eyebrow && (
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                color: "var(--eyebrow-accent)",
+                textTransform: "uppercase",
+                display: "block",
+                marginBottom: "4px",
+              }}
+            >
+              {eyebrow}
+            </span>
+          )}
           <h1
             className="font-serif"
             style={{
-              fontSize: "32px",
+              fontSize: "30px",
               fontWeight: 700,
               lineHeight: 1.15,
               color: "var(--text-primary)",
@@ -864,14 +866,14 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           >
             {headline}
           </h1>
-          <p style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "4px" }}>
+          <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "2px" }}>
             {subtitle}
           </p>
         </div>
 
         {/* Score Progress Bar */}
         {activeWinner && (
-          <div style={{ margin: "2px 0" }}>
+          <div style={{ margin: "1px 0" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <div
                 style={{
@@ -934,7 +936,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "10px",
+              gap: "8px",
               flex: 1,
             }}
           >
@@ -945,7 +947,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               <span
                 key={idx}
                 style={{
-                  padding: "6px 11px",
+                  padding: "5px 10px",
                   borderRadius: "6px",
                   backgroundColor: "var(--surface-chip)",
                   color: "var(--surface-chip-text)",
@@ -961,14 +963,14 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
         {/* Storage Cards Layout (2 Rows) */}
         {afterPurchase && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "7px", marginTop: "4px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "2px" }}>
             {/* Row 1: Full-width card: 🗓 Eat within (left) — {eatWithinLabel} (right bold) */}
             <div
               style={{
                 backgroundColor: "var(--surface-card)",
                 border: "1px solid var(--surface-card-border)",
-                borderRadius: "14px",
-                padding: "10px 14px",
+                borderRadius: "13px",
+                padding: "8px 12px",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
@@ -976,7 +978,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             >
               <span
                 style={{
-                  fontSize: "11px",
+                  fontSize: "10.5px",
                   fontWeight: 700,
                   letterSpacing: "0.06em",
                   color: "var(--text-muted)",
@@ -985,25 +987,25 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               >
                 {t("result.eatWithin")}
               </span>
-              <strong style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>
+              <strong style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-primary)" }}>
                 {targetResolution?.eatWithinOverride || afterPurchase.eatWithinLabel}
               </strong>
             </div>
 
             {/* Row 2: Two equal side-by-side cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "7px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
               {/* Card 1: 🧺 Before cut */}
               <div
                 style={{
                   backgroundColor: "var(--surface-card)",
                   border: "1px solid var(--surface-card-border)",
-                  borderRadius: "14px",
-                  padding: "10px 12px",
+                  borderRadius: "13px",
+                  padding: "8px 10px",
                 }}
               >
                 <span
                   style={{
-                    fontSize: "10px",
+                    fontSize: "9.5px",
                     fontWeight: 700,
                     letterSpacing: "0.06em",
                     color: "var(--text-muted)",
@@ -1015,10 +1017,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 </span>
                 <strong
                   style={{
-                    fontSize: "13px",
+                    fontSize: "12.5px",
                     fontWeight: 700,
                     display: "block",
-                    marginTop: "4px",
+                    marginTop: "3px",
                     color: "var(--text-primary)",
                   }}
                 >
@@ -1031,13 +1033,13 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 style={{
                   backgroundColor: "var(--surface-card)",
                   border: "1px solid var(--surface-card-border)",
-                  borderRadius: "14px",
-                  padding: "10px 12px",
+                  borderRadius: "13px",
+                  padding: "8px 10px",
                 }}
               >
                 <span
                   style={{
-                    fontSize: "10px",
+                    fontSize: "9.5px",
                     fontWeight: 700,
                     letterSpacing: "0.06em",
                     color: "var(--text-muted)",
@@ -1049,10 +1051,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 </span>
                 <strong
                   style={{
-                    fontSize: "13px",
+                    fontSize: "12.5px",
                     fontWeight: 700,
                     display: "block",
-                    marginTop: "4px",
+                    marginTop: "3px",
                     color: "var(--text-primary)",
                   }}
                 >
@@ -1070,8 +1072,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "10px",
-              padding: "10px 12px",
+              gap: "9px",
+              padding: "9px 12px",
               borderRadius: "12px",
               backgroundColor: "var(--surface-hint-warn)",
               border: "1px solid var(--surface-hint-warn-border)",
@@ -1081,16 +1083,28 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               marginTop: "2px",
             }}
           >
+            {/* Flip / Rotation icon */}
             <span
+              data-testid="flip-hint-icon"
               style={{
-                width: "12px",
-                height: "12px",
-                borderRadius: "3px",
-                border: phase === "S4_InitialResult" ? "2px dashed #2F6DB5" : "2px dashed #C89C14",
+                width: "20px",
+                height: "20px",
+                borderRadius: "50%",
+                backgroundColor: phase === "S4_InitialResult" ? "rgba(47, 109, 181, 0.15)" : "rgba(200, 156, 20, 0.15)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
                 flexShrink: 0,
-                display: "inline-block",
+                color: phase === "S4_InitialResult" ? "#2F6DB5" : "#C89C14",
               }}
-            />
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                <path d="M16 16h5v5" />
+              </svg>
+            </span>
             <span>{followUpHint}</span>
           </div>
         )}
@@ -1134,14 +1148,14 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         )}
 
         {/* Primary Action Button */}
-        <div style={{ marginTop: "auto", paddingTop: "8px" }}>
+        <div style={{ marginTop: "auto", paddingTop: "4px" }}>
           {phase === "S4_InitialResult" && (
             <button
               onClick={onCompareWithRunnerUp}
               data-testid="cta-compare-runner-up"
               style={{
                 width: "100%",
-                padding: "14px",
+                padding: "12px",
                 borderRadius: "14px",
                 border: "none",
                 backgroundColor: "var(--cta-primary)",
@@ -1162,7 +1176,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               data-testid="cta-final-check-first-pick"
               style={{
                 width: "100%",
-                padding: "14px",
+                padding: "12px",
                 borderRadius: "14px",
                 border: "none",
                 backgroundColor: "var(--cta-primary)",
