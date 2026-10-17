@@ -12,6 +12,7 @@
     }
   },
   "scripts": {
+    "dev": "wrangler dev --port 8787",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "build": "tsc"
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "typescript": "^5.8.2",
-    "vitest": "^3.2.7"
+    "vitest": "^3.2.7",
+    "wrangler": "^4.151.1"
   }
 }
