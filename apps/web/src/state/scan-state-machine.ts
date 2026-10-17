@@ -367,6 +367,12 @@ export function scanMachineReducer(
           }
         : state.lastResponse?.followUp ?? null;
 
+      // Update candidates list with target-specific contextual scores so all candidates reflect the target ripeness window
+      const updatedCandidates = state.lastResponse?.candidates.map((c) => {
+        const matchingRanked = resolution.rankedCandidates.find((rc) => rc.id === c.id);
+        return matchingRanked ? { ...c, score: matchingRanked.score } : c;
+      }) ?? state.lastResponse?.candidates ?? [];
+
       return {
         ...state,
         targetRipeness: action.targetRipeness,
@@ -375,6 +381,7 @@ export function scanMachineReducer(
         lastResponse: state.lastResponse
           ? {
               ...state.lastResponse,
+              candidates: updatedCandidates,
               verdict: updatedVerdict,
               followUp: updatedFollowUp,
             }

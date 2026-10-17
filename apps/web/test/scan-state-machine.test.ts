@@ -256,6 +256,11 @@ describe("10-state ScanStateMachine", () => {
     expect(s.firstPick?.id).toBe("c2");
     expect(s.runnerUp?.id).toBe("c1");
     expect(s.firstPick?.score).toBeGreaterThanOrEqual(8.4);
+    // Verify ALL candidates in lastResponse have updated contextual suitability scores
+    const c1InLastResp = s.lastResponse?.candidates.find((c) => c.id === "c1");
+    const c2InLastResp = s.lastResponse?.candidates.find((c) => c.id === "c2");
+    expect(c1InLastResp?.score).toBe(s.runnerUp?.score);
+    expect(c2InLastResp?.score).toBe(s.firstPick?.score);
 
     // Transitioning to S5A preserves targetRipeness and includes it in followUpContext
     s = scanMachineReducer(s, { type: "COMPARE_WITH_RUNNER_UP" });
