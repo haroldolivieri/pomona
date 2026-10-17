@@ -1,5 +1,5 @@
 import React, { useReducer, useState, useEffect } from "react";
-import type { ScanRequest, Point } from "@pomona/contract";
+import type { ScanRequest, Point, ScanResponse } from "@pomona/contract";
 import type { PomonaApiClient } from "./lib/api-client";
 import type { TelemetryProvider } from "./lib/telemetry";
 import {

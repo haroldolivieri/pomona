@@ -6,6 +6,7 @@ import {
   computeObjectFitCoverRect,
   type CropRect,
   type RenderedCoverRect,
+  type NormalizePolygonResult,
 } from "../lib/image-pipeline";
 
 export interface FreehandDrawStageProps {
@@ -28,12 +29,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
   const [points, setPoints] = useState<Point[]>([]);
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const [canAnalyseDrawn, setCanAnalyseDrawn] = useState<boolean>(false);
-  const [normalizedResult, setNormalizedResult] = useState<{
-    valid: boolean;
-    cropRect: CropRect;
-    areaRatio: number;
-    polygonInCrop: Point[];
-  } | null>(null);
+  const [normalizedResult, setNormalizedResult] = useState<NormalizePolygonResult | null>(null);
 
   const updateCoverRect = () => {
     const vp = containerRef.current;
