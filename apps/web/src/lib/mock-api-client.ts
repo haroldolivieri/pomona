@@ -34,7 +34,6 @@ export function createMockApiClient(): PomonaApiClient {
       remainingScans: number;
       response: ScanResponse;
     }> {
-      mockRemainingScans = Math.max(0, mockRemainingScans - 1);
       // Simulate natural AI latency (800ms)
       await new Promise((resolve) => setTimeout(resolve, 800));
 
@@ -48,7 +47,7 @@ export function createMockApiClient(): PomonaApiClient {
 
       if (forcedError === "unclear_photo") {
         return {
-          remainingScans: 9,
+          remainingScans: mockRemainingScans, // Errors do not burn daily quota
           response: {
             schemaVersion: "1.0",
             promptVersion: "v1",
@@ -67,7 +66,7 @@ export function createMockApiClient(): PomonaApiClient {
 
       if (forcedError === "no_produce") {
         return {
-          remainingScans: 9,
+          remainingScans: mockRemainingScans, // Errors do not burn daily quota
           response: {
             schemaVersion: "1.0",
             promptVersion: "v1",
@@ -84,11 +83,14 @@ export function createMockApiClient(): PomonaApiClient {
         };
       }
 
+      // Successful scans decrement daily scan quota
+      mockRemainingScans = Math.max(0, mockRemainingScans - 1);
+
       if (request.round === 1) {
         // Round 1 mock: Watermelon pile with 2 candidates (winner & runner-up)
         // If focusPolygon was drawn, candidates fit inside it or central crop
         return {
-          remainingScans: 9,
+          remainingScans: mockRemainingScans,
           response: {
             schemaVersion: "1.0",
             promptVersion: "v1",
@@ -158,7 +160,7 @@ export function createMockApiClient(): PomonaApiClient {
       if (request.round === 2) {
         // Round 2 mock: Runner-Up took the lead (9.0 beats 8.6)
         return {
-          remainingScans: 8,
+          remainingScans: mockRemainingScans,
           response: {
             schemaVersion: "1.0",
             promptVersion: "v1",
@@ -219,7 +221,7 @@ export function createMockApiClient(): PomonaApiClient {
 
       // Round 3 mock: 1st Winner reclaims the win (9.3 beats 9.0)
       return {
-        remainingScans: 7,
+        remainingScans: mockRemainingScans,
         response: {
           schemaVersion: "1.0",
           promptVersion: "v1",
