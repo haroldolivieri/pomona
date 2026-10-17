@@ -289,8 +289,12 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     render(<PomonaApp apiClient={apiClient as any} telemetry={createNoopTelemetry()} />);
 
     fireEvent.click(screen.getByTestId("shutter-button"));
+    expect(await screen.findByTestId("stage-S2_DrawFocusArea")).toBeTruthy();
     fireEvent.click(await screen.findByTestId("whole-photo-button"));
     expect(await screen.findByTestId("stage-S4_InitialResult")).toBeTruthy();
+
+    // Expand bottom sheet to see seasonality strip
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
     expect(screen.getByTestId("seasonality-badge").textContent).toContain(seasonality.badgeText);
 
     fireEvent.click(screen.getByTestId("origin-pill-PE"));
@@ -299,10 +303,14 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     // Reset and scan again: nothing is pre-selected
     fireEvent.click(screen.getByTestId("close-button"));
     fireEvent.click(await screen.findByTestId("shutter-button"));
+    expect(await screen.findByTestId("stage-S2_DrawFocusArea")).toBeTruthy();
     fireEvent.click(await screen.findByTestId("whole-photo-button"));
     expect(await screen.findByTestId("stage-S4_InitialResult")).toBeTruthy();
+
+    // Expand bottom sheet again
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
     expect(screen.getByTestId("origin-pill-PE").getAttribute("aria-pressed")).toBe("false");
     expect(screen.getByTestId("seasonality-badge").textContent).toContain(seasonality.badgeText);
   });
-  });
 });
+

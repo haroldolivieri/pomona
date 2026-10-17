@@ -770,7 +770,6 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               touchAction: "none",
             }}
           >
-<<<<<<< HEAD
             {(
               [
                 { id: "ready_now", label: "Ready now", sub: "Peak ripe", dot: "#16A34A" },
