@@ -144,12 +144,12 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     activeRunnerUp = runnerUp;
     if (targetResolution) {
       eyebrow = targetResolution.eyebrow;
-      headline = targetResolution.headline;
+      headline = targetResolution.headline === "Buy it." ? "Best available." : targetResolution.headline;
       subtitle = targetResolution.subtitle;
       followUpHint = targetResolution.followUpHintOverride || followUp?.bannerText || "The blue one could be sweeter. Flip it and snap.";
     } else {
       eyebrow = "BEST IN VIEW";
-      headline = "Buy it.";
+      headline = "Best available.";
       subtitle = `High confidence · ${candidateCount} compared in view`;
       followUpHint = followUp?.bannerText || "The blue one could be sweeter. Flip it and snap.";
     }
@@ -160,7 +160,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     const score1 = winnerScoreStr(firstPick?.score);
     const score2 = winnerScoreStr(runnerUp?.score);
     eyebrow = `✓ 1ST WINNER WINS · BEATS RUNNER-UP (${score1} VS ${score2})`;
-    headline = "Buy your 1st winner.";
+    headline = "Best available.";
     subtitle = "Your initial winner in the yellow box remains the best produce.";
     confirmationBanner = `Runner-Up scored ${score2} after flip (${runnerUp?.flipSummary || "inspected"}). Stick with your initial 1st winner in the yellow box.`;
     prevMarkScore = runnerUp?.score ?? null;
@@ -182,7 +182,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     const score1 = winnerScoreStr(firstPick?.score);
     const score2 = winnerScoreStr(runnerUp?.score);
     eyebrow = `★ FINAL VERDICT · 1ST WINNER RECLAIMS THE WIN (${score1} VS ${score2})`;
-    headline = "Buy your 1st winner.";
+    headline = "Best available.";
     subtitle = `After checking both sides, your original 1st winner won overall (${score1} vs ${score2}).`;
     confirmationBanner = `After flipping your 1st winner, its final score reached ${score1}, beating the Runner-Up (${score2}). Take your original winner!`;
     prevMarkScore = runnerUp?.score ?? null;

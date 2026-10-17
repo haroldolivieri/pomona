@@ -93,7 +93,7 @@ describe("ResultStage (Mockup Parity)", () => {
 
     // Headline & Subhead (eyebrow removed in S4 to reduce clutter)
     expect(screen.queryByText(/BEST IN VIEW/i)).not.toBeInTheDocument();
-    expect(screen.getByText("Buy it.")).toBeInTheDocument();
+    expect(screen.getByText("Best available.")).toBeInTheDocument();
     expect(screen.getByText(/High confidence · 3 compared in view/i)).toBeInTheDocument();
 
     // Score meter (visible at min-height)
@@ -140,7 +140,7 @@ describe("ResultStage (Mockup Parity)", () => {
 
     // Eyebrow & headline
     expect(screen.getByText(/✓ 1ST WINNER WINS · BEATS RUNNER-UP \(8\.6 VS 7\.2\)/i)).toBeInTheDocument();
-    expect(screen.getByText("Buy your 1st winner.")).toBeInTheDocument();
+    expect(screen.getByText("Best available.")).toBeInTheDocument();
 
     // Tick marker on meter for previous/other candidate score (7.2 -> 72%)
     const tick = screen.getByTestId("score-prev-mark");
@@ -235,7 +235,7 @@ describe("ResultStage (Mockup Parity)", () => {
 
     const { rerender } = render(<ResultStage state={stateS7A} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} />);
     expect(screen.getByText(/★ FINAL VERDICT · 1ST WINNER RECLAIMS THE WIN \(9\.3 VS 9\.0\)/i)).toBeInTheDocument();
-    expect(screen.getByText("Buy your 1st winner.")).toBeInTheDocument();
+    expect(screen.getByText("Best available.")).toBeInTheDocument();
     expect(screen.getByTestId("winner-score-badge")).toHaveTextContent("9.3");
     expect(screen.getByTestId("score-prev-mark")).toHaveStyle({ left: "90%" });
 

@@ -172,7 +172,7 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     // S4: Initial Result (shows up to ripeness bar at min height)
     const s4Stage = page.getByTestId("stage-S4_InitialResult");
     await expect(s4Stage).toBeVisible();
-    await expect(page.getByText("Buy it.")).toBeVisible();
+    await expect(page.getByText("Best available.")).toBeVisible();
 
     // Expand bottom sheet to see full storage details and action button
     await page.getByTestId("sheet-drag-area").click();
@@ -247,7 +247,7 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     // Snap flipped produce -> S5B1_RunnerUpBeaten
     await page.getByTestId("flip-shutter-button").click();
     await expect(page.getByTestId("stage-S5B1_RunnerUpBeaten")).toBeVisible();
-    await expect(page.getByText("Buy your 1st winner.")).toBeVisible();
+    await expect(page.getByText("Best available.")).toBeVisible();
 
     // Expand sheet to view confirmation banner and scan-another CTA
     await page.getByTestId("sheet-drag-area").click();
@@ -316,7 +316,7 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     await page.getByTestId("flip-shutter-button").click();
     await expect(page.getByTestId("stage-S7A_FirstPickWonFinal")).toBeVisible();
     await expect(page.getByText(/1st Winner Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeVisible();
-    await expect(page.getByText("Buy your 1st winner.")).toBeVisible();
+    await expect(page.getByText("Best available.")).toBeVisible();
 
     // Expand bottom sheet to access scan-another CTA
     await page.getByTestId("sheet-drag-area").click();
