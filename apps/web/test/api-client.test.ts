@@ -57,4 +57,35 @@ describe("createFetchApiClient", () => {
       "Scan request failed (502): Bad Gateway Error from Upstream"
     );
   });
+
+  it("returns { remainingScans, response } on successful scan", async () => {
+    const mockScanResponse = {
+      schemaVersion: "1.0",
+      promptVersion: "v1",
+      modelId: "gemini-2.5-flash",
+      round: 1,
+      status: "ok",
+      produce: { name: "Avocado", variety: "Hass" },
+      candidates: [],
+      verdict: null,
+      followUp: null,
+      afterPurchase: null,
+    };
+
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: {
+        get: (header: string) => (header === "X-Pomona-Remaining-Scans" ? "8" : null),
+      },
+      json: async () => mockScanResponse,
+    });
+
+    const client = createFetchApiClient("http://localhost:8787");
+    const result = await client.submitScan(dummyRequest);
+
+    expect(result.remainingScans).toBe(8);
+    expect(result.response).toEqual(mockScanResponse);
+    expect(result.response.status).toBe("ok");
+  });
 });

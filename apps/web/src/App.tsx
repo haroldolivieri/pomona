@@ -191,8 +191,13 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
       };
 
       const result = await activeApiClient.submitScan(request);
-      telemetry.capture("scan_completed", { round, status: result.response.status });
-      dispatch({ type: "SCAN_SUCCEEDED", response: result.response });
+      const scanResponse: ScanResponse =
+        result && typeof result === "object" && "response" in result && (result as any).response
+          ? (result as any).response
+          : (result as unknown as ScanResponse);
+
+      telemetry.capture("scan_completed", { round, status: scanResponse.status });
+      dispatch({ type: "SCAN_SUCCEEDED", response: scanResponse });
     } catch (err: any) {
       console.error("[scan:failed]", err);
       telemetry.captureException(err, { round });

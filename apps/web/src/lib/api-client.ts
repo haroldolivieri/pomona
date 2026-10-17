@@ -54,7 +54,13 @@ export function createFetchApiClient(baseUrl: string = ""): PomonaApiClient {
         console.error(`[api-client] Scan request failed (${res.status}): ${errorDetail}`);
         throw new Error(`Scan request failed (${res.status}): ${errorDetail || "Unknown error"}`);
       }
-      return res.json();
+      const scanResponse: ScanResponse = await res.json();
+      const remainingHeader = res.headers?.get?.("X-Pomona-Remaining-Scans");
+      const parsedRemaining = remainingHeader ? parseInt(remainingHeader, 10) : 10;
+      return {
+        remainingScans: isNaN(parsedRemaining) ? 10 : parsedRemaining,
+        response: scanResponse,
+      };
     },
   };
 }
