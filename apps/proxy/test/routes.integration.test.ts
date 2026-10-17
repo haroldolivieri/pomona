@@ -198,4 +198,52 @@ describe("Hono Worker routes (/api/v1/quota & /api/v1/scan)", () => {
     );
     expect(thirdRes.headers.get("X-Pomona-Device-Token")).toBe(issuedToken);
   });
+
+  it("POST /api/v1/quota/override overrides quota for the calling device only", async () => {
+    const store = createInMemoryQuotaStore();
+    const app = createProxyApp({ quotaStore: store });
+
+    // Initial request gets device token
+    const initRes = await app.request("/api/v1/quota", { method: "GET" }, env);
+    const token = initRes.headers.get("X-Pomona-Device-Token");
+    expect(token).toBeTruthy();
+
+    // Override remaining scans to 3 for this device
+    const overrideRes = await app.request(
+      "/api/v1/quota/override",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Pomona-Device-Token": token!,
+        },
+        body: JSON.stringify({ remainingScans: 3 }),
+      },
+      env
+    );
+    expect(overrideRes.status).toBe(200);
+    const overrideBody = await overrideRes.json();
+    expect(overrideBody).toMatchObject({
+      success: true,
+      remainingDeviceScans: 3,
+    });
+    expect(overrideRes.headers.get("X-Pomona-Remaining-Scans")).toBe("3");
+
+    // Subsequent GET /api/v1/quota returns 3 for this device
+    const checkRes = await app.request(
+      "/api/v1/quota",
+      {
+        method: "GET",
+        headers: { "X-Pomona-Device-Token": token! },
+      },
+      env
+    );
+    const checkBody = await checkRes.json();
+    expect(checkBody.remainingDeviceScans).toBe(3);
+
+    // Another device without this token still gets full 10 scans
+    const otherRes = await app.request("/api/v1/quota", { method: "GET" }, env);
+    const otherBody = await otherRes.json();
+    expect(otherBody.remainingDeviceScans).toBe(10);
+  });
 });

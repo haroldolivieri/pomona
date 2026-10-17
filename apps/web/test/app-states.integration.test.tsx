@@ -107,6 +107,7 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
 
     const apiClient = {
       getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
+      overrideQuota: vi.fn().mockResolvedValue({ success: true, deviceId: "d1", deviceLimit: 10, remainingDeviceScans: 10 }),
       submitScan: mockScan,
     };
 
@@ -152,6 +153,7 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
   it("transitions into S_ScanError and displays detailed error message when scan fails", async () => {
     const mockClient = {
       getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
+      overrideQuota: vi.fn().mockResolvedValue({ success: true, deviceId: "d1", deviceLimit: 10, remainingDeviceScans: 10 }),
       submitScan: vi.fn().mockRejectedValue(new Error("Scan request failed (413): Request body too large")),
     };
 
@@ -210,6 +212,10 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
 
     const apiClient = {
       getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
+      overrideQuota: vi.fn().mockImplementation(async (params: any) => {
+        const remaining = typeof params === "number" ? params : params.remainingScans ?? 10;
+        return { success: true, deviceId: "d1", deviceLimit: 10, remainingDeviceScans: remaining };
+      }),
       submitScan: mockScan,
     };
 

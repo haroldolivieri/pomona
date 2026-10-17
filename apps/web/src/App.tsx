@@ -52,64 +52,6 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     ...initialState,
   });
 
-  const [remainingScans, setRemainingScans] = useState<number>(() => {
-    if (typeof initialRemainingScans === "number") {
-      return initialRemainingScans;
-    }
-    try {
-      if (typeof window !== "undefined" && typeof window.location !== "undefined") {
-        const params = new URLSearchParams(window.location.search);
-        const scansParam = params.get("scans");
-        if (scansParam !== null) {
-          const parsed = parseInt(scansParam, 10);
-          if (!isNaN(parsed) && parsed >= 0) return parsed;
-        }
-      }
-      if (typeof localStorage !== "undefined") {
-        const override = localStorage.getItem("pomona-scans-override");
-        if (override !== null) {
-          const parsed = parseInt(override, 10);
-          if (!isNaN(parsed) && parsed >= 0) return parsed;
-        }
-        const saved = localStorage.getItem("pomona-scans-remaining");
-        if (saved !== null) {
-          const parsed = parseInt(saved, 10);
-          if (!isNaN(parsed) && parsed >= 0) return parsed;
-        }
-      }
-    } catch {}
-    return 10;
-  });
-
-  const updateRemainingScans = (count: number) => {
-    const safeCount = Math.max(0, count);
-    setRemainingScans(safeCount);
-    try {
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem("pomona-scans-remaining", String(safeCount));
-        localStorage.setItem("pomona-scans-override", String(safeCount));
-      }
-    } catch {}
-  };
-
-  const handleQuotaPrompt = () => {
-    if (typeof window === "undefined" || typeof window.prompt !== "function") return;
-    const current = remainingScans;
-    const val = window.prompt("Set remaining scans (currently " + current + "):", String(current));
-    if (val !== null) {
-      const parsed = parseInt(val.trim(), 10);
-      if (!isNaN(parsed) && parsed >= 0) {
-        updateRemainingScans(parsed);
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      (window as any).__setRemainingScans = updateRemainingScans;
-    }
-  }, []);
-
   // Debug mock mode is strictly active only during development (import.meta.env.DEV)
   // or when explicitly enabled via enableDebugOverride (e.g. in targeted tests)
   const isDevMode = Boolean(enableDebugOverride ?? (import.meta.env?.DEV));
@@ -130,6 +72,82 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
 
   const [mockApiClient] = useState<PomonaApiClient>(() => createMockApiClient());
   const activeApiClient = isDevMode && isMockMode ? mockApiClient : realApiClient;
+
+  const [remainingScans, setRemainingScans] = useState<number>(initialRemainingScans ?? 10);
+
+  useEffect(() => {
+    // Check if URL has ?scans=N to override backend limit for this device
+    if (typeof window !== "undefined" && typeof window.location !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const scansParam = params.get("scans");
+      if (scansParam !== null) {
+        const parsed = parseInt(scansParam, 10);
+        if (!isNaN(parsed) && parsed >= 0) {
+          activeApiClient
+            .overrideQuota({ remainingScans: parsed })
+            .then((res) => {
+              if (typeof res?.remainingDeviceScans === "number") {
+                setRemainingScans(res.remainingDeviceScans);
+              }
+            })
+            .catch((err) => console.warn("[quota] Failed to override backend quota:", err));
+          return;
+        }
+      }
+    }
+
+    // Authoritative backend quota for this device
+    activeApiClient
+      .getQuota()
+      .then((info) => {
+        if (typeof info?.remainingDeviceScans === "number") {
+          setRemainingScans(info.remainingDeviceScans);
+        }
+      })
+      .catch((err) => console.warn("[quota] Failed to fetch quota from backend:", err));
+  }, [activeApiClient]);
+
+  const handleQuotaPrompt = () => {
+    if (typeof window === "undefined" || typeof window.prompt !== "function") return;
+    const current = remainingScans;
+    const val = window.prompt(
+      "Set backend scan quota for this device (currently " + current + "):",
+      String(current)
+    );
+    if (val !== null) {
+      const parsed = parseInt(val.trim(), 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        activeApiClient
+          .overrideQuota({ remainingScans: parsed })
+          .then((res) => {
+            if (typeof res?.remainingDeviceScans === "number") {
+              setRemainingScans(res.remainingDeviceScans);
+            }
+          })
+          .catch((err) => {
+            console.error("[quota] Failed to override quota on backend:", err);
+            if (typeof window.alert === "function") {
+              window.alert("Could not update backend quota: " + err.message);
+            }
+          });
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).__setRemainingScans = (count: number) => {
+        activeApiClient
+          .overrideQuota({ remainingScans: count })
+          .then((res) => {
+            if (typeof res?.remainingDeviceScans === "number") {
+              setRemainingScans(res.remainingDeviceScans);
+            }
+          })
+          .catch(console.error);
+      };
+    }
+  }, [activeApiClient]);
 
   // Shake detection listener: only mounted in development / debug mode
   useEffect(() => {
@@ -256,16 +274,10 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
           ? (result as any).response
           : (result as unknown as ScanResponse);
 
-      // Decrement remaining scans on scan execution
-      setRemainingScans((prev) => {
-        const next = Math.max(0, prev - 1);
-        try {
-          if (typeof localStorage !== "undefined") {
-            localStorage.setItem("pomona-scans-remaining", String(next));
-          }
-        } catch {}
-        return next;
-      });
+      // Update authoritative remaining scans returned by backend
+      if (typeof result?.remainingScans === "number") {
+        setRemainingScans(result.remainingScans);
+      }
 
       telemetry.capture("scan_completed", { round, status: scanResponse.status });
       dispatch({ type: "SCAN_SUCCEEDED", response: scanResponse });

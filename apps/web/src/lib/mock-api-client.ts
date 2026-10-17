@@ -2,11 +2,31 @@ import type { ScanRequest, ScanResponse } from "@pomona/contract";
 import type { PomonaApiClient, QuotaInfo } from "./api-client";
 
 export function createMockApiClient(): PomonaApiClient {
+  let mockRemainingScans = 10;
+
   return {
     async getQuota(): Promise<QuotaInfo> {
       return {
-        remainingDeviceScans: 10,
+        remainingDeviceScans: mockRemainingScans,
         budgetOpen: true,
+      };
+    },
+
+    async overrideQuota(
+      params: { remainingScans?: number; deviceDailyLimit?: number; reset?: boolean } | number
+    ) {
+      if (typeof params === "number") {
+        mockRemainingScans = Math.max(0, params);
+      } else if (params.reset) {
+        mockRemainingScans = 10;
+      } else if (typeof params.remainingScans === "number") {
+        mockRemainingScans = Math.max(0, params.remainingScans);
+      }
+      return {
+        success: true,
+        deviceId: "mock-device-id",
+        deviceLimit: 10,
+        remainingDeviceScans: mockRemainingScans,
       };
     },
 
@@ -14,6 +34,7 @@ export function createMockApiClient(): PomonaApiClient {
       remainingScans: number;
       response: ScanResponse;
     }> {
+      mockRemainingScans = Math.max(0, mockRemainingScans - 1);
       // Simulate natural AI latency (800ms)
       await new Promise((resolve) => setTimeout(resolve, 800));
 

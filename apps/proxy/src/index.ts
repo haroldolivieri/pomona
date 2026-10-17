@@ -14,6 +14,7 @@ import {
   createInMemoryQuotaStore,
   checkQuotaAndSelectModel,
   recordScanOutcome,
+  formatDateKey,
   formatMonthKey,
   MONTHLY_HARD_CAP_MICRO_CENTS,
 } from "./quota/budget";
@@ -86,7 +87,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
     "*",
     cors({
       origin: (origin) => origin || "*",
-      allowHeaders: ["Content-Type", DEVICE_TOKEN_HEADER, "Cookie"],
+      allowHeaders: ["Content-Type", DEVICE_TOKEN_HEADER, "Cookie", "X-Pomona-Quota-Override"],
       exposeHeaders: [DEVICE_TOKEN_HEADER, REMAINING_SCANS_HEADER],
       allowMethods: ["GET", "POST", "OPTIONS"],
       credentials: true,
@@ -141,6 +142,66 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
   }
 
   /**
+   * POST /api/v1/quota/override
+   * Tester endpoint: override backend quota / remaining scans for this device only.
+   */
+  app.post("/api/v1/quota/override", async (c) => {
+    const { deviceId, token } = await resolveDeviceIdentity(c);
+    applyDeviceTokenHeaders(c, token);
+
+    let body: any = {};
+    try {
+      body = await c.req.json();
+    } catch {
+      // Body is optional; query params also supported
+    }
+
+    const scansParam = c.req.query("scans") ?? body.remainingScans;
+    const limitParam = c.req.query("limit") ?? body.deviceDailyLimit;
+    const reset = c.req.query("reset") === "true" || body.reset === true;
+
+    const store = resolveQuotaStore(c.env, deps.quotaStore);
+    const dateStr = formatDateKey(new Date());
+
+    if (reset) {
+      await store.setDailyDeviceCount(deviceId, dateStr, 0);
+      await store.setDeviceDailyLimit(deviceId, null);
+    } else if (typeof scansParam !== "undefined" && scansParam !== null) {
+      const parsedScans = typeof scansParam === "number" ? scansParam : parseInt(String(scansParam), 10);
+      if (!isNaN(parsedScans) && parsedScans >= 0) {
+        if (parsedScans > 10) {
+          await store.setDeviceDailyLimit(deviceId, parsedScans);
+          await store.setDailyDeviceCount(deviceId, dateStr, 0);
+        } else {
+          const customLimit = await store.getDeviceDailyLimit(deviceId);
+          const limit = customLimit ?? 10;
+          await store.setDailyDeviceCount(deviceId, dateStr, Math.max(0, limit - parsedScans));
+        }
+      }
+    } else if (typeof limitParam !== "undefined" && limitParam !== null) {
+      const parsedLimit = typeof limitParam === "number" ? limitParam : parseInt(String(limitParam), 10);
+      if (!isNaN(parsedLimit) && parsedLimit >= 0) {
+        await store.setDeviceDailyLimit(deviceId, parsedLimit);
+      }
+    }
+
+    const customLimit = await store.getDeviceDailyLimit(deviceId);
+    const activeLimit = customLimit ?? (c.env.DEVICE_DAILY_LIMIT ? parseInt(c.env.DEVICE_DAILY_LIMIT, 10) : 10);
+    const deviceCount = await store.getDailyDeviceCount(deviceId, dateStr);
+    const remainingDeviceScans = Math.max(0, activeLimit - deviceCount);
+
+    c.header(REMAINING_SCANS_HEADER, remainingDeviceScans.toString());
+
+    return c.json({
+      success: true,
+      deviceId,
+      deviceLimit: activeLimit,
+      remainingDeviceScans,
+      isTesterOverride: customLimit !== null || deviceCount !== 0,
+    });
+  });
+
+  /**
    * GET /api/v1/quota
    */
   app.get("/api/v1/quota", async (c) => {
@@ -149,6 +210,24 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
 
     const store = resolveQuotaStore(c.env, deps.quotaStore);
     const ip = getClientIp(c.req.raw);
+
+    // Support query param ?scans=N or header for test override
+    const overrideHeader = c.req.header("X-Pomona-Quota-Override");
+    const queryScans = c.req.query("scans") ?? overrideHeader;
+    if (queryScans) {
+      const parsed = parseInt(queryScans, 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        const dateStr = formatDateKey(new Date());
+        if (parsed > 10) {
+          await store.setDeviceDailyLimit(deviceId, parsed);
+          await store.setDailyDeviceCount(deviceId, dateStr, 0);
+        } else {
+          const customLimit = await store.getDeviceDailyLimit(deviceId);
+          const limit = customLimit ?? 10;
+          await store.setDailyDeviceCount(deviceId, dateStr, Math.max(0, limit - parsed));
+        }
+      }
+    }
 
     const parsedDeviceLimit = c.env.DEVICE_DAILY_LIMIT ? parseInt(c.env.DEVICE_DAILY_LIMIT, 10) : undefined;
     const quotaResult = await checkQuotaAndSelectModel(store, {
