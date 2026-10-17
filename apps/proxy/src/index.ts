@@ -285,7 +285,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
 
     const scanRequest: ScanRequest = parseResult.data;
     console.log(
-      `[proxy] Scan request valid: round ${scanRequest.round}, mime: ${scanRequest.imageMimeType}, base64 length: ${scanRequest.imageBase64.length} chars`
+      `[proxy] Scan request valid: round ${scanRequest.round}, mime: ${scanRequest.imageMimeType}, base64 length: ${scanRequest.imageBase64.length} chars, focusPolygon: ${scanRequest.focusPolygon ? `${scanRequest.focusPolygon.length} pts` : "null"}`
     );
     const store = resolveQuotaStore(c.env, deps.quotaStore);
     const ip = getClientIp(c.req.raw);

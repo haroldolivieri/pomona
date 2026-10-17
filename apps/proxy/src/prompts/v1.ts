@@ -44,20 +44,20 @@ BOUNDING BOX & UNIT OF PURCHASE (CRITICAL):
 - UNIT OF PURCHASE DETERMINATION:
   1. Loose Produce (e.g. loose watermelons, loose avocados, single loose apples/oranges): Bounding boxes must tightly bound each individual fruit/vegetable.
   2. Bunched / Clustered Produce (e.g. bananas in a bunch/hand, vine tomatoes, herb bunches): Bounding boxes must tightly bound each BUNCH or CLUSTER as a single candidate unit. NEVER place bounding boxes on individual bananas inside a bunch.
-  3. Packaged / Bagged / Punneted / Boxed Produce (e.g. bananas in plastic bags or bag-lined crates, punnets/clamshells of berries/grapes, netted/plastic bags of carrots, baking potatoes, onions):
-     - If produce is enclosed in a plastic bag, netted bag, punnet, clamshell, or container, the ENTIRE BAG or PACK is the candidate unit!
-     - The bounding box MUST enclose the whole bag/pack/bunch, NOT an individual carrot, potato, or banana inside or outside the bag.
-     - OVERLAPPING / STACKED PACKS IN CRATES (CRITICAL): When multiple bags/packs are stacked or overlapping in display crates, detect distinct individual bags that are prominently visible in the foreground.
-     - Each candidate bounding box MUST tightly enclose ONE distinct bag (including its label/clip/tie).
-     - NEVER draw a box that cuts through the middle of a bag or groups multiple overlapping bags into a single box.
-     - Bounding boxes of different candidates must NOT heavily intersect each other.
-     - Evaluate and grade each pack/bag as an entirety (e.g. look for condensation, uniform size, spoilage, damaged packaging, overall freshness).
-  - The followUp instruction and flip headline for packs/bunches must refer to inspecting the pack or bunch (e.g. "Flip the carrot bag over", "Turn the potato pack over to check bottom").
+  3. Packaged / Bagged / Punneted / Boxed Produce (e.g. berries in plastic punnets/clamshells, netted/sealed bags of carrots, baking potatoes, onions):
+     - If produce is sealed or sold in a retail pre-pack (such as a plastic clamshell of berries, a sealed bag of onions/carrots with a barcode/label), the ENTIRE pre-pack is the candidate unit.
+     - OPEN DISPLAY BASKETS / CRATES OF LOOSE PRODUCE (CRITICAL): When produce (such as loose tomatoes, loose plums, loose peppers, loose citrus) is piled loose in an open cardboard punnet, wooden tray, display basket, or bulk crate:
+       - The customer is picking individual fruits/vegetables, OR comparing individual tomatoes inside that basket!
+       - NEVER treat the entire crate or basket as one giant single candidate when individual produce items are clearly visible.
+       - Each candidate bounding box MUST tightly surround an INDIVIDUAL fruit/vegetable (e.g. an individual tomato).
+       - When a user draws a \`focusPolygon\` around a group of fruits or inside a basket, detect and grade INDIVIDUAL produce items (e.g. 2 to 6 individual tomatoes) inside that drawn area so the user can choose the best individual one!
+     - OVERLAPPING / STACKED PACKS IN CRATES: When sealed retail pre-packs/bags are stacked, detect distinct individual packs. Each candidate bounding box must tightly enclose ONE distinct bag/pack.
+  - The followUp instruction and flip headline must refer to inspecting the specific produce item or pack.
 
 FOCUS POLYGON CONSTRAINT:
 - ${polygonInfo}
 - Note coordinate order: \`focusPolygon\` points are \`[x, y]\` (horizontal x first, vertical y second), whereas candidate \`box\` is \`[ymin, xmin, ymax, xmax]\` (vertical y first, horizontal x second).
-- When a focusPolygon is provided, you MUST include every visible produce item whose center point lies inside the polygon, and exclude any item outside it.
+- When a focusPolygon is provided, you MUST include every visible produce item whose center point lies inside the polygon, and exclude any item outside it. Detect individual fruits/vegetables inside the polygon rather than grouping them together.
 
 MULTI-ROUND FLIP WORKFLOW:
 - Round 1: Identify produce type (lowercase slug, e.g. "watermelon", "avocado", "pineapple") and displayName. Score all visible candidates inside the focus area (c1, c2, etc.) on the 0.0–10.0 scale. The highest scoring candidate is winnerId. If a second candidate exists, set runnerUpId and provide a non-null \`followUp\` targeting the runner-up. If only 1 item exists in the frame, runnerUpId and followUp MUST be null.
@@ -94,7 +94,8 @@ export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[])
 
   if (request.round === 1) {
     if (request.focusPolygon && request.focusPolygon.length >= 3) {
-      prompt += `\nUser drew a focusPolygon: ${describeFocusPolygonBounds(request.focusPolygon)} Detect and grade ALL produce items inside this region (both left and right items inside the y/x bounds), and ignore any item outside it.`;
+      prompt += `\nUser drew a focusPolygon: ${describeFocusPolygonBounds(request.focusPolygon)}
+CRITICAL: Detect and grade the INDIVIDUAL produce items (e.g. distinct individual tomatoes, fruits, or vegetables) inside this drawn region. Do NOT group multiple loose fruits into a single candidate box or treat the container/crate as a single candidate. Exclude any produce outside the drawn region.`;
     } else {
       prompt += `\nEvaluate all visible produce candidates in the image.`;
     }
