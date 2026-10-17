@@ -1148,7 +1148,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         )}
 
         {/* Primary Action Button */}
-        <div style={{ marginTop: "auto", paddingTop: "4px" }}>
+        <div style={{ paddingTop: "6px" }}>
           {phase === "S4_InitialResult" && (
             <button
               onClick={onCompareWithRunnerUp}
