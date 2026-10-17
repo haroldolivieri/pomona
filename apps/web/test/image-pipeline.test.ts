@@ -3,6 +3,7 @@ import {
   normalizeFreehandPolygon,
   remapBoxFromCropToFrame,
   computeScaledDimensions,
+  downsampleDataUrl,
 } from "../src/lib/image-pipeline";
 import { describeBoxPosition } from "../src/lib/spatial-a11y";
 
@@ -54,5 +55,12 @@ describe("image-pipeline & spatial-a11y", () => {
     expect(describeBoxPosition([50, 700, 250, 950], "Runner-Up", 8.1)).toBe(
       "Runner-Up: top row, right, score 8.1 out of 10"
     );
+  });
+
+  it("downsamples data URLs gracefully and extracts base64 without prefix", async () => {
+    const rawDataUrl = "data:image/jpeg;base64,VGhpcyBpcyBhIHRlc3Q=";
+    const { base64, mimeType } = await downsampleDataUrl(rawDataUrl, 768);
+    expect(base64).toBe("VGhpcyBpcyBhIHRlc3Q=");
+    expect(mimeType).toBe("image/jpeg");
   });
 });

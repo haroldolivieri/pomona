@@ -142,4 +142,35 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     expect(await screen.findByTestId("stage-S7A_FirstPickWonFinal")).toBeTruthy();
     expect(screen.getByText(/1st Pick Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeTruthy();
   }, 25000);
+
+  it("transitions into S_ScanError and displays detailed error message when scan fails", async () => {
+    const mockClient = {
+      getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
+      submitScan: vi.fn().mockRejectedValue(new Error("Scan request failed (413): Request body too large")),
+    };
+
+    render(
+      <PomonaApp
+        apiClient={mockClient as any}
+        telemetry={createNoopTelemetry()}
+        enableDebugOverride={false}
+      />
+    );
+
+    // Initial state: S1_LiveCamera -> capture
+    fireEvent.click(screen.getByTestId("shutter-button"));
+    expect(await screen.findByTestId("stage-S2_DrawFocusArea")).toBeTruthy();
+
+    // S2 -> Whole Photo -> triggers scan which rejects
+    fireEvent.click(screen.getByTestId("whole-photo-button"));
+
+    // Should transition to S_ScanError with error message displayed
+    expect(await screen.findByTestId("stage-S_ScanError")).toBeTruthy();
+    expect(screen.getByText("Scan request failed (413): Request body too large")).toBeTruthy();
+    expect(screen.getByTestId("error-primary-cta")).toBeTruthy();
+
+    // Clicking primary CTA resets back to camera
+    fireEvent.click(screen.getByTestId("error-primary-cta"));
+    expect(await screen.findByTestId("stage-S1_LiveCamera")).toBeTruthy();
+  });
 });

@@ -137,6 +137,34 @@ describe("Hono Worker routes (/api/v1/quota & /api/v1/scan)", () => {
       env
     );
     expect(res.status).toBe(413);
+    const errBody = await res.json();
+    expect(errBody.error).toMatch(/Maximum size is 500 KB/i);
+  });
+
+  it("rejects scan requests with non-UUID sessionId with status 400", async () => {
+    const app = createProxyApp({ quotaStore: createInMemoryQuotaStore() });
+    const res = await app.request(
+      "/api/v1/scan",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schemaVersion: "1.0",
+          sessionId: "session-invalid-not-uuid",
+          round: 1,
+          locale: "en-GB",
+          imageBase64: "dGVzdA==",
+          imageMimeType: "image/webp",
+          focusPolygon: null,
+          followUpContext: null,
+        }),
+      },
+      env
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid scan request");
+    expect(json.details.some((d: any) => d.path.includes("sessionId"))).toBe(true);
   });
 
   it("recognizes existing device token from cookie or header without re-issuing a new one", async () => {
