@@ -120,6 +120,22 @@ export function createMockApiClient(): PomonaApiClient {
                 traits: ["Slightly glossy rind", "Small field spot"],
                 flipSummary: null,
               },
+              {
+                id: "c3",
+                box: [180, 420, 440, 720],
+                score: 7.2,
+                ripeness: "underripe",
+                traits: ["Bright glossy green", "Small white spot"],
+                flipSummary: null,
+              },
+              {
+                id: "c4",
+                box: [620, 310, 880, 610],
+                score: 6.8,
+                ripeness: "underripe",
+                traits: ["Firm striped rind", "Chalky white spot"],
+                flipSummary: null,
+              },
             ],
             verdict: {
               winnerId: "c1",

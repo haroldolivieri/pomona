@@ -349,11 +349,36 @@ export function scanMachineReducer(
           }
         : null;
 
+      const updatedVerdict = state.lastResponse?.verdict
+        ? {
+            ...state.lastResponse.verdict,
+            winnerId: winnerCandidate?.id ?? state.lastResponse.verdict.winnerId,
+            runnerUpId: runnerCandidate?.id ?? null,
+            headline: resolution.headline === "Buy it." ? "Best available." : resolution.headline,
+          }
+        : null;
+
+      const updatedFollowUp = state.lastResponse?.followUp && runnerCandidate
+        ? {
+            ...state.lastResponse.followUp,
+            targetCandidateId: runnerCandidate.id,
+            targetRole: "runner_up" as const,
+            bannerText: resolution.followUpHintOverride || state.lastResponse.followUp.bannerText,
+          }
+        : state.lastResponse?.followUp ?? null;
+
       return {
         ...state,
         targetRipeness: action.targetRipeness,
         firstPick,
         runnerUp,
+        lastResponse: state.lastResponse
+          ? {
+              ...state.lastResponse,
+              verdict: updatedVerdict,
+              followUp: updatedFollowUp,
+            }
+          : null,
       };
     }
 

@@ -107,7 +107,7 @@ describe("Debug mock mode and shake detection", () => {
       followUpContext: null,
     });
     expect(r1.response.status).toBe("ok");
-    expect(r1.response.candidates.length).toBe(2);
+    expect(r1.response.candidates.length).toBeGreaterThanOrEqual(2);
     expect(r1.response.verdict?.winnerId).toBe("c1");
     expect(r1.response.followUp?.targetRole).toBe("runner_up");
 

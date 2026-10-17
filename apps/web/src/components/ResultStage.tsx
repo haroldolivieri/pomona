@@ -139,7 +139,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   }
 
   const winnerScoreStr = (score?: number) => (score !== undefined ? score.toFixed(1) : "8.6");
-  const candidateCount = lastResponse.candidates?.length || 3;
+  const candidateCount = state.allCandidatesRound1?.length || lastResponse.candidates?.length || 2;
 
   if (phase === "S4_InitialResult") {
     activeWinner = firstPick;
@@ -475,49 +475,6 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             pointerEvents: "none",
           }}
         >
-          {/* Other candidates (3rd, 4th, etc.) evaluated in view */}
-          {lastResponse.candidates &&
-            lastResponse.candidates
-              .filter(
-                (c) =>
-                  c.id !== activeWinner?.id &&
-                  c.id !== activeRunnerUp?.id
-              )
-              .map((otherCand) => (
-                <div
-                  key={otherCand.id}
-                  data-testid={`other-candidate-box-${otherCand.id}`}
-                  style={{
-                    position: "absolute",
-                    ...boxToStyle(otherCand.box),
-                    borderRadius: "14px",
-                    border: "1.5px dashed rgba(255, 255, 255, 0.65)",
-                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
-                    boxSizing: "border-box",
-                    pointerEvents: "none",
-                  }}
-                >
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: "-10px",
-                      right: "6px",
-                      backgroundColor: "rgba(20, 24, 20, 0.78)",
-                      color: "#FFFFFF",
-                      fontSize: "9.5px",
-                      fontWeight: 700,
-                      padding: "2px 6px",
-                      borderRadius: "6px",
-                      whiteSpace: "nowrap",
-                      fontFamily: "Inter, sans-serif",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
-                    }}
-                  >
-                    {otherCand.score.toFixed(1)}
-                  </span>
-                </div>
-              ))}
-
           {activeRunnerUp && (
             <div
               style={{
