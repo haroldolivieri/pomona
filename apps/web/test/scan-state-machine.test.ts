@@ -237,4 +237,36 @@ describe("10-state ScanStateMachine", () => {
     // xmax: 200 + 0.655 * 500 = 200 + 327.5 = 528 (rounded)
     expect(s.firstPick?.box).toEqual([331, 385, 475, 528]);
   });
+
+  it("handles SET_TARGET_RIPENESS event in S4_InitialResult and propagates target to followUpContext", () => {
+    let s = initialScanMachineState();
+    expect(s.targetRipeness).toBe("ready_now");
+
+    s = scanMachineReducer(s, { type: "FRAME_CAPTURED", photoDataUrl: "data:image/webp;base64,r1" });
+    s = scanMachineReducer(s, { type: "START_ANALYSE", focusPolygon: null, cropRect: null });
+    s = scanMachineReducer(s, { type: "SCAN_SUCCEEDED", response: makeRound1Response() });
+    expect(s.phase).toBe("S4_InitialResult");
+    expect(s.firstPick?.id).toBe("c1"); // ripe watermelon
+    expect(s.runnerUp?.id).toBe("c2"); // almost_ripe watermelon
+
+    // Switch to "in_2_3_days"
+    s = scanMachineReducer(s, { type: "SET_TARGET_RIPENESS", targetRipeness: "in_2_3_days" });
+    expect(s.targetRipeness).toBe("in_2_3_days");
+    // Under in_2_3_days, c2 (almost_ripe) is ranked first
+    expect(s.firstPick?.id).toBe("c2");
+    expect(s.runnerUp?.id).toBe("c1");
+    expect(s.firstPick?.score).toBeGreaterThanOrEqual(8.4);
+
+    // Transitioning to S5A preserves targetRipeness and includes it in followUpContext
+    s = scanMachineReducer(s, { type: "COMPARE_WITH_RUNNER_UP" });
+    expect(s.phase).toBe("S5A_FlipRunnerUpCamera");
+    expect(s.targetRipeness).toBe("in_2_3_days");
+    const followUpCtx = buildFollowUpRequestContext(s);
+    expect(followUpCtx?.targetRipeness).toBe("in_2_3_days");
+    expect(followUpCtx?.previousWinner.id).toBe("c2");
+
+    // RESET restores targetRipeness to ready_now
+    s = scanMachineReducer(s, { type: "RESET" });
+    expect(s.targetRipeness).toBe("ready_now");
+  });
 });
