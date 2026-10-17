@@ -239,6 +239,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             photoDataUrl={state.currentPhotoDataUrl}
             focusPolygon={state.focusPolygon}
             cropRect={state.cropRect}
+            onCancel={handleReset}
           />
         );
 

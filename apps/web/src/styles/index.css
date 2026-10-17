@@ -133,3 +133,28 @@ body {
 .animate-scan-laser {
   animation: scan-laser-sweep 2.4s ease-in-out infinite;
 }
+
+@keyframes pulse-dot {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 1;
+  }
+}
+
+.node-pulse-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #F5D547;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 0 10px rgba(245, 213, 71, 0.6);
+  animation: pulse-dot 1.4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 12;
+}
+
