@@ -57,13 +57,13 @@ BOUNDING BOX & UNIT OF PURCHASE (CRITICAL):
 FOCUS POLYGON CONSTRAINT:
 - ${polygonInfo}
 - Note coordinate order: \`focusPolygon\` points are \`[x, y]\` (horizontal x first, vertical y second), whereas candidate \`box\` is \`[ymin, xmin, ymax, xmax]\` (vertical y first, horizontal x second).
-- When a focusPolygon is provided, you MUST detect, box, and grade ALL visible individual produce items (typically 4 to 8 individual fruits/vegetables) whose bounds or center overlap the region.
-- CRITICAL: Never return only 1 or 2 candidates if multiple produce items are in the drawn area! Detect EVERY distinct produce item inside the boundary so the user can inspect and compare all contestants in their selection. Exclude items clearly outside the boundary.
+- When a focusPolygon is provided, you MUST detect, box, and grade ALL visible individual produce items (detect every visible fruit/vegetable, typically up to 10–12 items) whose bounds or center overlap the region.
+- CRITICAL: Never arbitrarily cap candidate detection or return only a partial subset of candidates if more produce items are visible! Detect EVERY distinct produce item inside the boundary so the user can inspect and compare all contestants in their selection. Exclude items clearly outside the boundary.
 
 MULTI-ROUND FLIP WORKFLOW:
 - Round 1 (CANDIDATE COMPARISON & RIPENESS WINDOW):
-  - You MUST detect, bound, and grade ALL visible candidate produce items (or 3 to 6 prominent items if a pile/basket, e.g. c1, c2, c3, c4).
-  - CRITICAL: Never return only 1 single candidate when multiple fruits/vegetables are visible! The app features a 3-way Shopping Goal switcher ("Ready now", "In 2–3 days", "Later this week") which ranks and chooses the winner dynamically across ALL returned candidates based on each candidate's \`ripeness\` ("ripe" | "almost_ripe" | "underripe"). If you only return 1 candidate, the user cannot compare or switch ripeness goals!
+  - You MUST detect, bound, and grade ALL visible candidate produce items across the entire crate/pile/frame (detect every visible produce item, up to 10–12 candidates, including partially visible or edge items, e.g. c1, c2, c3, c4, c5, c6, c7, c8...). Do NOT stop at 4 or 5 candidates when more items are visible in the photo!
+  - CRITICAL: Never return only 1 or a partial subset of candidates when multiple fruits/vegetables are visible! The app features a 3-way Shopping Goal switcher ("Ready now", "In 2–3 days", "Later this week") which ranks and chooses the winner dynamically across ALL returned candidates based on each candidate's \`ripeness\` ("ripe" | "almost_ripe" | "underripe"). If you miss items, the user cannot see ratings or compare those fruits!
   - Score each candidate on the 0.0–10.0 scale and accurately classify each candidate's \`ripeness\` ("ripe", "almost_ripe", "underripe", or "overripe").
   - For the default "ready_now" peak-ripe goal, set winnerId to the highest scoring ripe candidate, set runnerUpId to the second-best candidate, and provide a non-null \`followUp\` targeting the runner-up. Only if truly a single solo fruit exists in the entire frame should candidates have length 1.
 - Round 2: Close-up inspection of the runner-up candidate after being flipped/rotated. Output ONLY the single foreground close-up candidate in \`candidates\` using \`id: followUpContext.targetCandidateId\` (e.g. "c2"), ignoring any distant background items. Provide a non-null \`flipSummary\` (<= 80 chars) describing what the flipped angle revealed, and an updated \`score\` (0.0–10.0).
@@ -100,9 +100,9 @@ export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[])
   if (request.round === 1) {
     if (request.focusPolygon && request.focusPolygon.length >= 3) {
       prompt += `\nUser drew a focusPolygon: ${describeFocusPolygonBounds(request.focusPolygon)}
-CRITICAL: Detect, tightly bound, and grade ALL visible individual produce items (detect all 4 to 8 contestants visible inside this drawn area, e.g. c1, c2, c3, c4, c5, etc.). Each candidate must have its own score and ripeness tier ("ripe" | "almost_ripe" | "underripe") so the user can see all contenders and use the Shopping Goal tabs. Do NOT omit any visible items inside the drawn area, and exclude items clearly outside the loop.`;
+CRITICAL: Detect, tightly bound, and grade ALL visible individual produce items (detect every single contestant visible inside this drawn area, up to 10–12 items, e.g. c1, c2, c3, c4, c5, c6, c7, c8, etc.). Each candidate must have its own score and ripeness tier ("ripe" | "almost_ripe" | "underripe") so the user can see all contenders and use the Shopping Goal tabs. Do NOT omit any visible items inside the drawn area, and exclude items clearly outside the loop.`;
     } else {
-      prompt += `\nEvaluate all visible produce candidates in the image. Return 4 to 8 prominent candidates with their ripeness classification so the user can compare them across shopping goal tabs.`;
+      prompt += `\nEvaluate all visible produce candidates in the image. Detect and grade EVERY visible produce item in view across the pile/crate (up to 10–12 candidates, including items along the edges), returning their ripeness classification and bounding boxes so every single fruit has a square rating and the user can compare them across shopping goal tabs. Do NOT stop at 4 or 5 if more fruits are visible!`;
     }
   } else if (request.round === 2 && request.followUpContext) {
     const ctx = request.followUpContext;
