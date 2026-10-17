@@ -57,8 +57,8 @@ BOUNDING BOX & UNIT OF PURCHASE (CRITICAL):
 FOCUS POLYGON CONSTRAINT:
 - ${polygonInfo}
 - Note coordinate order: \`focusPolygon\` points are \`[x, y]\` (horizontal x first, vertical y second), whereas candidate \`box\` is \`[ymin, xmin, ymax, xmax]\` (vertical y first, horizontal x second).
-- When a focusPolygon is provided, you MUST detect and grade EVERY prominent individual produce item whose center point lies inside the polygon (typically 2 to 6 individual fruits/vegetables if multiple are visible inside the loop).
-- CRITICAL: Never return only 1 single candidate if multiple distinct individual produce items are clearly visible inside the drawn polygon! Detect the top 2 to 5 distinct items inside the polygon so the user can see which one is the winner and which one is the runner-up. Exclude any items outside the polygon.
+- When a focusPolygon is provided, you MUST detect, box, and grade ALL visible individual produce items (typically 4 to 8 individual fruits/vegetables) whose bounds or center overlap the region.
+- CRITICAL: Never return only 1 or 2 candidates if multiple produce items are in the drawn area! Detect EVERY distinct produce item inside the boundary so the user can inspect and compare all contestants in their selection. Exclude items clearly outside the boundary.
 
 MULTI-ROUND FLIP WORKFLOW:
 - Round 1 (CANDIDATE COMPARISON & RIPENESS WINDOW):
@@ -100,9 +100,9 @@ export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[])
   if (request.round === 1) {
     if (request.focusPolygon && request.focusPolygon.length >= 3) {
       prompt += `\nUser drew a focusPolygon: ${describeFocusPolygonBounds(request.focusPolygon)}
-CRITICAL: Detect, bound, and grade ALL prominent individual produce items (3 to 6 distinct items, e.g. c1, c2, c3, c4) inside this drawn region. Each candidate must have its own score and ripeness tier ("ripe" | "almost_ripe" | "underripe") so the user can use the 3-way Shopping Goal tabs to select the best one. Do NOT return only 1 candidate, do NOT group fruits together, and exclude items outside the loop.`;
+CRITICAL: Detect, tightly bound, and grade ALL visible individual produce items (detect all 4 to 8 contestants visible inside this drawn area, e.g. c1, c2, c3, c4, c5, etc.). Each candidate must have its own score and ripeness tier ("ripe" | "almost_ripe" | "underripe") so the user can see all contenders and use the Shopping Goal tabs. Do NOT omit any visible items inside the drawn area, and exclude items clearly outside the loop.`;
     } else {
-      prompt += `\nEvaluate all visible produce candidates in the image. Return 3 to 6 prominent candidates with their ripeness classification so the user can compare them across shopping goal tabs.`;
+      prompt += `\nEvaluate all visible produce candidates in the image. Return 4 to 8 prominent candidates with their ripeness classification so the user can compare them across shopping goal tabs.`;
     }
   } else if (request.round === 2 && request.followUpContext) {
     const ctx = request.followUpContext;

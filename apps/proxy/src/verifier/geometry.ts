@@ -120,3 +120,47 @@ export function isValidBoundingBox(box: BoundingBox, minSize = 20): boolean {
   const width = xmax - xmin;
   return ymin < ymax && xmin < xmax && height >= minSize && width >= minSize;
 }
+
+/**
+ * Checks if a candidate bounding box is inside or significantly overlaps a polygon.
+ * Checks:
+ * 1. Center of the box with tolerance (80 = 8% on 0..1000 scale).
+ * 2. Any corner of the box inside the polygon.
+ * 3. Any edge midpoint inside the polygon.
+ */
+export function isBoxInPolygon(
+  box: BoundingBox,
+  polygon: Point[],
+  tolerance = 80
+): boolean {
+  if (!isValidBoundingBox(box) || !polygon || polygon.length < 3) {
+    return false;
+  }
+
+  const [ymin, xmin, ymax, xmax] = box;
+  const centerX = Math.round((xmin + xmax) / 2);
+  const centerY = Math.round((ymin + ymax) / 2);
+
+  // 1. Center of the box inside or close to polygon (50 = 5% tolerance)
+  if (isPointInPolygon([centerX, centerY], polygon, tolerance)) {
+    return true;
+  }
+
+  // 2. Corner strictly inside the polygon (tolerance 0)
+  const corners: Point[] = [
+    [xmin, ymin],
+    [xmax, ymin],
+    [xmin, ymax],
+    [xmax, ymax],
+  ];
+
+  for (const corner of corners) {
+    if (isPointInPolygon(corner, polygon, 0)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+

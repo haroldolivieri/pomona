@@ -7,7 +7,7 @@ import {
   type Verdict,
   type FollowUp,
 } from "@pomona/contract";
-import { isPointInPolygon, isValidBoundingBox } from "./geometry";
+import { isPointInPolygon, isBoxInPolygon, isValidBoundingBox } from "./geometry";
 
 /**
  * Deterministic 2-stage verifier and multi-round score resolution engine.
@@ -177,6 +177,7 @@ export function verifyAndResolveScanResponse(
   }
 
   // Candidate Bounding Box & Polygon Containment Filtering
+  const rawCandidateCount = data.candidates.length;
   let candidates: Candidate[] = data.candidates.filter((c) =>
     isValidBoundingBox(c.box)
   );
@@ -187,12 +188,14 @@ export function verifyAndResolveScanResponse(
     ctx.request.focusPolygon.length >= 3
   ) {
     const polygon = ctx.request.focusPolygon;
+    const beforePoly = candidates.length;
     candidates = candidates.filter((c) => {
-      // Box is [ymin, xmin, ymax, xmax] -> Center is [x, y]
-      const centerX = Math.round((c.box[1] + c.box[3]) / 2);
-      const centerY = Math.round((c.box[0] + c.box[2]) / 2);
-      return isPointInPolygon([centerX, centerY], polygon);
+      const inside = isBoxInPolygon(c.box, polygon, 80);
+      return inside;
     });
+    console.log(
+      `[proxy:polygonFilter] Model returned ${rawCandidateCount} raw, ${beforePoly} valid boxes, ${candidates.length} inside polygon`
+    );
   }
 
   if (candidates.length < 1) {
