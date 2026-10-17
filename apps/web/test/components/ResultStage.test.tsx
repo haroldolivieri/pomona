@@ -379,4 +379,51 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(lockedGoal).toBeInTheDocument();
     expect(lockedGoal).toHaveTextContent("In 2–3 days");
   });
+
+  it("auto-scrolls photo so winner is centered in visible photo area above bottom sheet", () => {
+    // Winner located in bottom quadrant [700, 200, 900, 500] (center Y = 800)
+    const bottomWinner = {
+      ...sampleFirstPick,
+      id: "c_bottom",
+      box: [700, 200, 900, 500] as [number, number, number, number],
+    };
+
+    const state = {
+      ...initialScanMachineState(),
+      phase: "S4_InitialResult" as const,
+      firstPick: bottomWinner,
+      runnerUp: sampleRunnerUp,
+      lastResponse: {
+        ...baseResponse,
+        candidates: [bottomWinner, sampleRunnerUp],
+      },
+      round1PhotoDataUrl: "data:image/jpeg;base64,mock",
+    };
+
+    render(
+      <ResultStage
+        state={state}
+        onCompareWithRunnerUp={vi.fn()}
+        onStartFinalCheck={vi.fn()}
+        onReset={vi.fn()}
+      />
+    );
+
+    const photoViewport = screen.getByTestId("result-photo-viewport");
+    // Mock viewport dimensions (e.g. 400x800)
+    Object.defineProperty(photoViewport, "clientWidth", { value: 400, configurable: true });
+    Object.defineProperty(photoViewport, "clientHeight", { value: 800, configurable: true });
+
+    const img = photoViewport.querySelector("img");
+    expect(img).toBeInTheDocument();
+    if (img) {
+      Object.defineProperty(img, "naturalWidth", { value: 1000, configurable: true });
+      Object.defineProperty(img, "naturalHeight", { value: 1000, configurable: true });
+      fireEvent.load(img);
+    }
+
+    // After image load and coverRect computation, auto-centering runs and applies translation
+    // Since winner is low in frame (Y=800), desiredPanY is negative to pull image up into view
+    expect(photoViewport.style.transform).not.toBe("translate3d(0, 0px, 0)");
+  });
 });

@@ -45,6 +45,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [coverRect, setCoverRect] = useState<RenderedCoverRect | null>(null);
+  const hasAutoCentered = useRef<boolean>(false);
   const { phase, lastResponse, firstPick, runnerUp, round1PhotoDataUrl } = state;
 
   const updateCoverRect = () => {
@@ -259,6 +260,37 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const handlePhotoPanEnd = () => {
     photoPanStartY.current = null;
   };
+
+  // Auto-scroll image so winner is centered in visible photo area above bottom sheet
+  useEffect(() => {
+    if (!coverRect || !activeWinner || !viewportRef.current) return;
+    const vpHeight = viewportRef.current.clientHeight;
+    if (vpHeight <= 0) return;
+
+    // Determine bottom sheet height (or fallback to ~30% of viewport when collapsed)
+    const sheetEl = sheetRef.current;
+    const sheetHeight = sheetEl?.offsetHeight || vpHeight * 0.3;
+    const visibleAreaHeight = Math.max(100, vpHeight - sheetHeight);
+
+    // Target center Y in viewport coordinates
+    const targetCenterY = visibleAreaHeight / 2;
+
+    // Winner box center Y in 0..1000 normalized coordinates
+    const boxCenterNormalizedY = (activeWinner.box[0] + activeWinner.box[2]) / 2 / 1000;
+
+    // Rendered winner center Y in unpanned coverRect coordinates
+    const renderedWinnerY = coverRect.top + boxCenterNormalizedY * coverRect.height;
+
+    // Required pan offset: targetCenterY - renderedWinnerY
+    // Negative offset moves photo up, positive moves photo down
+    const desiredPanY = Math.round(targetCenterY - renderedWinnerY);
+
+    // Allow a generous vertical pan range so any winner anywhere in the frame can be centered
+    const maxPan = Math.max(300, coverRect.height / 2);
+    const clampedPanY = Math.max(-maxPan, Math.min(maxPan, desiredPanY));
+
+    setPhotoPanY(clampedPanY);
+  }, [coverRect, activeWinner?.id, sheetMode]);
 
   return (
     <div
