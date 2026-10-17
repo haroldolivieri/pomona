@@ -22,41 +22,48 @@ export interface PomonaAppProps {
   apiClient: PomonaApiClient;
   telemetry: TelemetryProvider;
   initialState?: Partial<ScanMachineState>;
+  enableDebugOverride?: boolean;
 }
 
 export const PomonaApp: React.FC<PomonaAppProps> = ({
   apiClient: realApiClient,
   telemetry,
   initialState,
+  enableDebugOverride,
 }) => {
   const [state, dispatch] = useReducer(scanMachineReducer, {
     ...initialScanMachineState(),
     ...initialState,
   });
 
+  // Debug mock mode is strictly active only during development (import.meta.env.DEV)
+  // or when explicitly enabled via enableDebugOverride (e.g. in targeted tests)
+  const isDevMode = Boolean(enableDebugOverride ?? (import.meta.env?.DEV));
+
   const [isMockMode, setIsMockMode] = useState<boolean>(() => {
+    if (!isDevMode) return false;
     try {
       if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
         const saved = localStorage.getItem("pomona-mock-mode");
         if (saved !== null) return saved === "true";
       }
     } catch {}
-    // If running in Vitest or Playwright with injected mock apiClient, don't force mock mode
-    if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
+    if (typeof process !== "undefined" && process.env?.NODE_ENV === "test" && !enableDebugOverride) {
       return false;
     }
     return true;
   });
 
   const [toastMessage, setToastMessage] = useState<string | null>(() => {
-    return isMockMode ? "🧪 Mock Mode ON (Shake device to toggle)" : null;
+    return isDevMode && isMockMode ? "🧪 Mock Mode ON (Shake device to toggle)" : null;
   });
 
   const [mockApiClient] = useState<PomonaApiClient>(() => createMockApiClient());
-  const activeApiClient = isMockMode ? mockApiClient : realApiClient;
+  const activeApiClient = isDevMode && isMockMode ? mockApiClient : realApiClient;
 
-  // Shake detection listener
+  // Shake detection listener: only mounted in development / debug mode
   useEffect(() => {
+    if (!isDevMode) return;
     let lastX: number | null = null;
     let lastY: number | null = null;
     let lastZ: number | null = null;
@@ -283,8 +290,8 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     <div className="pomona-root">
       {renderCurrentStage()}
 
-      {/* Shake / Debug Mock Mode Indicator & Toast */}
-      {toastMessage && (
+      {/* Shake / Debug Mock Mode Indicator & Toast (DEV ONLY) */}
+      {isDevMode && toastMessage && (
         <div
           role="status"
           style={{
@@ -309,39 +316,41 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
         </div>
       )}
 
-      {/* Discrete tap target in top right corner to toggle if shake permission is blocked on iOS */}
-      <button
-        type="button"
-        onClick={() => {
-          setIsMockMode((prev) => {
-            const next = !prev;
-            try {
-              localStorage.setItem("pomona-mock-mode", String(next));
-            } catch {}
-            setToastMessage(next ? "🧪 Mock Mode ENABLED" : "🌐 Live Mode (real API) ENABLED");
-            setTimeout(() => setToastMessage(null), 3000);
-            return next;
-          });
-        }}
-        aria-label="Toggle Mock Mode"
-        style={{
-          position: "fixed",
-          top: "14px",
-          right: "72px",
-          zIndex: 80,
-          background: isMockMode ? "rgba(245, 213, 71, 0.2)" : "rgba(0,0,0,0.2)",
-          border: isMockMode ? "1px solid #F5D547" : "1px solid rgba(255,255,255,0.3)",
-          color: isMockMode ? "#F5D547" : "rgba(255,255,255,0.7)",
-          padding: "4px 8px",
-          borderRadius: "12px",
-          fontSize: "11px",
-          fontWeight: 600,
-          cursor: "pointer",
-          backdropFilter: "blur(6px)",
-        }}
-      >
-        {isMockMode ? "🧪 MOCK" : "🌐 LIVE"}
-      </button>
+      {/* Discrete tap target in top right corner (DEV ONLY) */}
+      {isDevMode && (
+        <button
+          type="button"
+          onClick={() => {
+            setIsMockMode((prev) => {
+              const next = !prev;
+              try {
+                localStorage.setItem("pomona-mock-mode", String(next));
+              } catch {}
+              setToastMessage(next ? "🧪 Mock Mode ENABLED" : "🌐 Live Mode (real API) ENABLED");
+              setTimeout(() => setToastMessage(null), 3000);
+              return next;
+            });
+          }}
+          aria-label="Toggle Mock Mode"
+          style={{
+            position: "fixed",
+            top: "14px",
+            right: "72px",
+            zIndex: 80,
+            background: isMockMode ? "rgba(245, 213, 71, 0.2)" : "rgba(0,0,0,0.2)",
+            border: isMockMode ? "1px solid #F5D547" : "1px solid rgba(255,255,255,0.3)",
+            color: isMockMode ? "#F5D547" : "rgba(255,255,255,0.7)",
+            padding: "4px 8px",
+            borderRadius: "12px",
+            fontSize: "11px",
+            fontWeight: 600,
+            cursor: "pointer",
+            backdropFilter: "blur(6px)",
+          }}
+        >
+          {isMockMode ? "🧪 MOCK" : "🌐 LIVE"}
+        </button>
+      )}
     </div>
   );
 };

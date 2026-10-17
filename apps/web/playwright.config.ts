@@ -8,7 +8,8 @@ export default defineConfig({
   workers: 1,
   reporter: "list",
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: "https://localhost:5173",
+    ignoreHTTPSErrors: true,
     trace: "on-first-retry",
     viewport: { width: 393, height: 852 },
     launchOptions: {
@@ -23,6 +24,8 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
+        baseURL: "https://localhost:5173",
+        ignoreHTTPSErrors: true,
         viewport: { width: 393, height: 852 },
         launchOptions: {
           args: [
@@ -35,7 +38,8 @@ export default defineConfig({
   ],
   webServer: {
     command: "pnpm dev --port 5173",
-    url: "http://localhost:5173",
+    url: "https://localhost:5173",
+    ignoreHTTPSErrors: true,
     reuseExistingServer: !process.env.CI,
     timeout: 30 * 1000,
   },

@@ -127,6 +127,11 @@ const mockRound3FirstPickLost = {
 
 test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
   test.beforeEach(async ({ page }) => {
+    // Force mock mode to false in browser so it executes against intercepted routes
+    await page.addInitScript(() => {
+      window.localStorage.setItem("pomona-mock-mode", "false");
+    });
+
     // Intercept quota endpoint
     await page.route("**/api/v1/quota", async (route) => {
       await route.fulfill({
