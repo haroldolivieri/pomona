@@ -146,6 +146,8 @@ export function scanMachineReducer(
         errorMessage: null,
         status: null,
         currentPhotoDataUrl: action.photoDataUrl,
+        focusPolygon: null,
+        cropRect: null,
       };
     }
 
