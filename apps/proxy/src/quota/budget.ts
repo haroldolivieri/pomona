@@ -213,11 +213,15 @@ export async function checkQuotaAndSelectModel(
     ip: string;
     now?: Date;
     defaultModel?: string;
+    deviceDailyLimit?: number;
+    ipDailyLimit?: number;
   }
 ): Promise<CheckQuotaResult> {
   const now = params.now ?? new Date();
   const dateStr = formatDateKey(now);
   const monthStr = formatMonthKey(now);
+  const deviceLimit = params.deviceDailyLimit ?? DEVICE_DAILY_LIMIT;
+  const ipLimit = params.ipDailyLimit ?? IP_DAILY_LIMIT;
 
   const [deviceCount, ipCount, monthlySpend] = await Promise.all([
     store.getDailyDeviceCount(params.deviceId, dateStr),
@@ -225,7 +229,7 @@ export async function checkQuotaAndSelectModel(
     store.getMonthlySpendMicroCents(monthStr),
   ]);
 
-  const remainingDeviceScans = Math.max(0, DEVICE_DAILY_LIMIT - deviceCount);
+  const remainingDeviceScans = Math.max(0, deviceLimit - deviceCount);
 
   // Layer 3 hard circuit breaker: Monthly spend cap ($10.00)
   if (monthlySpend >= MONTHLY_HARD_CAP_MICRO_CENTS) {
@@ -238,18 +242,18 @@ export async function checkQuotaAndSelectModel(
     };
   }
 
-  // Daily device quota: 10 scans/day
-  if (deviceCount >= DEVICE_DAILY_LIMIT) {
+  // Daily device quota
+  if (deviceCount >= deviceLimit) {
     return {
       allowed: false,
       reason: "device_daily_limit",
-      message: "You've used all 10 free scans for today. Come back tomorrow!",
+      message: `You've used all ${deviceLimit} free scans for today. Come back tomorrow!`,
       remainingDeviceScans: 0,
     };
   }
 
-  // Daily IP quota: 20 scans/day
-  if (ipCount >= IP_DAILY_LIMIT) {
+  // Daily IP quota
+  if (ipCount >= ipLimit) {
     return {
       allowed: false,
       reason: "ip_daily_limit",

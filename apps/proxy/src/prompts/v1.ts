@@ -42,11 +42,13 @@ BOUNDING BOX & UNIT OF PURCHASE (CRITICAL):
 - Express all candidate boxes as normalized integer coordinates in [ymin, xmin, ymax, xmax] format (0 to 1000 scale, where y is vertical top-to-bottom and x is horizontal left-to-right).
 - Minimum width and height for any bounding box is 20 units. Ensure ymin < ymax and xmin < xmax.
 - UNIT OF PURCHASE DETERMINATION:
-  1. Loose Produce (e.g. watermelons, loose avocados, loose mangoes, single apples/oranges): Bounding boxes must tightly bound each individual fruit/vegetable.
-  2. Bunched / Clustered Produce (e.g. bananas in a bunch/hand, vine tomatoes, herb bunches): Bounding boxes must tightly bound each BUNCH or CLUSTER as a single candidate unit. Do NOT place individual bounding boxes on single bananas or attached items within a bunch.
-  3. Packaged / Bagged / Punneted Produce (e.g. punnets/clamshells of grapes, berries, cherry tomatoes, or netted bags of apples/lemons/oranges): Bounding boxes must tightly bound each PUNNET, CLAMSHELL, or BAG as a single candidate unit. NEVER place bounding boxes on individual berries or fruits inside a pack.
-  - When produce is in packs or bunches, evaluate and score the overall pack/bunch (e.g. mold-free underside, intact fresh green stems, natural bloom, uniform ripeness).
-  - The followUp instruction and flip headline for packs/bunches must refer to inspecting the pack or bunch (e.g. "Flip the Grape punnet over", "Inspect bottom berries for softness or dampness", "Turn the Banana bunch over").
+  1. Loose Produce (e.g. loose watermelons, loose avocados, single loose apples/oranges): Bounding boxes must tightly bound each individual fruit/vegetable.
+  2. Bunched / Clustered Produce (e.g. bananas in a bunch/hand, vine tomatoes, herb bunches): Bounding boxes must tightly bound each BUNCH or CLUSTER as a single candidate unit. NEVER place bounding boxes on individual bananas inside a bunch.
+  3. Packaged / Bagged / Punneted / Boxed Produce (e.g. bananas in plastic bags or bag-lined crates, punnets/clamshells of berries/grapes, netted bags of fruit):
+     - If produce is enclosed in a plastic bag, bag-liner, punnet, clamshell, or container, the ENTIRE BAG or PACK is the candidate unit!
+     - The bounding box MUST enclose the whole bag/pack/bunch, NOT an individual banana or single fruit inside or outside the bag.
+     - Evaluate and grade the pack/bag as an entirety (e.g. look for mold on bottom, uniform color, damaged stems, overall freshness).
+  - The followUp instruction and flip headline for packs/bunches must refer to inspecting the pack or bunch (e.g. "Flip the Banana bag over", "Turn the Banana bunch over to inspect stems").
 
 FOCUS POLYGON CONSTRAINT:
 - ${polygonInfo}

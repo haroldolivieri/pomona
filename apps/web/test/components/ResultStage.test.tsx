@@ -299,10 +299,10 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(sheet.style.transform).toBe("translate3d(0, -80px, 0)");
     expect(photoViewport.style.height).toBe("54dvh");
 
-    // Release snap expands sheet (-120px) and keeps photo height unchanged at 54dvh
+    // Release snap expands sheet (-120px) and adjusts photo height to 42dvh
     fireEvent.touchEnd(headlineEl);
     expect(sheet.style.transform).toBe("translate3d(0, -120px, 0)");
-    expect(photoViewport.style.height).toBe("54dvh");
+    expect(photoViewport.style.height).toBe("42dvh");
     expect(photoViewport.style.transform).toBe("translate3d(0, -24px, 0)");
   });
 

@@ -8,4 +8,5 @@ export interface Env {
   ACTIVE_PROMPT_VERSION?: string;
   ACTIVE_PROVIDER?: string;
   DEFAULT_MODEL?: string;
+  DEVICE_DAILY_LIMIT?: string;
 }

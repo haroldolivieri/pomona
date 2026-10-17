@@ -57,8 +57,18 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   useEffect(() => {
     updateCoverRect();
     window.addEventListener("resize", updateCoverRect);
-    return () => window.removeEventListener("resize", updateCoverRect);
-  }, [round1PhotoDataUrl]);
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && viewportRef.current) {
+      ro = new ResizeObserver(() => {
+        updateCoverRect();
+      });
+      ro.observe(viewportRef.current);
+    }
+    return () => {
+      window.removeEventListener("resize", updateCoverRect);
+      if (ro) ro.disconnect();
+    };
+  }, [round1PhotoDataUrl, sheetMode]);
 
   if (!lastResponse || lastResponse.status !== "ok") {
     return (
@@ -363,20 +373,20 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         </button>
       </div>
 
-      {/* Fixed-Size Photo Viewport with Bounding Boxes (Parallax only, never shrinks!) */}
+      {/* Photo Viewport with Bounding Boxes (expands when bottom sheet is collapsed) */}
       <div
         ref={viewportRef}
         data-testid="result-photo-viewport"
         style={{
           position: "relative",
           width: "100%",
-          height: "54dvh",
+          height: sheetMode === "collapsed" ? "72dvh" : sheetMode === "expanded" ? "42dvh" : "54dvh",
           backgroundColor: "#000000",
           overflow: "hidden",
           flexShrink: 0,
           transform: `translate3d(0, ${parallaxY}px, 0)`,
-          transition: isDragging ? "none" : "transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
-          willChange: "transform",
+          transition: isDragging ? "none" : "height 0.32s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
+          willChange: "height, transform",
         }}
       >
         {round1PhotoDataUrl && (
@@ -537,8 +547,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.28)",
           transform: `translate3d(0, ${activeTranslateY}px, 0)`,
           transition: isDragging ? "none" : "transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
-          overflowY: "auto",
-          WebkitOverflowScrolling: "touch",
+          overflow: "hidden",
+          touchAction: "none",
           willChange: "transform",
         }}
       >

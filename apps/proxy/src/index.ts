@@ -150,10 +150,12 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
     const store = resolveQuotaStore(c.env, deps.quotaStore);
     const ip = getClientIp(c.req.raw);
 
+    const parsedDeviceLimit = c.env.DEVICE_DAILY_LIMIT ? parseInt(c.env.DEVICE_DAILY_LIMIT, 10) : undefined;
     const quotaResult = await checkQuotaAndSelectModel(store, {
       deviceId,
       ip,
       defaultModel: c.env.DEFAULT_MODEL,
+      deviceDailyLimit: Number.isFinite(parsedDeviceLimit) ? parsedDeviceLimit : undefined,
     });
 
     const monthStr = formatMonthKey(new Date());
@@ -220,10 +222,12 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
     const store = resolveQuotaStore(c.env, deps.quotaStore);
     const ip = getClientIp(c.req.raw);
 
+    const parsedDeviceLimitPost = c.env.DEVICE_DAILY_LIMIT ? parseInt(c.env.DEVICE_DAILY_LIMIT, 10) : undefined;
     const quotaResult = await checkQuotaAndSelectModel(store, {
       deviceId,
       ip,
       defaultModel: c.env.DEFAULT_MODEL,
+      deviceDailyLimit: Number.isFinite(parsedDeviceLimitPost) ? parsedDeviceLimitPost : undefined,
     });
 
     const promptVersion = c.env.ACTIVE_PROMPT_VERSION || "v1";
