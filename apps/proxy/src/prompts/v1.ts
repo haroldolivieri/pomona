@@ -61,7 +61,11 @@ FOCUS POLYGON CONSTRAINT:
 - CRITICAL: Never return only 1 single candidate if multiple distinct individual produce items are clearly visible inside the drawn polygon! Detect the top 2 to 5 distinct items inside the polygon so the user can see which one is the winner and which one is the runner-up. Exclude any items outside the polygon.
 
 MULTI-ROUND FLIP WORKFLOW:
-- Round 1: Identify produce type (lowercase slug, e.g. "watermelon", "avocado", "pineapple") and displayName. Score all visible candidates inside the focus area (c1, c2, etc.) on the 0.0–10.0 scale. The highest scoring candidate is winnerId. If a second candidate exists, set runnerUpId and provide a non-null \`followUp\` targeting the runner-up. If only 1 item exists in the frame, runnerUpId and followUp MUST be null.
+- Round 1 (CANDIDATE COMPARISON & RIPENESS WINDOW):
+  - You MUST detect, bound, and grade ALL visible candidate produce items (or 3 to 6 prominent items if a pile/basket, e.g. c1, c2, c3, c4).
+  - CRITICAL: Never return only 1 single candidate when multiple fruits/vegetables are visible! The app features a 3-way Shopping Goal switcher ("Ready now", "In 2–3 days", "Later this week") which ranks and chooses the winner dynamically across ALL returned candidates based on each candidate's \`ripeness\` ("ripe" | "almost_ripe" | "underripe"). If you only return 1 candidate, the user cannot compare or switch ripeness goals!
+  - Score each candidate on the 0.0–10.0 scale and accurately classify each candidate's \`ripeness\` ("ripe", "almost_ripe", "underripe", or "overripe").
+  - For the default "ready_now" peak-ripe goal, set winnerId to the highest scoring ripe candidate, set runnerUpId to the second-best candidate, and provide a non-null \`followUp\` targeting the runner-up. Only if truly a single solo fruit exists in the entire frame should candidates have length 1.
 - Round 2: Close-up inspection of the runner-up candidate after being flipped/rotated. Output ONLY the single foreground close-up candidate in \`candidates\` using \`id: followUpContext.targetCandidateId\` (e.g. "c2"), ignoring any distant background items. Provide a non-null \`flipSummary\` (<= 80 chars) describing what the flipped angle revealed, and an updated \`score\` (0.0–10.0).
   - If the flipped underside reveals superior ripeness (e.g. deep creamy golden-yellow field spot with dense brown sugar webbing), score it higher than \`previousWinner.score\`, set \`verdict.winnerId\` to \`targetCandidateId\`, \`verdict.runnerUpId\` to \`previousWinner.id\`, and provide a non-null \`followUp\` targeting \`previousWinner.id\` (role: "first_pick").
   - If the flipped underside is disappointing, underripe, or defective (e.g. stark chalky-white spot, pale greenish belly, or lack of webbing), lower its score strictly below \`previousWinner.score\`, keep \`verdict.winnerId\` as \`previousWinner.id\`, set \`verdict.runnerUpId\` to \`targetCandidateId\`, and set \`followUp: null\`.
@@ -96,9 +100,9 @@ export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[])
   if (request.round === 1) {
     if (request.focusPolygon && request.focusPolygon.length >= 3) {
       prompt += `\nUser drew a focusPolygon: ${describeFocusPolygonBounds(request.focusPolygon)}
-CRITICAL: Detect and grade EVERY prominent individual produce item (e.g. 2 to 5 distinct individual tomatoes, fruits, or vegetables) inside this drawn region. Do NOT group multiple loose fruits into a single candidate box, do NOT return only 1 item if multiple are visible, and exclude any produce outside the drawn region.`;
+CRITICAL: Detect, bound, and grade ALL prominent individual produce items (3 to 6 distinct items, e.g. c1, c2, c3, c4) inside this drawn region. Each candidate must have its own score and ripeness tier ("ripe" | "almost_ripe" | "underripe") so the user can use the 3-way Shopping Goal tabs to select the best one. Do NOT return only 1 candidate, do NOT group fruits together, and exclude items outside the loop.`;
     } else {
-      prompt += `\nEvaluate all visible produce candidates in the image.`;
+      prompt += `\nEvaluate all visible produce candidates in the image. Return 3 to 6 prominent candidates with their ripeness classification so the user can compare them across shopping goal tabs.`;
     }
   } else if (request.round === 2 && request.followUpContext) {
     const ctx = request.followUpContext;
