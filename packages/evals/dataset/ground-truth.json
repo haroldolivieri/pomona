@@ -387,8 +387,8 @@
     "id": "11-grape-punnet-pack-selection",
     "filename": "11-grape-punnet-pack-selection.jpg",
     "imagePath": "dataset/images/11-grape-punnet-pack-selection.jpg",
-    "imageBase64PreviewLength": 68997,
-    "description": "Round 1 Pack/Bunch Selection: Two clear plastic punnets of Red Seedless Grapes on a grocery display shelf. Left punnet (Winner [280, 80, 760, 480]) contains plump red grapes with fresh green stems and clean dry bottom with no mold. Right punnet (Runner-Up [300, 530, 770, 920]) has slight stem browning and loose berries. Verifies unit-of-purchase rule: model must return exactly 2 candidate boxes enclosing the entire punnets, NOT individual berries inside the pack.",
+    "imageBase64PreviewLength": 1243000,
+    "description": "Round 1 Pack/Bunch Selection: Realistic photograph of two clear plastic clamshell containers of Red Seedless Grapes on a supermarket produce shelf. Left container (Winner [240, 50, 835, 500], $4.99/lb) contains plump, crisp red grapes with vibrant green stems. Right container (Runner-Up [240, 510, 835, 960], $3.49/lb Clearance) has dry brown stems and softer fruit. Verifies unit-of-purchase rule: model must return exactly 2 candidate boxes enclosing the entire clamshell containers, NOT individual berries inside the pack.",
     "groundTruth": {
       "round": 1,
       "expectedStatus": "ok",
@@ -397,16 +397,16 @@
       "expectedCandidateCountMin": 2,
       "expectedCandidateCountMax": 2,
       "expectedWinnerBox": [
-        280,
-        80,
-        760,
-        480
+        240,
+        50,
+        835,
+        500
       ],
       "expectedRunnerUpBox": [
-        300,
-        530,
-        770,
-        920
+        240,
+        510,
+        835,
+        960
       ],
       "forbiddenWordsInCopy": [
         "watermelon",

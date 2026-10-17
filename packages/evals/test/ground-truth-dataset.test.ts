@@ -472,7 +472,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       candidates: [
         {
           id: "c1",
-          box: [285, 85, 755, 475], // Entire left punnet
+          box: [245, 55, 830, 495], // Entire left clamshell container
           score: 9.2,
           ripeness: "ripe",
           traits: ["Vibrant green stem", "Plump bloom", "No mold at bottom"],
@@ -480,7 +480,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
         },
         {
           id: "c2",
-          box: [305, 535, 765, 915], // Entire right punnet
+          box: [245, 515, 830, 955], // Entire right clamshell container
           score: 8.0,
           ripeness: "almost_ripe",
           traits: ["Dry brownish stem", "Loose berries"],

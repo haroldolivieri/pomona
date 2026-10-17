@@ -262,8 +262,8 @@ tests:
       produceDisplayName: "Red Seedless Grapes"
       expectedCandidateCountMin: 2
       expectedCandidateCountMax: 2
-      expectedWinnerBox: [280, 80, 760, 480]
-      expectedRunnerUpBox: [300, 530, 770, 920]
+      expectedWinnerBox: [240, 50, 835, 500]
+      expectedRunnerUpBox: [240, 510, 835, 960]
       forbiddenWordsInCopy: ["watermelon", "melon", "avocado", "pineapple", "field spot", "rind"]
       imageDescription: "Two clear plastic punnets of red seedless grapes on a supermarket display shelf."
 
