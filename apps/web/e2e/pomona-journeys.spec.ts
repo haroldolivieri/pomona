@@ -295,7 +295,7 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     // S5B2 -> Flip 1st pick -> S6_FlipFirstPickCamera
     await finalCheckBtn.click();
     await expect(page.getByTestId("stage-S6_FlipFirstPickCamera")).toBeVisible();
-    await expect(page.getByText(/Winner to beat: 9\.0 \/ 10/)).toBeVisible();
+    await expect(page.getByText(/Current leader: 9\.0 · 1st Pick: 8\.6/)).toBeVisible();
 
     // S6 -> Snap flipped 1st pick -> S7A_FirstPickWonFinal (9.3 beats 9.0)
     await page.getByTestId("flip-shutter-button").click();

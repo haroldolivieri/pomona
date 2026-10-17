@@ -441,7 +441,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               fontSize: "11px",
               fontWeight: 700,
               letterSpacing: "0.12em",
-              color: phase === "S4_InitialResult" ? "var(--text-muted)" : "var(--cta-primary)",
+              color: phase === "S4_InitialResult" ? "var(--text-muted)" : "var(--eyebrow-accent)",
               textTransform: "uppercase",
               display: "block",
               marginBottom: "4px",
