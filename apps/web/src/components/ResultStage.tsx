@@ -173,7 +173,9 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     eyebrow = `★ NEW WINNER · BEATS 1ST WINNER (${score2} VS ${score1})`;
     headline = "Buy this Runner-Up.";
     subtitle = `The flipped fruit scored ${score2} and took the lead over your 1st winner (${score1}).`;
-    followUpHint = followUp?.bannerText || `Your 1st Winner (${score1}) was only inspected from the top. Flip it too for a fair final check, or take this new winner now.`;
+    followUpHint = (followUp?.bannerText
+      ? followUp.bannerText.replace(/1st\s*pick/gi, "1st Winner").replace(/first\s*pick/gi, "first winner")
+      : null) || `Your 1st Winner (${score1}) was only inspected from the top. Flip it too for a fair final check, or take this new winner now.`;
     prevMarkScore = firstPick?.score ?? null;
     runnerUpTagLabel = `1st Winner · ${score1}`;
   } else if (phase === "S7A_FirstPickWonFinal") {

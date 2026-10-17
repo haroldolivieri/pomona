@@ -169,8 +169,8 @@ export function createMockApiClient(): PomonaApiClient {
             followUp: {
               targetCandidateId: "c1",
               targetRole: "first_pick",
-              bannerText: "1st Pick (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
-              flipHeadline: "Flip your 1st pick over",
+              bannerText: "1st Winner (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
+              flipHeadline: "Flip your 1st winner over",
               instruction: "Turn the yellow-marked Watermelon to show its underside.",
             },
             afterPurchase: {
@@ -196,7 +196,7 @@ export function createMockApiClient(): PomonaApiClient {
         };
       }
 
-      // Round 3 mock: 1st Pick reclaims the win (9.3 beats 9.0)
+      // Round 3 mock: 1st Winner reclaims the win (9.3 beats 9.0)
       return {
         remainingScans: 7,
         response: {
@@ -225,7 +225,7 @@ export function createMockApiClient(): PomonaApiClient {
             winnerId: "c1",
             runnerUpId: "c2",
             confidence: "high",
-            headline: "Buy your 1st pick.",
+            headline: "Buy your 1st winner.",
           },
           followUp: null,
           afterPurchase: {

@@ -61,7 +61,7 @@ const mockRound2RunnerUpBeaten = {
       flipSummary: "slight bruise underside",
     },
   ],
-  verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy your 1st pick." },
+  verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy your 1st winner." },
   followUp: null,
 };
 
@@ -83,13 +83,13 @@ const mockRound2RunnerUpTookLead = {
   followUp: {
     targetCandidateId: "c1",
     targetRole: "first_pick",
-    bannerText: "1st Pick (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
-    flipHeadline: "Flip your 1st pick over",
+    bannerText: "1st Winner (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
+    flipHeadline: "Flip your 1st winner over",
     instruction: "Turn the yellow-marked Hass Avocado to show its stem base.",
   },
 };
 
-// Round 3 - 1st Pick Wins Final Flip (score 9.3 >= 9.0)
+// Round 3 - 1st Winner Wins Final Flip (score 9.3 >= 9.0)
 const mockRound3FirstPickWon = {
   ...mockRound1Response,
   round: 3,
@@ -103,7 +103,7 @@ const mockRound3FirstPickWon = {
       flipSummary: "bright green stem base",
     },
   ],
-  verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy your 1st pick." },
+  verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy your 1st winner." },
   followUp: null,
 };
 

@@ -27,14 +27,16 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
   const isFinalCheck = phase === "S6_FlipFirstPickCamera";
   const targetRipeness = state.targetRipeness || "ready_now";
 
-  // Parameterized produce name and instructions
-  const headline = followUp?.flipHeadline || (isFinalCheck ? "Flip your 1st winner over" : "Flip the produce over");
-  let instruction = followUp?.instruction || "Turn over to inspect the underside.";
+  // Parameterized produce name and instructions (sanitize any "1st pick" -> "1st winner")
+  const rawHeadline = followUp?.flipHeadline || (isFinalCheck ? "Flip your 1st winner over" : "Flip the produce over");
+  const headline = rawHeadline.replace(/1st\s*pick/gi, "1st winner").replace(/first\s*pick/gi, "first winner");
+  let rawInstruction = followUp?.instruction || "Turn over to inspect the underside.";
   if (targetRipeness !== "ready_now") {
-    instruction = `Show the hidden underside so Pomona can check the underside for hidden bruises or uneven ripening before storing for ${
+    rawInstruction = `Show the hidden underside so Pomona can check the underside for hidden bruises or uneven ripening before storing for ${
       targetRipeness === "in_2_3_days" ? "2–3 days" : "later this week"
     }.`;
   }
+  const instruction = rawInstruction.replace(/1st\s*pick/gi, "1st winner").replace(/first\s*pick/gi, "first winner");
   
   // Scores for State 5A & State 6
   const winnerToBeatScore = firstPick?.score?.toFixed(1) ?? "8.6";

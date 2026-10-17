@@ -183,9 +183,9 @@ describe("ResultStage (Mockup Parity)", () => {
         followUp: {
           targetCandidateId: "c1",
           targetRole: "first_pick" as const,
-          bannerText: "1st Pick (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
-          flipHeadline: "Flip your 1st pick over",
-          instruction: "Turn over 1st pick",
+          bannerText: "1st Winner (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
+          flipHeadline: "Flip your 1st winner over",
+          instruction: "Turn over 1st winner",
         },
       },
     };
@@ -208,7 +208,7 @@ describe("ResultStage (Mockup Parity)", () => {
     fireEvent.click(screen.getByTestId("sheet-drag-area"));
 
     // Hint and CTA
-    expect(screen.getByTestId("follow-up-hint")).toHaveTextContent(/1st (Pick|Winner) \(8\.6\) was only graded from the top/i);
+    expect(screen.getByTestId("follow-up-hint")).toHaveTextContent(/1st Winner \(8\.6\) was only graded from the top/i);
     expect(screen.getByTestId("cta-final-check-first-pick")).toBeInTheDocument();
   });
 

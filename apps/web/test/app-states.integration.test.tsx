@@ -61,8 +61,8 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
           followUp: {
             targetCandidateId: "c1",
             targetRole: "first_pick",
-            bannerText: "1st Pick (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
-            flipHeadline: "Flip your 1st pick over",
+            bannerText: "1st Winner (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
+            flipHeadline: "Flip your 1st winner over",
             instruction: "Turn the yellow-marked Hass Avocado to show its stem base.",
           },
           afterPurchase: {
