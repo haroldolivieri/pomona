@@ -721,12 +721,37 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           />
         </div>
 
-        {/* 3-Way Segmented Control in S4_InitialResult */}
+        {/* 3-Way Segmented Control in S4_InitialResult - also draggable to expand/collapse sheet */}
         {phase === "S4_InitialResult" && (
           <div
             data-testid="ripeness-target-switch"
             role="tablist"
             aria-label="Target ripeness window"
+            onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+            onTouchMove={(e) => {
+              if (dragStartY.current !== null) {
+                handleDragMove(e.touches[0].clientY);
+              }
+            }}
+            onTouchEnd={(e) => {
+              const clientY = e.changedTouches?.[0]?.clientY;
+              handleDragEnd(clientY);
+            }}
+            onPointerDown={(e) => {
+              if (e.pointerType === "mouse") {
+                handleDragStart(e.clientY);
+              }
+            }}
+            onPointerMove={(e) => {
+              if (e.pointerType === "mouse" && dragStartY.current !== null) {
+                handleDragMove(e.clientY);
+              }
+            }}
+            onPointerUp={(e) => {
+              if (e.pointerType === "mouse") {
+                handleDragEnd(e.clientY);
+              }
+            }}
             style={{
               backgroundColor: "var(--surface-card)",
               padding: "3.5px",
@@ -735,6 +760,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               gridTemplateColumns: "repeat(3, 1fr)",
               gap: "4px",
               border: "1px solid var(--surface-card-border)",
+              touchAction: "none",
             }}
           >
             {(
@@ -752,7 +778,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   role="tab"
                   aria-selected={isActive}
                   data-testid={`target-tab-${tab.id}`}
-                  onClick={() => onSetTargetRipeness && onSetTargetRipeness(tab.id)}
+                  onClick={() => {
+                    if (Date.now() < suppressClickUntil.current) return;
+                    if (onSetTargetRipeness) onSetTargetRipeness(tab.id);
+                  }}
                   style={{
                     border: "none",
                     backgroundColor: isActive ? "var(--surface-sheet)" : "transparent",
@@ -849,187 +878,187 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           </div>
         )}
 
-        {/* Divider 1: Between Target Selector / Goal Banner and Headline area */}
-        <div
-          data-testid="sheet-divider-top"
-          style={{
-            height: "1px",
-            backgroundColor: "var(--surface-card-border)",
-            opacity: 0.6,
-            marginTop: "6px",
-            marginBottom: "4px",
-          }}
-        />
-
-        {/* Eyebrow, Headline & Round Score Rating (also draggable/tappable to expand or collapse) */}
-        <div
-          data-testid="sheet-header-summary"
-          role="button"
-          tabIndex={0}
-          aria-label={isFullyOpen ? "Collapse results sheet" : "Expand results sheet"}
-          aria-expanded={isFullyOpen}
-          onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
-          onTouchMove={(e) => {
-            if (dragStartY.current !== null) {
-              handleDragMove(e.touches[0].clientY);
-            }
-          }}
-          onTouchEnd={(e) => {
-            const clientY = e.changedTouches?.[0]?.clientY;
-            handleDragEnd(clientY);
-          }}
-          onPointerDown={(e) => {
-            if (e.pointerType === "mouse") {
-              handleDragStart(e.clientY);
-            }
-          }}
-          onPointerMove={(e) => {
-            if (e.pointerType === "mouse" && dragStartY.current !== null) {
-              handleDragMove(e.clientY);
-            }
-          }}
-          onPointerUp={(e) => {
-            if (e.pointerType === "mouse") {
-              handleDragEnd(e.clientY);
-            }
-          }}
-          onClick={() => {
-            if (Date.now() < suppressClickUntil.current) return;
-            setSheetMode((prev) => (prev === "collapsed" ? "expanded" : "collapsed"));
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setSheetMode((prev) => (prev === "collapsed" ? "expanded" : "collapsed"));
-            }
-          }}
-          style={{
-            cursor: "pointer",
-            touchAction: "none",
-            outline: "none",
-            userSelect: "none",
-          }}
-        >
-          {phase !== "S4_InitialResult" && eyebrow && (
-            <span
+        {/* Expanded content visible when sheet is fully open */}
+        {isFullyOpen && (
+          <>
+            {/* Divider 1: Between Target Selector / Goal Banner and Headline area */}
+            <div
+              data-testid="sheet-divider-top"
               style={{
-                fontSize: "11px",
-                fontWeight: 700,
-                letterSpacing: "0.12em",
-                color: "var(--eyebrow-accent)",
-                textTransform: "uppercase",
-                display: "block",
+                height: "1px",
+                backgroundColor: "var(--surface-card-border)",
+                opacity: 0.6,
+                marginTop: "6px",
                 marginBottom: "4px",
               }}
-            >
-              {eyebrow}
-            </span>
-          )}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "12px",
-            }}
-          >
-            <div>
-              <h1
-                className="font-serif"
-                style={{
-                  fontSize: "30px",
-                  fontWeight: 700,
-                  lineHeight: 1.15,
-                  color: "var(--text-primary)",
-                  letterSpacing: "-0.015em",
-                }}
-              >
-                {headline}
-              </h1>
-              <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "2px" }}>
-                {subtitle}
-              </p>
-            </div>
+            />
 
-            {/* Circular Score Meter next to headline */}
-            {activeWinner && (
-              <div
-                data-testid="circular-score-meter"
-                style={{
-                  position: "relative",
-                  width: "48px",
-                  height: "48px",
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <svg
-                  width="48"
-                  height="48"
-                  viewBox="0 0 48 48"
-                  style={{ transform: "rotate(-90deg)", position: "absolute", inset: 0 }}
-                >
-                  {/* Track circle */}
-                  <circle
-                    cx="24"
-                    cy="24"
-                    r="19"
-                    fill="none"
-                    stroke="var(--surface-track)"
-                    strokeWidth="3.5"
-                  />
-                  {/* Progress circle */}
-                  <circle
-                    cx="24"
-                    cy="24"
-                    r="19"
-                    fill="none"
-                    stroke="#F2C935"
-                    strokeWidth="3.5"
-                    strokeDasharray={2 * Math.PI * 19}
-                    strokeDashoffset={
-                      2 * Math.PI * 19 * (1 - Math.min(10, Math.max(0, activeWinner.score)) / 10)
-                    }
-                    strokeLinecap="round"
-                  />
-                  {/* Previous tick mark if multi-round */}
-                  {prevMarkScore !== null && (
-                    <circle
-                      data-testid="score-prev-mark"
-                      cx="24"
-                      cy="24"
-                      r="19"
-                      fill="none"
-                      stroke="#142117"
-                      strokeWidth="3.5"
-                      strokeDasharray={`2 ${2 * Math.PI * 19 - 2}`}
-                      strokeDashoffset={
-                        -1 * (2 * Math.PI * 19 * (Math.min(10, Math.max(0, prevMarkScore)) / 10) - 1)
-                      }
-                      opacity={0.7}
-                    />
-                  )}
-                </svg>
+            {/* Eyebrow, Headline & Round Score Rating */}
+            <div
+              data-testid="sheet-header-summary"
+              role="button"
+              tabIndex={0}
+              aria-label={isFullyOpen ? "Collapse results sheet" : "Expand results sheet"}
+              aria-expanded={isFullyOpen}
+              onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+              onTouchMove={(e) => {
+                if (dragStartY.current !== null) {
+                  handleDragMove(e.touches[0].clientY);
+                }
+              }}
+              onTouchEnd={(e) => {
+                const clientY = e.changedTouches?.[0]?.clientY;
+                handleDragEnd(clientY);
+              }}
+              onPointerDown={(e) => {
+                if (e.pointerType === "mouse") {
+                  handleDragStart(e.clientY);
+                }
+              }}
+              onPointerMove={(e) => {
+                if (e.pointerType === "mouse" && dragStartY.current !== null) {
+                  handleDragMove(e.clientY);
+                }
+              }}
+              onPointerUp={(e) => {
+                if (e.pointerType === "mouse") {
+                  handleDragEnd(e.clientY);
+                }
+              }}
+              onClick={() => {
+                if (Date.now() < suppressClickUntil.current) return;
+                setSheetMode((prev) => (prev === "collapsed" ? "expanded" : "collapsed"));
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setSheetMode((prev) => (prev === "collapsed" ? "expanded" : "collapsed"));
+                }
+              }}
+              style={{
+                cursor: "pointer",
+                touchAction: "none",
+                outline: "none",
+                userSelect: "none",
+              }}
+            >
+              {phase !== "S4_InitialResult" && eyebrow && (
                 <span
-                  className="tabular-nums"
                   style={{
-                    fontSize: "13px",
-                    fontWeight: 800,
-                    color: "var(--text-primary)",
-                    lineHeight: 1,
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    letterSpacing: "0.12em",
+                    color: "var(--eyebrow-accent)",
+                    textTransform: "uppercase",
+                    display: "block",
+                    marginBottom: "4px",
                   }}
                 >
-                  {activeWinner.score.toFixed(1)}
+                  {eyebrow}
                 </span>
-              </div>
-            )}
-          </div>
-        </div>
+              )}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                }}
+              >
+                <div>
+                  <h1
+                    className="font-serif"
+                    style={{
+                      fontSize: "30px",
+                      fontWeight: 700,
+                      lineHeight: 1.15,
+                      color: "var(--text-primary)",
+                      letterSpacing: "-0.015em",
+                    }}
+                  >
+                    {headline}
+                  </h1>
+                  <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+                    {subtitle}
+                  </p>
+                </div>
 
-        {/* Expanded content visible when sheet is fully open (ZERO SCROLL, fits entire view) */}
-        {isFullyOpen && (
+                {/* Circular Score Meter next to headline */}
+                {activeWinner && (
+                  <div
+                    data-testid="circular-score-meter"
+                    style={{
+                      position: "relative",
+                      width: "48px",
+                      height: "48px",
+                      flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <svg
+                      width="48"
+                      height="48"
+                      viewBox="0 0 48 48"
+                      style={{ transform: "rotate(-90deg)", position: "absolute", inset: 0 }}
+                    >
+                      {/* Track circle */}
+                      <circle
+                        cx="24"
+                        cy="24"
+                        r="19"
+                        fill="none"
+                        stroke="var(--surface-track)"
+                        strokeWidth="3.5"
+                      />
+                      {/* Progress circle */}
+                      <circle
+                        cx="24"
+                        cy="24"
+                        r="19"
+                        fill="none"
+                        stroke="#F2C935"
+                        strokeWidth="3.5"
+                        strokeDasharray={2 * Math.PI * 19}
+                        strokeDashoffset={
+                          2 * Math.PI * 19 * (1 - Math.min(10, Math.max(0, activeWinner.score)) / 10)
+                        }
+                        strokeLinecap="round"
+                      />
+                      {/* Previous tick mark if multi-round */}
+                      {prevMarkScore !== null && (
+                        <circle
+                          data-testid="score-prev-mark"
+                          cx="24"
+                          cy="24"
+                          r="19"
+                          fill="none"
+                          stroke="#142117"
+                          strokeWidth="3.5"
+                          strokeDasharray={`2 ${2 * Math.PI * 19 - 2}`}
+                          strokeDashoffset={
+                            -1 * (2 * Math.PI * 19 * (Math.min(10, Math.max(0, prevMarkScore)) / 10) - 1)
+                          }
+                          opacity={0.7}
+                        />
+                      )}
+                    </svg>
+                    <span
+                      className="tabular-nums"
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: 800,
+                        color: "var(--text-primary)",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {activeWinner.score.toFixed(1)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
           <div
             data-testid="sheet-expanded-content"
             onTouchStart={(e) => {
@@ -1370,6 +1399,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           )}
         </div>
           </div>
+          </>
         )}
       </div>
     </div>

@@ -91,20 +91,20 @@ describe("ResultStage (Mockup Parity)", () => {
     // Runner-Up badge / tag
     expect(screen.getByTestId("runner-up-tag")).toHaveTextContent("Runner-Up");
 
+    // In min-height collapsed mode, only the target switch tab bar is shown; expand sheet to see details
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
+
     // Headline & Subhead (eyebrow removed in S4 to reduce clutter)
     expect(screen.queryByText(/BEST IN VIEW/i)).not.toBeInTheDocument();
     expect(screen.getByText("Best available.")).toBeInTheDocument();
     expect(screen.getByText(/High confidence · 3 compared in view/i)).toBeInTheDocument();
 
-    // Score meter (round score meter visible at min-height)
+    // Score meter (round score meter visible in expanded sheet)
     expect(screen.getByTestId("circular-score-meter")).toBeInTheDocument();
     expect(screen.getByTestId("circular-score-meter")).toHaveTextContent("8.6");
 
     // Divider 1
     expect(screen.getByTestId("sheet-divider-top")).toBeInTheDocument();
-
-    // Expand bottom sheet to see full details (traits, storage cards, hint, CTA)
-    fireEvent.click(screen.getByTestId("sheet-drag-area"));
 
     // Dividers 2 & 3
     expect(screen.getByTestId("sheet-divider-middle")).toBeInTheDocument();
@@ -146,6 +146,9 @@ describe("ResultStage (Mockup Parity)", () => {
 
     render(<ResultStage state={state} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} />);
 
+    // Expand bottom sheet to see headline and details
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
+
     // Eyebrow & headline
     expect(screen.getByText(/✓ 1ST WINNER WINS · BEATS RUNNER-UP \(8\.6 VS 7\.2\)/i)).toBeInTheDocument();
     expect(screen.getByText("Best available.")).toBeInTheDocument();
@@ -153,9 +156,6 @@ describe("ResultStage (Mockup Parity)", () => {
     // Tick marker on circular score meter for previous/other candidate score (7.2)
     const tick = screen.getByTestId("score-prev-mark");
     expect(tick).toBeInTheDocument();
-
-    // Expand bottom sheet to see confirmation banner and CTAs
-    fireEvent.click(screen.getByTestId("sheet-drag-area"));
 
     // Confirmation card
     const confirmCard = screen.getByTestId("confirmation-card");
@@ -192,6 +192,9 @@ describe("ResultStage (Mockup Parity)", () => {
 
     render(<ResultStage state={state} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} />);
 
+    // Expand bottom sheet to see headline and details
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
+
     expect(screen.getByText(/★ NEW WINNER · BEATS 1ST WINNER \(9\.0 VS 8\.6\)/i)).toBeInTheDocument();
     expect(screen.getByText("Buy this Runner-Up.")).toBeInTheDocument();
 
@@ -203,9 +206,6 @@ describe("ResultStage (Mockup Parity)", () => {
     // Tick marker on circular meter
     const tick = screen.getByTestId("score-prev-mark");
     expect(tick).toBeInTheDocument();
-
-    // Expand bottom sheet to see hint and CTA
-    fireEvent.click(screen.getByTestId("sheet-drag-area"));
 
     // Hint and CTA
     expect(screen.getByTestId("follow-up-hint")).toHaveTextContent(/1st Winner \(8\.6\) was only graded from the top/i);
@@ -241,6 +241,8 @@ describe("ResultStage (Mockup Parity)", () => {
     };
 
     const { rerender } = render(<ResultStage state={stateS7A} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} />);
+    // Expand bottom sheet
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
     expect(screen.getByText(/★ FINAL VERDICT · 1ST WINNER RECLAIMS THE WIN \(9\.3 VS 9\.0\)/i)).toBeInTheDocument();
     expect(screen.getByText("Best available.")).toBeInTheDocument();
     expect(screen.getByTestId("winner-score-badge")).toHaveTextContent("9.3");

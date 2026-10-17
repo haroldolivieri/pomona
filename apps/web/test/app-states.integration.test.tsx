@@ -120,10 +120,10 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     // State 2 -> Whole Photo -> State 3 -> State 4
     fireEvent.click(screen.getByTestId("whole-photo-button"));
     expect(await screen.findByTestId("stage-S4_InitialResult")).toBeTruthy();
+    // Expand bottom sheet to see headline, score meter, full storage details, and action button
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
     expect(screen.getByText("Best available.")).toBeTruthy();
     expect(screen.getByTestId("circular-score-meter")).toBeTruthy();
-    // Expand bottom sheet to see full storage details and action button
-    fireEvent.click(screen.getByTestId("sheet-drag-area"));
     expect(screen.getByText("Counter · whole")).toBeTruthy();
     expect(screen.getByText("Fridge · wrapped")).toBeTruthy();
     expect(screen.getByTestId("cta-compare-runner-up").textContent).toBe("Compare with Runner-Up");
@@ -137,9 +137,9 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     // State 5A -> Snap -> State 5B-2 (Runner-Up Took Lead)
     fireEvent.click(screen.getByTestId("flip-shutter-button"));
     expect(await screen.findByTestId("stage-S5B2_RunnerUpTookLead")).toBeTruthy();
-    expect(screen.getByText(/Beats 1st Winner \(9\.0 vs 8\.6\)/i)).toBeTruthy();
-    // Expand bottom sheet to access final check CTA
+    // Expand bottom sheet to access headline and final check CTA
     fireEvent.click(screen.getByTestId("sheet-drag-area"));
+    expect(screen.getByText(/Beats 1st Winner \(9\.0 vs 8\.6\)/i)).toBeTruthy();
     expect(screen.getByTestId("cta-final-check-first-pick").textContent).toBe("Flip 1st Winner for Final Check");
 
     // State 5B-2 -> Flip 1st Winner -> State 6 -> Snap -> State 7A (1st Winner Reclaims Win)
@@ -147,6 +147,8 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     expect(await screen.findByTestId("stage-S6_FlipFirstPickCamera")).toBeTruthy();
     fireEvent.click(screen.getByTestId("flip-shutter-button"));
     expect(await screen.findByTestId("stage-S7A_FirstPickWonFinal")).toBeTruthy();
+    // Expand bottom sheet to access verdict headline
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
     expect(screen.getByText(/1st Winner Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeTruthy();
   }, 25000);
 
