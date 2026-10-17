@@ -28,8 +28,8 @@ export const MICRO_CENTS_PER_USD = 100_000;
 export const MONTHLY_SOFT_CAP_MICRO_CENTS = 950_000; // $9.50
 export const MONTHLY_HARD_CAP_MICRO_CENTS = 1_000_000; // $10.00
 
-export const DEFAULT_MODEL_ID = "gemini-3.8-flash";
-export const DOWNGRADE_MODEL_ID = "gemini-3.5-flash-lite";
+export const DEFAULT_MODEL_ID = "gemini-3.1-flash-lite";
+export const DOWNGRADE_MODEL_ID = "gemini-3.1-flash-lite";
 
 /**
  * Model token rates (in micro-cents per token):

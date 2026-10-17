@@ -79,14 +79,14 @@ describe("HMAC device token & $10/month budget circuit breaker", () => {
     });
   });
 
-  it("downgrades model to gemini-3.5-flash-lite at $9.50 and trips the hard circuit breaker at $10.00", async () => {
+  it("uses gemini-3.1-flash-lite at $9.50 soft cap and trips the hard circuit breaker at $10.00", async () => {
     const store = createInMemoryQuotaStore();
     const now = new Date("2026-10-16T12:00:00Z");
     await store.setMonthlySpendMicroCents("2026-10", 960_000); // $9.60
 
     const softCap = await checkQuotaAndSelectModel(store, { deviceId: "dev-2", ip: "5.6.7.8", now });
     expect(softCap.allowed).toBe(true);
-    if (softCap.allowed) expect(softCap.modelId).toBe("gemini-3.5-flash-lite");
+    if (softCap.allowed) expect(softCap.modelId).toBe("gemini-3.1-flash-lite");
 
     await store.setMonthlySpendMicroCents("2026-10", 1_000_000); // $10.00 hard cap
     const hardCap = await checkQuotaAndSelectModel(store, { deviceId: "dev-2", ip: "5.6.7.8", now });
