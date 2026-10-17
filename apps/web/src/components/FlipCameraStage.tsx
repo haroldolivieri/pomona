@@ -2,6 +2,8 @@ import React, { useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { ScanMachineState } from "../state/scan-state-machine";
 
+import { ProduceFlipGraphic } from "./ProduceFlipGraphic";
+
 export interface FlipCameraStageProps {
   state: ScanMachineState;
   onCapture: (photoDataUrl: string) => void;
@@ -258,16 +260,17 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
             <div className="produce-flip-flipper">
               {/* Front Face: Top View */}
               <div className="produce-flip-face produce-flip-front">
-                <span style={{ fontSize: "42px", lineHeight: 1 }}>
-                  {state.lastResponse?.produce?.type === "watermelon" ? "🍉" : "🥑"}
-                </span>
+                <ProduceFlipGraphic
+                  produceType={state.lastResponse?.produce?.type}
+                  side="front"
+                />
                 <span
                   style={{
-                    fontSize: "9px",
+                    fontSize: "10px",
                     fontWeight: 700,
                     textTransform: "uppercase",
                     letterSpacing: "0.06em",
-                    color: "rgba(255,255,255,0.85)",
+                    color: "rgba(255,255,255,0.9)",
                     marginTop: "2px",
                   }}
                 >
@@ -277,12 +280,13 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
 
               {/* Back Face: Underside / Ground Spot */}
               <div className="produce-flip-face produce-flip-back">
-                <span style={{ fontSize: "42px", lineHeight: 1, filter: "hue-rotate(45deg) brightness(1.1)" }}>
-                  {state.lastResponse?.produce?.type === "watermelon" ? "🍉" : "🥑"}
-                </span>
+                <ProduceFlipGraphic
+                  produceType={state.lastResponse?.produce?.type}
+                  side="back"
+                />
                 <span
                   style={{
-                    fontSize: "9px",
+                    fontSize: "10px",
                     fontWeight: 800,
                     textTransform: "uppercase",
                     letterSpacing: "0.06em",

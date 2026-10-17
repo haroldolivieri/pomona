@@ -115,11 +115,21 @@ body {
   transform: rotateY(180deg);
 }
 
-@keyframes pulse-beam {
-  0%, 100% { opacity: 0.3; transform: translateY(-50%); }
-  50% { opacity: 0.9; transform: translateY(50%); }
+@keyframes scan-laser-sweep {
+  0% {
+    top: 0%;
+    opacity: 0.8;
+  }
+  50% {
+    top: calc(100% - 4px);
+    opacity: 1;
+  }
+  100% {
+    top: 0%;
+    opacity: 0.8;
+  }
 }
 
-.animate-pulse-beam {
-  animation: pulse-beam 2s ease-in-out infinite;
+.animate-scan-laser {
+  animation: scan-laser-sweep 2.4s ease-in-out infinite;
 }

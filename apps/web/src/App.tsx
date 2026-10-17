@@ -234,7 +234,13 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
         );
 
       case "S3_Analysing":
-        return <AnalysingStage photoDataUrl={state.currentPhotoDataUrl} />;
+        return (
+          <AnalysingStage
+            photoDataUrl={state.currentPhotoDataUrl}
+            focusPolygon={state.focusPolygon}
+            cropRect={state.cropRect}
+          />
+        );
 
       case "S4_InitialResult":
       case "S5B1_RunnerUpBeaten":
