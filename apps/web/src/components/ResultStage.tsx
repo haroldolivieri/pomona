@@ -652,7 +652,9 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           }}
           style={{
             width: "100%",
-            minHeight: "44px",
+            minHeight: "20px",
+            paddingTop: "8px",
+            paddingBottom: "4px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -665,7 +667,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             data-testid="drag-handle"
             style={{
               width: "36px",
-              height: "4.5px",
+              height: "4px",
               borderRadius: "4px",
               backgroundColor: "rgba(107, 106, 101, 0.45)",
               pointerEvents: "none",
@@ -813,8 +815,55 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           }}
         />
 
-        {/* Eyebrow, Headline & Round Score Rating */}
-        <div>
+        {/* Eyebrow, Headline & Round Score Rating (also draggable/tappable to expand or collapse) */}
+        <div
+          data-testid="sheet-header-summary"
+          role="button"
+          tabIndex={0}
+          aria-label={isFullyOpen ? "Collapse results sheet" : "Expand results sheet"}
+          aria-expanded={isFullyOpen}
+          onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+          onTouchMove={(e) => {
+            if (dragStartY.current !== null) {
+              handleDragMove(e.touches[0].clientY);
+            }
+          }}
+          onTouchEnd={(e) => {
+            const clientY = e.changedTouches?.[0]?.clientY;
+            handleDragEnd(clientY);
+          }}
+          onPointerDown={(e) => {
+            if (e.pointerType === "mouse") {
+              handleDragStart(e.clientY);
+            }
+          }}
+          onPointerMove={(e) => {
+            if (e.pointerType === "mouse" && dragStartY.current !== null) {
+              handleDragMove(e.clientY);
+            }
+          }}
+          onPointerUp={(e) => {
+            if (e.pointerType === "mouse") {
+              handleDragEnd(e.clientY);
+            }
+          }}
+          onClick={() => {
+            if (Date.now() < suppressClickUntil.current) return;
+            setSheetMode((prev) => (prev === "collapsed" ? "expanded" : "collapsed"));
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setSheetMode((prev) => (prev === "collapsed" ? "expanded" : "collapsed"));
+            }
+          }}
+          style={{
+            cursor: "pointer",
+            touchAction: "none",
+            outline: "none",
+            userSelect: "none",
+          }}
+        >
           {phase !== "S4_InitialResult" && eyebrow && (
             <span
               style={{
