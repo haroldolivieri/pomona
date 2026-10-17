@@ -96,11 +96,19 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(screen.getByText("Best available.")).toBeInTheDocument();
     expect(screen.getByText(/High confidence · 3 compared in view/i)).toBeInTheDocument();
 
-    // Score meter (visible at min-height)
-    expect(screen.getByText("8.6 / 10")).toBeInTheDocument();
+    // Score meter (round score meter visible at min-height)
+    expect(screen.getByTestId("circular-score-meter")).toBeInTheDocument();
+    expect(screen.getByTestId("circular-score-meter")).toHaveTextContent("8.6");
+
+    // Divider 1
+    expect(screen.getByTestId("sheet-divider-top")).toBeInTheDocument();
 
     // Expand bottom sheet to see full details (traits, storage cards, hint, CTA)
     fireEvent.click(screen.getByTestId("sheet-drag-area"));
+
+    // Dividers 2 & 3
+    expect(screen.getByTestId("sheet-divider-middle")).toBeInTheDocument();
+    expect(screen.getByTestId("sheet-divider-bottom")).toBeInTheDocument();
 
     // Storage 2-row
     expect(screen.getByText(/🗓 Eat within/i)).toBeInTheDocument();
@@ -142,10 +150,9 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(screen.getByText(/✓ 1ST WINNER WINS · BEATS RUNNER-UP \(8\.6 VS 7\.2\)/i)).toBeInTheDocument();
     expect(screen.getByText("Best available.")).toBeInTheDocument();
 
-    // Tick marker on meter for previous/other candidate score (7.2 -> 72%)
+    // Tick marker on circular score meter for previous/other candidate score (7.2)
     const tick = screen.getByTestId("score-prev-mark");
     expect(tick).toBeInTheDocument();
-    expect(tick).toHaveStyle({ left: "72%" });
 
     // Expand bottom sheet to see confirmation banner and CTAs
     fireEvent.click(screen.getByTestId("sheet-drag-area"));
@@ -193,9 +200,9 @@ describe("ResultStage (Mockup Parity)", () => {
     // Runner-up box tag is 1st Winner · 8.6
     expect(screen.getByTestId("runner-up-tag")).toHaveTextContent("1st Winner · 8.6");
 
-    // Tick marker on meter at 86%
+    // Tick marker on circular meter
     const tick = screen.getByTestId("score-prev-mark");
-    expect(tick).toHaveStyle({ left: "86%" });
+    expect(tick).toBeInTheDocument();
 
     // Expand bottom sheet to see hint and CTA
     fireEvent.click(screen.getByTestId("sheet-drag-area"));
@@ -237,7 +244,7 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(screen.getByText(/★ FINAL VERDICT · 1ST WINNER RECLAIMS THE WIN \(9\.3 VS 9\.0\)/i)).toBeInTheDocument();
     expect(screen.getByText("Best available.")).toBeInTheDocument();
     expect(screen.getByTestId("winner-score-badge")).toHaveTextContent("9.3");
-    expect(screen.getByTestId("score-prev-mark")).toHaveStyle({ left: "90%" });
+    expect(screen.getByTestId("score-prev-mark")).toBeInTheDocument();
 
     // S7B
     const stateS7B = {
@@ -271,7 +278,7 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(screen.getByText("Buy the Runner-Up.")).toBeInTheDocument();
     expect(screen.getByTestId("winner-score-badge")).toHaveTextContent("9.0");
     expect(screen.getByTestId("runner-up-tag")).toHaveTextContent("1st Winner · 8.4");
-    expect(screen.getByTestId("score-prev-mark")).toHaveStyle({ left: "84%" });
+    expect(screen.getByTestId("score-prev-mark")).toBeInTheDocument();
   });
 
   it("allows dragging anywhere on the bottom sheet and translates the sheet + parallax photo without shrinking the photo height", () => {

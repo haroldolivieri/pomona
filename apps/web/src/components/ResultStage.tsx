@@ -837,7 +837,19 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           </div>
         )}
 
-        {/* Eyebrow & Headline */}
+        {/* Divider 1: Between Target Selector / Goal Banner and Headline area */}
+        <div
+          data-testid="sheet-divider-top"
+          style={{
+            height: "1px",
+            backgroundColor: "var(--surface-card-border)",
+            opacity: 0.6,
+            marginTop: "6px",
+            marginBottom: "4px",
+          }}
+        />
+
+        {/* Eyebrow, Headline & Round Score Rating */}
         <div>
           {phase !== "S4_InitialResult" && eyebrow && (
             <span
@@ -854,75 +866,108 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               {eyebrow}
             </span>
           )}
-          <h1
-            className="font-serif"
+          <div
             style={{
-              fontSize: "30px",
-              fontWeight: 700,
-              lineHeight: 1.15,
-              color: "var(--text-primary)",
-              letterSpacing: "-0.015em",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px",
             }}
           >
-            {headline}
-          </h1>
-          <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "2px" }}>
-            {subtitle}
-          </p>
-        </div>
-
-        {/* Score Progress Bar */}
-        {activeWinner && (
-          <div style={{ margin: "1px 0" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div
+            <div>
+              <h1
+                className="font-serif"
                 style={{
-                  flex: 1,
-                  position: "relative",
-                  height: "8px",
-                  borderRadius: "7px",
-                  backgroundColor: "var(--surface-track)",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    width: `${Math.round(Math.min(100, Math.max(0, (activeWinner.score / 10) * 100)) * 10) / 10}%`,
-                    height: "100%",
-                    backgroundColor: "#F2C935",
-                    borderRadius: "7px",
-                  }}
-                />
-                {prevMarkScore !== null && (
-                  <span
-                    data-testid="score-prev-mark"
-                    title={`Previous: ${prevMarkScore.toFixed(1)}`}
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      bottom: 0,
-                      left: `${Math.round(Math.min(100, Math.max(0, (prevMarkScore / 10) * 100)) * 10) / 10}%`,
-                      width: "2px",
-                      backgroundColor: "#142117",
-                      opacity: 0.55,
-                    }}
-                  />
-                )}
-              </div>
-              <span
-                className="tabular-nums"
-                style={{
-                  fontSize: "13px",
+                  fontSize: "30px",
                   fontWeight: 700,
+                  lineHeight: 1.15,
                   color: "var(--text-primary)",
-                  whiteSpace: "nowrap",
+                  letterSpacing: "-0.015em",
                 }}
               >
-                {activeWinner.score.toFixed(1)} / 10
-              </span>
+                {headline}
+              </h1>
+              <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+                {subtitle}
+              </p>
             </div>
+
+            {/* Circular Score Meter next to headline */}
+            {activeWinner && (
+              <div
+                data-testid="circular-score-meter"
+                style={{
+                  position: "relative",
+                  width: "48px",
+                  height: "48px",
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <svg
+                  width="48"
+                  height="48"
+                  viewBox="0 0 48 48"
+                  style={{ transform: "rotate(-90deg)", position: "absolute", inset: 0 }}
+                >
+                  {/* Track circle */}
+                  <circle
+                    cx="24"
+                    cy="24"
+                    r="19"
+                    fill="none"
+                    stroke="var(--surface-track)"
+                    strokeWidth="3.5"
+                  />
+                  {/* Progress circle */}
+                  <circle
+                    cx="24"
+                    cy="24"
+                    r="19"
+                    fill="none"
+                    stroke="#F2C935"
+                    strokeWidth="3.5"
+                    strokeDasharray={2 * Math.PI * 19}
+                    strokeDashoffset={
+                      2 * Math.PI * 19 * (1 - Math.min(10, Math.max(0, activeWinner.score)) / 10)
+                    }
+                    strokeLinecap="round"
+                  />
+                  {/* Previous tick mark if multi-round */}
+                  {prevMarkScore !== null && (
+                    <circle
+                      data-testid="score-prev-mark"
+                      cx="24"
+                      cy="24"
+                      r="19"
+                      fill="none"
+                      stroke="#142117"
+                      strokeWidth="3.5"
+                      strokeDasharray={`2 ${2 * Math.PI * 19 - 2}`}
+                      strokeDashoffset={
+                        -1 * (2 * Math.PI * 19 * (Math.min(10, Math.max(0, prevMarkScore)) / 10) - 1)
+                      }
+                      opacity={0.7}
+                    />
+                  )}
+                </svg>
+                <span
+                  className="tabular-nums"
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 800,
+                    color: "var(--text-primary)",
+                    lineHeight: 1,
+                  }}
+                >
+                  {activeWinner.score.toFixed(1)}
+                </span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
         </div>
 
         {/* Expanded content visible when sheet is fully open */}
@@ -943,23 +988,35 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             {/* Traits Chips */}
             {activeWinner?.traits && activeWinner.traits.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-            {activeWinner.traits.map((trait, idx) => (
-              <span
-                key={idx}
-                style={{
-                  padding: "5px 10px",
-                  borderRadius: "6px",
-                  backgroundColor: "var(--surface-chip)",
-                  color: "var(--surface-chip-text)",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                }}
-              >
-                {trait}
-              </span>
-            ))}
-          </div>
-        )}
+                {activeWinner.traits.map((trait, idx) => (
+                  <span
+                    key={idx}
+                    style={{
+                      padding: "5px 10px",
+                      borderRadius: "6px",
+                      backgroundColor: "var(--surface-chip)",
+                      color: "var(--surface-chip-text)",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {trait}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Divider 2: Between Traits and Storage Cards */}
+            <div
+              data-testid="sheet-divider-middle"
+              style={{
+                height: "1px",
+                backgroundColor: "var(--surface-card-border)",
+                opacity: 0.6,
+                marginTop: "6px",
+                marginBottom: "4px",
+              }}
+            />
 
         {/* Storage Cards Layout (2 Rows) */}
         {afterPurchase && (
@@ -1146,6 +1203,18 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             <span>{confirmationBanner}</span>
           </div>
         )}
+
+        {/* Divider 3: Before Primary Action Button */}
+        <div
+          data-testid="sheet-divider-bottom"
+          style={{
+            height: "1px",
+            backgroundColor: "var(--surface-card-border)",
+            opacity: 0.6,
+            marginTop: "8px",
+            marginBottom: "2px",
+          }}
+        />
 
         {/* Primary Action Button */}
         <div style={{ paddingTop: "6px" }}>
