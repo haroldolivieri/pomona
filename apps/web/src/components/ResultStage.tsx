@@ -7,6 +7,7 @@ import {
 } from "@pomona/contract";
 import type { ScanMachineState } from "../state/scan-state-machine";
 import { describeBoxPosition } from "../lib/spatial-a11y";
+import { SeasonalityStrip } from "./SeasonalityStrip";
 import { computeObjectFitCoverRect, type RenderedCoverRect } from "../lib/image-pipeline";
 
 export interface ResultStageProps {
@@ -80,6 +81,12 @@ export const ResultStage: React.FC<ResultStageProps> = ({
       if (ro) ro.disconnect();
     };
   }, [round1PhotoDataUrl, sheetMode]);
+
+  const [selectedOriginCode, setSelectedOriginCode] = useState<string | null>(null);
+  const producePhaseType = lastResponse?.produce?.type;
+  useEffect(() => {
+    setSelectedOriginCode(null);
+  }, [producePhaseType]);
 
   if (!lastResponse || lastResponse.status !== "ok") {
     return (
@@ -763,6 +770,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               touchAction: "none",
             }}
           >
+<<<<<<< HEAD
             {(
               [
                 { id: "ready_now", label: "Ready now", sub: "Peak ripe", dot: "#16A34A" },
@@ -981,6 +989,13 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "2px" }}>
                     {subtitle}
                   </p>
+                  {lastResponse.seasonality && (
+                    <SeasonalityStrip
+                      seasonality={lastResponse.seasonality}
+                      selectedOriginCode={selectedOriginCode}
+                      onSelectOrigin={setSelectedOriginCode}
+                    />
+                  )}
                 </div>
 
                 {/* Circular Score Meter next to headline */}

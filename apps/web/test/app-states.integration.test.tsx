@@ -2,6 +2,7 @@ import "@testing-library/jest-dom";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
+import { lookupProduceSeasonality } from "@pomona/contract";
 import { PomonaApp } from "../src/App";
 import { createNoopTelemetry } from "../src/lib/telemetry";
 import "../src/i18n";
@@ -252,5 +253,56 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     fireEvent.click(screen.getByTestId("scan-quota-pill"));
     expect(promptSpy).toHaveBeenCalled();
     expect(await screen.findByText("3 scans left today")).toBeTruthy();
+  });
+
+  it("shows the seasonality badge on S4, lets the shopper pick an origin, and clears the pick after a reset", async () => {
+    const seasonality = lookupProduceSeasonality("avocado", { cfCountry: "GB" }, 11)!;
+    const response = {
+      schemaVersion: "1.0",
+      promptVersion: "v1",
+      modelId: "gemini-2.5-flash",
+      round: 1,
+      status: "ok",
+      message: null,
+      produce: { type: "avocado", displayName: "Hass Avocado", variety: "Hass" },
+      candidates: [
+        { id: "c1", box: [385, 370, 625, 655], score: 8.6, ripeness: "ripe", traits: ["Dark pebbled skin"], flipSummary: null },
+      ],
+      verdict: { winnerId: "c1", runnerUpId: null, confidence: "high", headline: "Buy it." },
+      followUp: null,
+      afterPurchase: {
+        readyInDays: { min: 0, max: 0 },
+        eatWithinDays: { min: 2, max: 3 },
+        eatWithinLabel: "2–3 days",
+        storage: {
+          beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · whole", tip: "Room temp" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · wrapped", tip: "Wrap" },
+        },
+      },
+      seasonality,
+    };
+    const apiClient = {
+      getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
+      submitScan: vi.fn().mockResolvedValue({ remainingScans: 9, response }),
+    };
+
+    render(<PomonaApp apiClient={apiClient as any} telemetry={createNoopTelemetry()} />);
+
+    fireEvent.click(screen.getByTestId("shutter-button"));
+    fireEvent.click(await screen.findByTestId("whole-photo-button"));
+    expect(await screen.findByTestId("stage-S4_InitialResult")).toBeTruthy();
+    expect(screen.getByTestId("seasonality-badge").textContent).toContain(seasonality.badgeText);
+
+    fireEvent.click(screen.getByTestId("origin-pill-PE"));
+    expect(screen.getByTestId("origin-pill-PE").getAttribute("aria-pressed")).toBe("true");
+
+    // Reset and scan again: nothing is pre-selected
+    fireEvent.click(screen.getByTestId("close-button"));
+    fireEvent.click(await screen.findByTestId("shutter-button"));
+    fireEvent.click(await screen.findByTestId("whole-photo-button"));
+    expect(await screen.findByTestId("stage-S4_InitialResult")).toBeTruthy();
+    expect(screen.getByTestId("origin-pill-PE").getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByTestId("seasonality-badge").textContent).toContain(seasonality.badgeText);
+  });
   });
 });
