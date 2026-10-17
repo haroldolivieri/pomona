@@ -73,7 +73,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
 
   const handleAnalyseDrawn = () => {
     if (normalizedResult && normalizedResult.valid) {
-      onAnalyse(points, normalizedResult.cropRect);
+      onAnalyse(normalizedResult.polygon, normalizedResult.cropRect);
     }
   };
 

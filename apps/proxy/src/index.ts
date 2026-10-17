@@ -183,6 +183,21 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
       return c.json({ error: "Invalid JSON body" }, 400);
     }
 
+    // Auto-heal oversized focusPolygons (>40 points) so clients drawing high-density loops are never rejected
+    if (rawBody && typeof rawBody === "object" && Array.isArray((rawBody as any).focusPolygon)) {
+      const poly = (rawBody as any).focusPolygon;
+      if (poly.length > 40) {
+        console.log(`[proxy] Auto-downsampling oversized focusPolygon from ${poly.length} to 32 points`);
+        const step = (poly.length - 1) / 31;
+        const sampled: any[] = [];
+        for (let i = 0; i < 31; i++) {
+          sampled.push(poly[Math.round(i * step)]);
+        }
+        sampled.push(poly[poly.length - 1]);
+        (rawBody as any).focusPolygon = sampled;
+      }
+    }
+
     const parseResult = ScanRequestSchema.safeParse(rawBody);
     if (!parseResult.success) {
       console.warn(

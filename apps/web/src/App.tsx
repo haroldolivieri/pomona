@@ -8,7 +8,7 @@ import {
   buildFollowUpRequestContext,
   type ScanMachineState,
 } from "./state/scan-state-machine";
-import { downsampleDataUrl, type CropRect } from "./lib/image-pipeline";
+import { downsampleDataUrl, simplifyPath, type CropRect } from "./lib/image-pipeline";
 
 function generateUuid(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -173,6 +173,12 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
         `[scan] Prepared payload: round ${round}, ${mimeType}, base64 length: ${base64Data.length} chars`
       );
 
+      // Ensure focusPolygon is simplified to <=32 points so it never exceeds the schema limit of 40 points
+      const safePolygon: Point[] | null =
+        focusPolygon && focusPolygon.length >= 3
+          ? (simplifyPath(focusPolygon as [number, number][], 32) as Point[])
+          : null;
+
       const request: ScanRequest = {
         schemaVersion: "1.0",
         sessionId: generateUuid(),
@@ -180,7 +186,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
         locale: "en-GB",
         imageBase64: base64Data,
         imageMimeType: mimeType,
-        focusPolygon: focusPolygon || null,
+        focusPolygon: safePolygon,
         followUpContext: round > 1 ? buildFollowUpRequestContext(currentState) : null,
       };
 
