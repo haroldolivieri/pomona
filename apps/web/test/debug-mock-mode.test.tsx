@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import React from "react";
+import { ScanResponseSchema } from "@pomona/contract";
 import { PomonaApp } from "../src/App";
 import { createMockApiClient } from "../src/lib/mock-api-client";
 import { createNoopTelemetry } from "../src/lib/telemetry";
@@ -107,6 +108,8 @@ describe("Debug mock mode and shake detection", () => {
       followUpContext: null,
     });
     expect(r1.response.status).toBe("ok");
+    expect(ScanResponseSchema.safeParse(r1.response).success).toBe(true);
+    expect(r1.response.seasonality?.produceSlug).toBe("watermelon");
     expect(r1.response.candidates.length).toBeGreaterThanOrEqual(2);
     expect(r1.response.verdict?.winnerId).toBe("c1");
     expect(r1.response.followUp?.targetRole).toBe("runner_up");
@@ -123,6 +126,8 @@ describe("Debug mock mode and shake detection", () => {
       followUpContext: null,
     });
     expect(r2.response.status).toBe("ok");
+    expect(ScanResponseSchema.safeParse(r2.response).success).toBe(true);
+    expect(r2.response.seasonality?.produceSlug).toBe("watermelon");
     expect(r2.response.verdict?.winnerId).toBe("c2");
     expect(r2.response.candidates[0].score).toBe(9.0);
 
@@ -138,6 +143,8 @@ describe("Debug mock mode and shake detection", () => {
       followUpContext: null,
     });
     expect(r3.response.status).toBe("ok");
+    expect(ScanResponseSchema.safeParse(r3.response).success).toBe(true);
+    expect(r3.response.seasonality?.produceSlug).toBe("watermelon");
     expect(r3.response.verdict?.winnerId).toBe("c1");
     expect(r3.response.candidates[0].score).toBe(9.3);
   });

@@ -1,5 +1,9 @@
-import type { ScanRequest, ScanResponse } from "@pomona/contract";
+import { lookupProduceSeasonality, type ScanRequest, type ScanResponse } from "@pomona/contract";
 import type { PomonaApiClient, QuotaInfo } from "./api-client";
+
+function mockSeasonality(request: ScanRequest) {
+  return lookupProduceSeasonality("watermelon", { locale: request.locale }, new Date().getMonth() + 1);
+}
 
 export function createMockApiClient(): PomonaApiClient {
   let mockRemainingScans = 10;
@@ -169,6 +173,7 @@ export function createMockApiClient(): PomonaApiClient {
                 },
               },
             },
+            seasonality: mockSeasonality(request),
           },
         };
       }
@@ -231,6 +236,7 @@ export function createMockApiClient(): PomonaApiClient {
                 },
               },
             },
+            seasonality: mockSeasonality(request),
           },
         };
       }
@@ -286,6 +292,7 @@ export function createMockApiClient(): PomonaApiClient {
               },
             },
           },
+          seasonality: mockSeasonality(request),
         },
       };
     },
