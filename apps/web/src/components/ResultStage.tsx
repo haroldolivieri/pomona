@@ -37,9 +37,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const dragStartY = useRef<number | null>(null);
 
-  // Photo pan offset (allows user to drag/scroll photo up and down to see items at the bottom or top)
+  // Photo pan offset (automatically centers winner in the visible photo area above bottom sheet)
   const [photoPanY, setPhotoPanY] = useState<number>(0);
-  const photoPanStartY = useRef<number | null>(null);
 
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -288,22 +287,6 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     }
   };
 
-  // Photo pan handlers: allow dragging the photo backdrop up/down
-  const handlePhotoPanStart = (clientY: number) => {
-    photoPanStartY.current = clientY;
-  };
-
-  const handlePhotoPanMove = (clientY: number) => {
-    if (photoPanStartY.current === null) return;
-    const deltaY = clientY - photoPanStartY.current;
-    setPhotoPanY((prev) => Math.max(-200, Math.min(200, prev + deltaY)));
-    photoPanStartY.current = clientY;
-  };
-
-  const handlePhotoPanEnd = () => {
-    photoPanStartY.current = null;
-  };
-
   // Auto-scroll image so winner is centered in visible photo area above bottom sheet
   useEffect(() => {
     if (!coverRect || !activeWinner || !viewportRef.current) return;
@@ -452,22 +435,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         </button>
       </div>
 
-      {/* Full-bleed Photo Viewport with Bounding Boxes (fills whole screen behind sheet, supports vertical panning) */}
+      {/* Full-bleed Photo Viewport with Bounding Boxes (fills whole screen behind sheet, auto-centers winner above sheet) */}
       <div
         ref={viewportRef}
         data-testid="result-photo-viewport"
-        onTouchStart={(e) => handlePhotoPanStart(e.touches[0].clientY)}
-        onTouchMove={(e) => handlePhotoPanMove(e.touches[0].clientY)}
-        onTouchEnd={handlePhotoPanEnd}
-        onPointerDown={(e) => {
-          if (e.pointerType === "mouse") handlePhotoPanStart(e.clientY);
-        }}
-        onPointerMove={(e) => {
-          if (e.pointerType === "mouse") handlePhotoPanMove(e.clientY);
-        }}
-        onPointerUp={(e) => {
-          if (e.pointerType === "mouse") handlePhotoPanEnd();
-        }}
         style={{
           position: "absolute",
           inset: 0,
@@ -477,10 +448,9 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           overflow: "hidden",
           zIndex: 1,
           transform: `translate3d(0, ${photoPanY}px, 0)`,
-          transition: photoPanStartY.current !== null ? "none" : "transform 0.24s cubic-bezier(0.2, 0.9, 0.3, 1)",
+          transition: "transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
           willChange: "transform",
-          cursor: "grab",
-          touchAction: "none",
+          pointerEvents: "none",
         }}
       >
         {round1PhotoDataUrl && (
