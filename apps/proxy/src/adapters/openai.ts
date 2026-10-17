@@ -29,11 +29,8 @@ export function createOpenAIVisionAdapter(options: OpenAIVisionAdapterOptions): 
       const result = await generateFn({
         model: model as any,
         schema: ScanResponseModelSchema,
+        system: input.systemPrompt,
         messages: [
-          {
-            role: "system",
-            content: input.systemPrompt,
-          },
           {
             role: "user",
             content: [

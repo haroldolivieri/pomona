@@ -110,7 +110,7 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
       style={{
         position: "relative",
         width: "100%",
-        height: "100vh",
+        height: "100dvh",
         backgroundColor: "#000000",
         overflow: "hidden",
         display: "flex",
@@ -216,7 +216,7 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
       <div
         style={{
           position: "absolute",
-          top: "40px",
+          top: "max(16px, env(safe-area-inset-top))",
           left: "14px",
           right: "14px",
           display: "flex",
@@ -309,7 +309,10 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
           backgroundColor: "var(--surface-sheet)",
           color: "var(--text-primary)",
           borderRadius: "26px 26px 0 0",
-          padding: "16px 18px 24px",
+          paddingTop: "16px",
+          paddingLeft: "18px",
+          paddingRight: "18px",
+          paddingBottom: "max(24px, env(safe-area-inset-bottom))",
           boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.25)",
           zIndex: 20,
         }}

@@ -1,12 +1,8 @@
-# Pomona Evaluation Suite (Promptfoo)
-# Benchmarking LLM/VLM models against Pomona contract & verifier invariants
-#
-# Providers evaluated:
-# - google:gemini-2.5-flash
-# - google:gemini-2.5-flash-lite
-# - openai:gpt-4o-mini
+# Pomona Offline Ground-Truth & Adversarial Evaluation Suite (Promptfoo)
+# Benchmarking LLM/VLM models against Pomona contract, spatial IoU ground-truth,
+# polygon isolation, and domain error triggers (unclear_photo, no_produce, multiple_types).
 
-description: "Pomona Multi-Round Produce Selection Evaluation"
+description: "Pomona Ground-Truth & Adversarial Produce Selection Evaluation"
 
 prompts:
   - file://prompts/system-and-user.json
@@ -34,73 +30,90 @@ defaultTest:
       value: file://assertions/verify-contract.ts
 
 tests:
-  # Scenario 1: Round 1 whole pile scan
-  - description: "Round 1 - Watermelon pile scan"
+  # 1. Ground-Truth Spatial Winner & Runner-Up Ranking
+  - description: "01 - Watermelon Crate (Bottom-Left Ripe Winner [415,150,780,520] vs Bottom-Right Runner-Up [430,545,775,880] vs Top-Center Underripe)"
     vars:
       round: 1
+      imagePath: "dataset/images/01-watermelon-crate-clear-winner.jpg"
+      expectedStatus: "ok"
       expectedProduceType: "watermelon"
       produceDisplayName: "Watermelon"
-      imageDescription: "A pile of whole watermelons at a supermarket display"
-    assert:
-      - type: javascript
-        value: file://assertions/verify-contract.ts
+      expectedCandidateCountMin: 2
+      expectedCandidateCountMax: 3
+      expectedWinnerBox: [415, 150, 780, 520]
+      expectedRunnerUpBox: [430, 545, 775, 880]
+      forbiddenWordsInCopy: ["avocado", "pineapple", "banana", "tomato", "mango"]
+      imageDescription: "3 watermelons in a crate: bottom-left has large golden field spot and sugar webbing; bottom-right has small pale spot; top-center is shiny bright green with white spot."
 
-  # Scenario 2: Round 1 drawn focus polygon
-  - description: "Round 1 - Drawn focus polygon targeting central melon"
+  # 2. Adversarial Focus Polygon Isolation
+  - description: "02 - Hass Avocado Polygon Isolation (Must ignore top-left ripe avocado outside polygon and pick bottom-left [495,105,915,475])"
     vars:
       round: 1
-      expectedProduceType: "cantaloupe"
-      produceDisplayName: "Cantaloupe"
-      focusPolygon: [[300, 300], [700, 300], [700, 700], [300, 700]]
-      imageDescription: "Cantaloupes with a bounded region of interest"
-    assert:
-      - type: javascript
-        value: file://assertions/verify-contract.ts
+      imagePath: "dataset/images/02-avocado-polygon-isolation.jpg"
+      expectedStatus: "ok"
+      expectedProduceType: "avocado"
+      produceDisplayName: "Hass Avocado"
+      focusPolygon: [[80, 460], [950, 460], [950, 950], [80, 950]]
+      expectedCandidateCountMin: 2
+      expectedCandidateCountMax: 2
+      expectedWinnerBox: [495, 105, 915, 475]
+      expectedRunnerUpBox: [465, 550, 885, 905]
+      forbiddenWordsInCopy: ["watermelon", "melon", "cantaloupe", "field spot", "rind"]
+      imageDescription: "3 avocados on table: top-left outside polygon; bottom-left dark pebbled ripe inside polygon; bottom-right bright green underripe inside polygon."
 
-  # Scenario 3: Round 2 runner-up flip
-  - description: "Round 2 - Runner-up flip comparison"
+  # 3. Adversarial Domain Error: Unclear / Blurry Photo
+  - description: "03 - Extreme Motion Blur & Darkness -> Must return status = 'unclear_photo'"
+    vars:
+      round: 1
+      imagePath: "dataset/images/03-unclear-blurry-photo.jpg"
+      expectedStatus: "unclear_photo"
+      imageDescription: "Severely out-of-focus, dark motion-blurred streak with no discernible produce traits."
+
+  # 4. Adversarial Domain Error: Non-Produce Item
+  - description: "04 - Packaged Cereal Box with Barcode -> Must return status = 'no_produce'"
+    vars:
+      round: 1
+      imagePath: "dataset/images/04-no-produce-cereal-box.jpg"
+      expectedStatus: "no_produce"
+      imageDescription: "A blue cardboard box of Crunchy Oats Cereal with a UPC barcode and zero fresh produce."
+
+  # 5. Adversarial Domain Error: Mixed Produce Types
+  - description: "05 - Mixed Produce Basket (Apples, Pineapple, Bananas) -> Must return status = 'multiple_types'"
+    vars:
+      round: 1
+      imagePath: "dataset/images/05-multiple-types-mixed.jpg"
+      expectedStatus: "multiple_types"
+      imageDescription: "Wicker produce display containing Honeycrisp Apples, a Golden Pineapple, and Cavendish Bananas with no focus polygon."
+
+  # 6. Multi-Round Follow-Up Flip Overtake
+  - description: "06 - Round 2 Runner-Up Watermelon Flip Overtakes 1st Pick"
     vars:
       round: 2
+      imagePath: "dataset/images/06-round2-runner-up-flip-overtakes.jpg"
+      expectedStatus: "ok"
       expectedProduceType: "watermelon"
       produceDisplayName: "Watermelon"
       followUpContext:
+        produceType: "watermelon"
+        produceDisplayName: "Watermelon"
         targetCandidateId: "c2"
         targetRole: "runner_up"
-        produceDisplayName: "Watermelon"
-        requestedInstruction: "Turn watermelon #2 over to inspect its ground spot and webbing"
+        requestedInstruction: "Flip the Runner-Up Watermelon over to inspect its underside ground spot."
         previousWinner:
           id: "c1"
-          score: 8.7
+          role: "first_pick"
+          score: 8.6
           ripeness: "ripe"
+          traits: ["Yellow field spot", "Matte rind"]
+          anglesInspected: 1
         previousRunnerUp:
           id: "c2"
-          score: 8.3
-          ripeness: "ripe"
-      imageDescription: "Close-up underside of watermelon #2 showing ground spot"
-    assert:
-      - type: javascript
-        value: file://assertions/verify-contract.ts
-
-  # Scenario 4: Round 3 first pick final flip
-  - description: "Round 3 - First pick final flip check"
-    vars:
-      round: 3
-      expectedProduceType: "watermelon"
-      produceDisplayName: "Watermelon"
-      followUpContext:
-        targetCandidateId: "c1"
-        targetRole: "first_pick"
-        produceDisplayName: "Watermelon"
-        requestedInstruction: "Check watermelon #1 underside to confirm field spot before final purchase"
-        previousWinner:
-          id: "c2"
-          score: 9.1
-          ripeness: "peak"
-        previousRunnerUp:
-          id: "c1"
-          score: 8.7
-          ripeness: "ripe"
-      imageDescription: "Close-up underside of watermelon #1 for final confirmation"
-    assert:
-      - type: javascript
-        value: file://assertions/verify-contract.ts
+          role: "runner_up"
+          score: 8.1
+          ripeness: "almost_ripe"
+          traits: ["Even shape", "Dark stripes"]
+          anglesInspected: 1
+      expectedWinnerBox: [120, 125, 885, 885]
+      requireFlipSummaryNonNull: true
+      forbiddenWordsInCopy: ["avocado", "pineapple", "banana"]
+      imageDescription: "Close-up of flipped watermelon #c2 showing a huge deep butter-yellow ground spot and dense pollination webbing."

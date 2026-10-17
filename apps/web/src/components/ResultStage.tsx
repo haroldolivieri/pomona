@@ -19,7 +19,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 }) => {
   const { t } = useTranslation();
   const [sheetExpanded, setSheetExpanded] = useState<boolean>(false);
+  const [dragOffsetY, setDragOffsetY] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
   const dragStartY = useRef<number | null>(null);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
   const { phase, lastResponse, firstPick, runnerUp, round1PhotoDataUrl } = state;
 
   if (!lastResponse || lastResponse.status !== "ok") {
@@ -145,17 +148,55 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
   const isLostStyle = phase === "S5B1_RunnerUpBeaten" || phase === "S7A_FirstPickWonFinal" || phase === "S7B_FirstPickLostFinal";
 
+  // Calculate sheet translation and parallax offset
+  // Expanded moves sheet up by 120px; collapsed is 0px
+  const baseTranslateY = sheetExpanded ? -110 : 0;
+  const activeTranslateY = Math.max(-160, Math.min(80, baseTranslateY + dragOffsetY));
+  // Subtle parallax: photo + bounding boxes shift at 25% of sheet movement without changing dimensions
+  const parallaxY = activeTranslateY * 0.22;
+
+  const handleDragStart = (clientY: number, target: EventTarget | null) => {
+    // Do not hijack taps on buttons
+    if (target instanceof HTMLElement && target.closest("button")) {
+      return;
+    }
+    // If sheet is scrolled down internally, allow normal scroll up first
+    if (sheetRef.current && sheetRef.current.scrollTop > 0) {
+      return;
+    }
+    dragStartY.current = clientY;
+    setIsDragging(true);
+  };
+
+  const handleDragMove = (clientY: number) => {
+    if (dragStartY.current === null) return;
+    const deltaY = clientY - dragStartY.current;
+    setDragOffsetY(deltaY);
+  };
+
+  const handleDragEnd = () => {
+    if (dragStartY.current === null) return;
+    if (dragOffsetY < -35) {
+      setSheetExpanded(true);
+    } else if (dragOffsetY > 35) {
+      setSheetExpanded(false);
+    }
+    dragStartY.current = null;
+    setDragOffsetY(0);
+    setIsDragging(false);
+  };
+
   return (
     <div
       data-testid={`stage-${phase}`}
       style={{
         position: "relative",
         width: "100%",
-        minHeight: "100vh",
+        height: "100dvh",
         backgroundColor: "var(--bg-app)",
         display: "flex",
         flexDirection: "column",
-        overflowY: "auto",
+        overflow: "hidden",
       }}
     >
       {/* Screen reader live region */}
@@ -175,16 +216,106 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         {winnerA11y}. {runnerUpA11y}
       </div>
 
-      {/* Top Photo Viewport with Bounding Boxes */}
+      {/* Topbar pinned at top of screen: Left ✕, Center produce chip, Right ↻ retake */}
       <div
+        style={{
+          position: "absolute",
+          top: "max(16px, env(safe-area-inset-top))",
+          left: "14px",
+          right: "14px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          zIndex: 25,
+        }}
+      >
+        {/* Close button */}
+        <button
+          onClick={onReset}
+          data-testid="close-button"
+          aria-label="Reset and scan again"
+          style={{
+            width: "36px",
+            height: "36px",
+            borderRadius: "50%",
+            backgroundColor: "rgba(251, 250, 246, 0.88)",
+            color: "#142117",
+            border: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "14px",
+            fontWeight: 700,
+            cursor: "pointer",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+          }}
+        >
+          ✕
+        </button>
+
+        {/* Produce Name Chip */}
+        <div
+          data-testid="produce-name-chip"
+          style={{
+            backgroundColor: "rgba(251, 250, 246, 0.88)",
+            color: "#142117",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            fontSize: "12px",
+            fontWeight: 700,
+            padding: "7px 14px",
+            borderRadius: "999px",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+          }}
+        >
+          {produce?.displayName || "Produce"}
+        </div>
+
+        {/* Retake button */}
+        <button
+          onClick={onReset}
+          data-testid="retake-button"
+          aria-label="Retake photo"
+          style={{
+            width: "36px",
+            height: "36px",
+            borderRadius: "50%",
+            backgroundColor: "rgba(251, 250, 246, 0.88)",
+            color: "#142117",
+            border: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "16px",
+            fontWeight: 700,
+            cursor: "pointer",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+          }}
+        >
+          ↻
+        </button>
+      </div>
+
+      {/* Fixed-Size Photo Viewport with Bounding Boxes (Parallax only, never shrinks!) */}
+      <div
+        data-testid="result-photo-viewport"
         style={{
           position: "relative",
           width: "100%",
-          height: sheetExpanded ? "22vh" : "44vh",
-          transition: "height 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)",
+          height: "46dvh",
           backgroundColor: "#000000",
           overflow: "hidden",
           flexShrink: 0,
+          transform: `translate3d(0, ${parallaxY}px, 0)`,
+          transition: isDragging ? "none" : "transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
+          willChange: "transform",
         }}
       >
         {round1PhotoDataUrl && (
@@ -206,93 +337,6 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             pointerEvents: "none",
           }}
         />
-
-        {/* Topbar over photo: Left ✕, Center produce chip, Right ↻ retake */}
-        <div
-          style={{
-            position: "absolute",
-            top: "16px",
-            left: "14px",
-            right: "14px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            zIndex: 6,
-          }}
-        >
-          {/* Close button */}
-          <button
-            onClick={onReset}
-            data-testid="close-button"
-            aria-label="Reset and scan again"
-            style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "50%",
-              backgroundColor: "rgba(251, 250, 246, 0.88)",
-              color: "#142117",
-              border: "none",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "14px",
-              fontWeight: 700,
-              cursor: "pointer",
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-            }}
-          >
-            ✕
-          </button>
-
-          {/* Produce Name Chip */}
-          <div
-            data-testid="produce-name-chip"
-            style={{
-              backgroundColor: "rgba(251, 250, 246, 0.88)",
-              color: "#142117",
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-              fontSize: "12px",
-              fontWeight: 700,
-              padding: "7px 14px",
-              borderRadius: "999px",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-            }}
-          >
-            {produce?.displayName || "Produce"}
-          </div>
-
-          {/* Retake button */}
-          <button
-            onClick={onReset}
-            data-testid="retake-button"
-            aria-label="Retake photo"
-            style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "50%",
-              backgroundColor: "rgba(251, 250, 246, 0.88)",
-              color: "#142117",
-              border: "none",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "16px",
-              fontWeight: 700,
-              cursor: "pointer",
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-            }}
-          >
-            ↻
-          </button>
-        </div>
 
         {/* DOM Bounding Boxes for Winner and Runner-Up */}
         {activeRunnerUp && (
@@ -377,40 +421,55 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         )}
       </div>
 
-      {/* Bottom Sheet */}
+      {/* Interactive Bottom Sheet (draggable from any area on the sheet) */}
       <div
+        ref={sheetRef}
+        data-testid="result-bottom-sheet"
+        onTouchStart={(e) => handleDragStart(e.touches[0].clientY, e.target)}
+        onTouchMove={(e) => handleDragMove(e.touches[0].clientY)}
+        onTouchEnd={handleDragEnd}
+        onPointerDown={(e) => {
+          if (e.pointerType === "mouse") {
+            handleDragStart(e.clientY, e.target);
+          }
+        }}
+        onPointerMove={(e) => {
+          if (e.pointerType === "mouse" && isDragging) {
+            handleDragMove(e.clientY);
+          }
+        }}
+        onPointerUp={(e) => {
+          if (e.pointerType === "mouse") {
+            handleDragEnd();
+          }
+        }}
         style={{
           flex: 1,
           backgroundColor: "var(--surface-sheet)",
           color: "var(--text-primary)",
           borderTopLeftRadius: "26px",
           borderTopRightRadius: "26px",
-          marginTop: "-16px",
-          padding: "16px 20px 40px",
-          zIndex: 10,
+          marginTop: "-22px",
+          marginBottom: "-160px",
+          paddingTop: "14px",
+          paddingLeft: "20px",
+          paddingRight: "20px",
+          paddingBottom: "calc(max(28px, env(safe-area-inset-bottom)) + 160px)",
+          zIndex: 15,
           display: "flex",
           flexDirection: "column",
           gap: "14px",
-          boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.22)",
+          boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.28)",
+          transform: `translate3d(0, ${activeTranslateY}px, 0)`,
+          transition: isDragging ? "none" : "transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
+          overflowY: sheetExpanded ? "auto" : "visible",
+          touchAction: "pan-y",
+          willChange: "transform",
+          cursor: isDragging ? "grabbing" : "grab",
         }}
       >
         {/* Interactive Grab Handle Pill */}
         <div
-          onTouchStart={(e) => {
-            dragStartY.current = e.touches[0].clientY;
-          }}
-          onTouchMove={(e) => {
-            if (dragStartY.current === null) return;
-            const deltaY = e.touches[0].clientY - dragStartY.current;
-            if (deltaY < -40) {
-              setSheetExpanded(true);
-            } else if (deltaY > 40) {
-              setSheetExpanded(false);
-            }
-          }}
-          onTouchEnd={() => {
-            dragStartY.current = null;
-          }}
           onClick={() => setSheetExpanded((prev) => !prev)}
           aria-label="Drag or tap to resize bottom sheet"
           role="button"
@@ -421,7 +480,6 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             display: "flex",
             justifyContent: "center",
             cursor: "pointer",
-            touchAction: "none",
           }}
         >
           <div

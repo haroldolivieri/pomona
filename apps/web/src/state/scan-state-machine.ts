@@ -11,6 +11,7 @@ export type ScanPhase =
   | "S1_LiveCamera"
   | "S2_DrawFocusArea"
   | "S3_Analysing"
+  | "S_ScanError"
   | "S4_InitialResult"
   | "S5A_FlipRunnerUpCamera"
   | "S5B1_RunnerUpBeaten"
@@ -49,6 +50,8 @@ export type ScanMachineAction =
     }
   | { type: "SCAN_SUCCEEDED"; response: ScanResponse }
   | { type: "SCAN_FAILED"; error: string }
+  | { type: "DISMISS_ERROR" }
+  | { type: "DRAW_FOCUS_AFTER_ERROR" }
   | { type: "COMPARE_WITH_RUNNER_UP" }
   | { type: "FOLLOW_UP_CAPTURED"; photoDataUrl: string }
   | { type: "START_FINAL_CHECK_ON_FIRST_PICK" }
@@ -154,8 +157,25 @@ export function scanMachineReducer(
     case "SCAN_FAILED": {
       return {
         ...state,
+        phase: "S_ScanError",
         status: "analysis_failed",
         errorMessage: action.error,
+      };
+    }
+
+    case "DISMISS_ERROR": {
+      return {
+        ...state,
+        phase: "S1_LiveCamera",
+        status: null,
+        errorMessage: null,
+      };
+    }
+
+    case "DRAW_FOCUS_AFTER_ERROR": {
+      return {
+        ...state,
+        phase: "S2_DrawFocusArea",
       };
     }
 
@@ -164,7 +184,7 @@ export function scanMachineReducer(
       if (resp.status !== "ok") {
         return {
           ...state,
-          phase: "S2_DrawFocusArea",
+          phase: "S_ScanError",
           status: resp.status,
           errorMessage: resp.message || "Produce analysis could not be completed.",
           lastResponse: resp,

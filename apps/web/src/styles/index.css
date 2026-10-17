@@ -40,6 +40,10 @@
   --bg-app: #080E09;
 }
 
+:root {
+  --app-height: 100dvh;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -47,11 +51,20 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html, body, #root, .pomona-root {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
 body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--bg-app);
   color: var(--text-primary);
-  overflow: hidden;
   user-select: none;
   -webkit-font-smoothing: antialiased;
 }

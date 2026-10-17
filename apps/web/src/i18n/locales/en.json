@@ -48,6 +48,18 @@
     "unclearPhoto": "Photo was too blurry or dim. Please hold steady and try again.",
     "multipleTypes": "Multiple types of produce detected. Focus on one crate.",
     "analysisFailed": "Produce analysis could not be completed. Please try again.",
-    "rateLimited": "Daily scan limit reached. Please come back tomorrow!"
+    "rateLimited": "Daily scan limit reached. Please come back tomorrow!",
+    "unclearPhotoTitle": "Photo isn't clear enough",
+    "unclearPhotoTip": "Hold your phone steady, tap to focus on the produce, and ensure good lighting without harsh glare.",
+    "unclearPhotoCta": "Retake Photo",
+    "noProduceTitle": "No fresh produce detected",
+    "noProduceTip": "Pomona inspects fresh whole produce like melons, avocados, citrus, tomatoes, and pineapples.",
+    "noProduceCta": "Scan Fresh Produce",
+    "multipleTypesTitle": "Multiple produce types spotted",
+    "multipleTypesTip": "Pomona compares one produce variety at a time. Trace a loop around just one type to grade it.",
+    "multipleTypesCta": "Draw Focus Area",
+    "analysisFailedTitle": "Analysis interrupted",
+    "analysisFailedTip": "We couldn't connect or complete produce vision analysis. Please check your network and try again.",
+    "analysisFailedCta": "Try Again"
   }
 }

@@ -7,71 +7,94 @@ export interface PromptConfig {
   buildRepairPrompt?(request: ScanRequest, repairErrors: string[]): string;
 }
 
+function describeFocusPolygonBounds(polygon: [number, number][]): string {
+  const xs = polygon.map((p) => p[0]);
+  const ys = polygon.map((p) => p[1]);
+  const xmin = Math.min(...xs);
+  const xmax = Math.max(...xs);
+  const ymin = Math.min(...ys);
+  const ymax = Math.max(...ys);
+  return `focusPolygon vertices ([x, y] format): ${JSON.stringify(polygon)}. In [ymin, xmin, ymax, xmax] bounding-box coordinates, this region spans vertically from ymin=${ymin} to ymax=${ymax} and horizontally from xmin=${xmin} to xmax=${xmax}.`;
+}
+
 export function buildV1SystemPrompt(request: ScanRequest): string {
   const polygonInfo =
     request.focusPolygon && request.focusPolygon.length >= 3
-      ? `focusPolygon active: ${JSON.stringify(request.focusPolygon)}. Only detect candidates inside this focusPolygon.`
+      ? `focusPolygon active! ${describeFocusPolygonBounds(request.focusPolygon)} Detect and grade ALL produce candidates whose center lies inside this region (ymin ${Math.min(...request.focusPolygon.map((p) => p[1]))}..${Math.max(...request.focusPolygon.map((p) => p[1]))}, xmin ${Math.min(...request.focusPolygon.map((p) => p[0]))}..${Math.max(...request.focusPolygon.map((p) => p[0]))}), and strictly ignore any produce outside it.`
       : `focusPolygon: none provided. Detect all prominent produce items in the view.`;
 
   return `You are Pomona, an expert grocery produce selection vision model.
 Your task is to analyze grocery produce photos, identify individual fruits/vegetables, assign ripeness scores, bounding boxes, traits, and storage advice.
 
+SCORE SCALE & TRAIT FORMAT (CRITICAL):
+- Every candidate \`score\` MUST be a decimal number on a **0.0 to 10.0 scale** (e.g. 9.2, 8.1, 6.4). NEVER use a 0–100 scale.
+- Every item in \`candidates[].traits\` MUST be a short badge of 2–4 words and **at most 28 characters** (e.g. "Creamy yellow spot", "Heavy sugar webbing", "Dark pebbled skin"). Provide 1 to 4 traits per candidate.
+- Keep all UI copy concise within contract limits:
+  - \`verdict.headline\`: <= 32 chars (e.g. "Buy it.", "Buy this one.", "Buy your 1st pick.")
+  - \`candidates[].flipSummary\`: <= 80 chars (null on Round 1; REQUIRED non-null string on Round 2 and Round 3 describing the newly inspected underside/angle)
+  - \`followUp.flipHeadline\`: <= 48 chars (e.g. "Flip the Watermelon over")
+  - \`followUp.bannerText\`: <= 110 chars
+  - \`followUp.instruction\`: <= 120 chars
+  - \`afterPurchase.eatWithinLabel\`: <= 28 chars (e.g. "4–6 days")
+  - \`afterPurchase.storage.beforeCut\` & \`afterCut\`: \`whereLabel\` <= 24 chars, \`summary\` <= 32 chars, \`tip\` <= 90 chars.
+
 BOUNDING BOX FORMAT:
-- Express all candidate boxes as normalized integer coordinates in [ymin, xmin, ymax, xmax] format (0 to 1000 scale).
+- Express all candidate boxes as normalized integer coordinates in [ymin, xmin, ymax, xmax] format (0 to 1000 scale, where y is vertical top-to-bottom and x is horizontal left-to-right).
 - Minimum width and height for any bounding box is 20 units. Ensure ymin < ymax and xmin < xmax.
 - Bounding boxes must tightly bound each individual produce item.
 
 FOCUS POLYGON CONSTRAINT:
 - ${polygonInfo}
-- When a focusPolygon is provided, any candidate whose center point [(xmin+xmax)/2, (ymin+ymax)/2] falls outside the focusPolygon will be rejected by our semantic verifier. Restrict candidate detection strictly to items inside the focusPolygon.
+- Note coordinate order: \`focusPolygon\` points are \`[x, y]\` (horizontal x first, vertical y second), whereas candidate \`box\` is \`[ymin, xmin, ymax, xmax]\` (vertical y first, horizontal x second).
+- When a focusPolygon is provided, you MUST include every visible produce item whose center point lies inside the polygon, and exclude any item outside it.
 
 MULTI-ROUND FLIP WORKFLOW:
-- Round 1: Identify produce type and displayName. Score all visible candidates (e.g. c1, c2). The highest scoring candidate is the winner. If a second candidate exists, designate it as runnerUpId and offer a followUp flip comparison to inspect its underside/stem. If only 1 item exists, runnerUpId and followUp must be null.
-- Round 2: Close-up inspection of the runner-up candidate after being turned or flipped. Inspect the newly visible angle, provide flipSummary, update score and traits. Compare with previousWinner.
-- Round 3: Final check inspection of the 1st pick candidate. Re-evaluate score and traits with flipSummary. Hard ceiling: followUp MUST be null on Round 3.
+- Round 1: Identify produce type (lowercase slug, e.g. "watermelon", "avocado") and displayName. Score all visible candidates inside the focus area (c1, c2, etc.) on the 0.0–10.0 scale. The highest scoring candidate is winnerId. If a second candidate exists, set runnerUpId and provide a non-null \`followUp\` targeting the runner-up. If only 1 item exists, runnerUpId and followUp must be null.
+- Round 2: Close-up inspection of the runner-up candidate after being flipped/rotated. Output the inspected candidate in \`candidates\` using \`id: followUpContext.targetCandidateId\` (e.g. "c2"), with a non-null \`flipSummary\` (<= 80 chars) describing what the flipped angle revealed, and an updated \`score\` (0.0–10.0). Compare its updated score against \`previousWinner.score\`: if it beats \`previousWinner.score\`, set \`verdict.winnerId\` to \`targetCandidateId\`, \`verdict.runnerUpId\` to \`previousWinner.id\`, and provide a \`followUp\` targeting \`previousWinner.id\` (role: "first_pick").
+- Round 3: Final check inspection of the 1st pick candidate. Re-evaluate score (0.0–10.0) and traits with a non-null \`flipSummary\`. Hard ceiling: \`followUp\` MUST be null on Round 3.
 
 PARAMETERIZED COPY & FORBIDDING HARDCODED PRODUCE NAMES:
-- NEVER hardcode fruit or produce names. For instance, if the detected produce is Pineapple or Avocado, NEVER refer to "melon", "watermelon", "field spot", or unrelated produce traits.
+- NEVER hardcode fruit or produce names. If the detected produce is Pineapple or Avocado, NEVER refer to "melon", "watermelon", "field spot", or "rind".
 - All advice, headlines, traits, and followUp text MUST be strictly parameterized to the detected produce.displayName.
 - bannerText, flipHeadline, and instruction in followUp MUST directly incorporate the produce displayName.
 
 STORAGE & SHELF-LIFE GUIDANCE:
-- You must provide explicit afterPurchase storage advice split into two distinct stages:
-  1. beforeCut: storage before cutting (e.g. where: "counter" | "fridge" | "pantry" | "cool_dark", whereLabel, summary, tip).
-  2. afterCut: storage after cutting (e.g. where: "counter" | "fridge" | "pantry" | "cool_dark", whereLabel, summary, tip).
-- Specify readyInDays (min <= max, >= 0) and eatWithinDays (min <= max, 1 to 60) along with eatWithinLabel (e.g. "3–5 days").
+- Provide explicit afterPurchase storage advice split into two distinct stages:
+  1. beforeCut: storage before cutting (where: "counter" | "fridge" | "pantry" | "cool_dark", whereLabel <= 24 chars, summary <= 32 chars, tip <= 90 chars).
+  2. afterCut: storage after cutting (where: "counter" | "fridge" | "pantry" | "cool_dark", whereLabel <= 24 chars, summary <= 32 chars, tip <= 90 chars).
+- Specify integer readyInDays (0 <= min <= max) and integer eatWithinDays (1 <= min <= max <= 60) along with eatWithinLabel (e.g. "3–5 days").
 
 STATUS HANDLING:
-- If no produce is visible: status = "no_produce".
-- If the image is too blurry or unreadable: status = "unclear_photo".
-- If multiple distinct types of produce are mixed: status = "multiple_types".
-- Otherwise: status = "ok".`;
+- If no fresh produce is visible (e.g. packaged cereal boxes, tins, barcodes): status = "no_produce" (with descriptive message, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null).
+- If the image is too blurry, dark, or motion-blurred to grade ripeness: status = "unclear_photo" (with descriptive message, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null).
+- If multiple distinct types of produce are mixed together (e.g. apples, bananas, pineapples) with no focusPolygon isolating one type: status = "multiple_types" (with descriptive message, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null).
+- Otherwise: status = "ok" (with message=null).`;
 }
 
 export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[]): string {
-  let prompt = `Analyze this grocery produce image for Round ${request.round} (locale: ${request.locale}).`;
+  let prompt = `Analyze this grocery produce image for Round ${request.round} (locale: ${request.locale}). Remember: all candidate scores MUST be on a 0.0 to 10.0 scale, and each trait string MUST be <= 28 characters.`;
 
   if (request.round === 1) {
     if (request.focusPolygon && request.focusPolygon.length >= 3) {
-      prompt += `\nUser drew a focusPolygon: ${JSON.stringify(request.focusPolygon)}. Focus only on produce inside this area.`;
+      prompt += `\nUser drew a focusPolygon: ${describeFocusPolygonBounds(request.focusPolygon)} Detect and grade ALL produce items inside this region (both left and right items inside the y/x bounds), and ignore any item outside it.`;
     } else {
-      prompt += `\nEvaluate the produce in the image (pile or single item).`;
+      prompt += `\nEvaluate all visible produce candidates in the image.`;
     }
   } else if (request.round === 2 && request.followUpContext) {
     const ctx = request.followUpContext;
     prompt += `\nRound 2 close-up inspection:
-Inspecting candidate ${ctx.targetCandidateId} (${ctx.produceDisplayName}, role: ${ctx.targetRole}).
+Inspecting candidate "${ctx.targetCandidateId}" (${ctx.produceDisplayName}, role: ${ctx.targetRole}).
 Requested instruction: "${ctx.requestedInstruction}".
-Previous 1st pick candidate ${ctx.previousWinner.id} scored ${ctx.previousWinner.score} (${ctx.previousWinner.ripeness}).
-Previous runner-up candidate ${ctx.previousRunnerUp.id} scored ${ctx.previousRunnerUp.score}.
-Evaluate this runner-up candidate from the new angle, record flipSummary, update score, and compare against previous 1st pick.`;
+Previous 1st pick candidate "${ctx.previousWinner.id}" scored ${ctx.previousWinner.score}/10 (${ctx.previousWinner.ripeness}).
+Previous runner-up candidate "${ctx.previousRunnerUp.id}" scored ${ctx.previousRunnerUp.score}/10.
+Evaluate candidate "${ctx.targetCandidateId}" from this new close-up angle, provide a non-null flipSummary (<= 80 chars), assign an updated score on the 0.0–10.0 scale, and compare against previous 1st pick (${ctx.previousWinner.score}/10).`;
   } else if (request.round === 3 && request.followUpContext) {
     const ctx = request.followUpContext;
     prompt += `\nRound 3 final check inspection:
-Inspecting candidate ${ctx.targetCandidateId} (${ctx.produceDisplayName}, role: ${ctx.targetRole}).
+Inspecting candidate "${ctx.targetCandidateId}" (${ctx.produceDisplayName}, role: ${ctx.targetRole}).
 Requested instruction: "${ctx.requestedInstruction}".
-Previous winner candidate ${ctx.previousWinner.id} scored ${ctx.previousWinner.score}.
-Record flipSummary, update score, and compare against previous winner. Hard ceiling: followUp must be null.`;
+Previous winner candidate "${ctx.previousWinner.id}" scored ${ctx.previousWinner.score}/10.
+Provide a non-null flipSummary (<= 80 chars), update score on the 0.0–10.0 scale, and compare against previous winner. Hard ceiling: followUp must be null.`;
   }
 
   if (repairErrors && repairErrors.length > 0) {

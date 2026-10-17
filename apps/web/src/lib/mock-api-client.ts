@@ -17,6 +17,52 @@ export function createMockApiClient(): PomonaApiClient {
       // Simulate natural AI latency (800ms)
       await new Promise((resolve) => setTimeout(resolve, 800));
 
+      // Allow simulating error states via localStorage in mock mode
+      let forcedError: string | null = null;
+      try {
+        if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+          forcedError = localStorage.getItem("pomona-force-error");
+        }
+      } catch {}
+
+      if (forcedError === "unclear_photo") {
+        return {
+          remainingScans: 9,
+          response: {
+            schemaVersion: "1.0",
+            promptVersion: "v1",
+            modelId: "gemini-2.5-flash (mocked)",
+            round: request.round,
+            status: "unclear_photo",
+            message: "The captured photo is too blurry or dark to accurately grade produce ripeness.",
+            produce: null,
+            candidates: [],
+            verdict: null,
+            followUp: null,
+            afterPurchase: null,
+          },
+        };
+      }
+
+      if (forcedError === "no_produce") {
+        return {
+          remainingScans: 9,
+          response: {
+            schemaVersion: "1.0",
+            promptVersion: "v1",
+            modelId: "gemini-2.5-flash (mocked)",
+            round: request.round,
+            status: "no_produce",
+            message: "Couldn't spot any produce clearly. Move closer and try again.",
+            produce: null,
+            candidates: [],
+            verdict: null,
+            followUp: null,
+            afterPurchase: null,
+          },
+        };
+      }
+
       if (request.round === 1) {
         // Round 1 mock: Watermelon pile with 2 candidates (winner & runner-up)
         // If focusPolygon was drawn, candidates fit inside it or central crop

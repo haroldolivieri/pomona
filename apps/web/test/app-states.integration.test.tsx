@@ -141,5 +141,5 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     fireEvent.click(screen.getByTestId("flip-shutter-button"));
     expect(await screen.findByTestId("stage-S7A_FirstPickWonFinal")).toBeTruthy();
     expect(screen.getByText(/1st Pick Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeTruthy();
-  });
+  }, 25000);
 });

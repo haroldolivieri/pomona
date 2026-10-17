@@ -175,9 +175,9 @@ describe("10-state ScanStateMachine", () => {
     s = scanMachineReducer(s, { type: "START_ANALYSE", focusPolygon: null, cropRect: null });
     expect(s.phase).toBe("S3_Analysing");
 
-    // SCAN_FAILED
+    // SCAN_FAILED transitions to S_ScanError
     const failedState = scanMachineReducer(s, { type: "SCAN_FAILED", error: "Network error" });
-    expect(failedState.phase).toBe("S3_Analysing");
+    expect(failedState.phase).toBe("S_ScanError");
     expect(failedState.errorMessage).toBe("Network error");
 
     // RESET returns to S1_LiveCamera
@@ -189,7 +189,7 @@ describe("10-state ScanStateMachine", () => {
     expect(resetState.errorMessage).toBeNull();
   });
 
-  it("handles non-ok scan status in SCAN_SUCCEEDED without advancing to result sheet", () => {
+  it("handles non-ok scan status in SCAN_SUCCEEDED by transitioning to S_ScanError", () => {
     let s = initialScanMachineState();
     s = scanMachineReducer(s, { type: "FRAME_CAPTURED", photoDataUrl: "data:image/webp;base64,r1" });
     s = scanMachineReducer(s, { type: "START_ANALYSE", focusPolygon: null, cropRect: null });
@@ -209,9 +209,14 @@ describe("10-state ScanStateMachine", () => {
     };
 
     s = scanMachineReducer(s, { type: "SCAN_SUCCEEDED", response: noProduceResp });
-    expect(s.phase).toBe("S2_DrawFocusArea");
+    expect(s.phase).toBe("S_ScanError");
     expect(s.status).toBe("no_produce");
     expect(s.errorMessage).toBe("No fruit found in frame.");
+
+    // Dismissing error returns to S1_LiveCamera
+    const dismissed = scanMachineReducer(s, { type: "DISMISS_ERROR" });
+    expect(dismissed.phase).toBe("S1_LiveCamera");
+    expect(dismissed.status).toBeNull();
   });
 
   it("remaps candidate bounding boxes from cropRect to full-frame on Round 1", () => {

@@ -14,6 +14,7 @@ import { FreehandDrawStage } from "./components/FreehandDrawStage";
 import { AnalysingStage } from "./components/AnalysingStage";
 import { ResultStage } from "./components/ResultStage";
 import { FlipCameraStage } from "./components/FlipCameraStage";
+import { ScanErrorStage } from "./components/ScanErrorStage";
 import "./styles/index.css";
 
 import { createMockApiClient } from "./lib/mock-api-client";
@@ -54,10 +55,6 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     return true;
   });
 
-  const [toastMessage, setToastMessage] = useState<string | null>(() => {
-    return isDevMode && isMockMode ? "🧪 Mock Mode ON (Shake device to toggle)" : null;
-  });
-
   const [mockApiClient] = useState<PomonaApiClient>(() => createMockApiClient());
   const activeApiClient = isDevMode && isMockMode ? mockApiClient : realApiClient;
 
@@ -91,8 +88,6 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
               try {
                 localStorage.setItem("pomona-mock-mode", String(next));
               } catch {}
-              setToastMessage(next ? "🧪 Mock Mode ENABLED" : "🌐 Live Mode (real API) ENABLED");
-              setTimeout(() => setToastMessage(null), 3000);
               return next;
             });
           }
@@ -243,6 +238,21 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
           />
         );
 
+      case "S_ScanError":
+        return (
+          <ScanErrorStage
+            status={state.status}
+            errorMessage={state.errorMessage}
+            photoDataUrl={state.currentPhotoDataUrl || state.round1PhotoDataUrl}
+            onRetake={() => dispatch({ type: "DISMISS_ERROR" })}
+            onDrawFocus={
+              state.status === "multiple_types"
+                ? () => dispatch({ type: "DRAW_FOCUS_AFTER_ERROR" })
+                : undefined
+            }
+          />
+        );
+
       case "S4_InitialResult":
       case "S5B1_RunnerUpBeaten":
       case "S5B2_RunnerUpTookLead":
@@ -297,33 +307,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     <div className="pomona-root">
       {renderCurrentStage()}
 
-      {/* Shake / Debug Mock Mode Indicator & Toast (DEV ONLY) */}
-      {isDevMode && toastMessage && (
-        <div
-          role="status"
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            backgroundColor: "rgba(17, 29, 21, 0.92)",
-            color: "#F5D547",
-            padding: "8px 16px",
-            borderRadius: "9999px",
-            fontSize: "13px",
-            fontWeight: 600,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-            zIndex: 9999,
-            pointerEvents: "none",
-            textAlign: "center",
-            backdropFilter: "blur(8px)",
-          }}
-        >
-          {toastMessage}
-        </div>
-      )}
-
-      {/* Discrete tap target in top right corner (DEV ONLY) */}
+      {/* Discrete tap target below top bar on left (DEV ONLY) */}
       {isDevMode && (
         <button
           type="button"
@@ -333,26 +317,25 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
               try {
                 localStorage.setItem("pomona-mock-mode", String(next));
               } catch {}
-              setToastMessage(next ? "🧪 Mock Mode ENABLED" : "🌐 Live Mode (real API) ENABLED");
-              setTimeout(() => setToastMessage(null), 3000);
               return next;
             });
           }}
           aria-label="Toggle Mock Mode"
           style={{
             position: "fixed",
-            top: "14px",
-            right: "72px",
+            top: "calc(max(16px, env(safe-area-inset-top)) + 50px)",
+            left: "16px",
             zIndex: 80,
-            background: isMockMode ? "rgba(245, 213, 71, 0.2)" : "rgba(0,0,0,0.2)",
+            background: isMockMode ? "rgba(245, 213, 71, 0.2)" : "rgba(0,0,0,0.35)",
             border: isMockMode ? "1px solid #F5D547" : "1px solid rgba(255,255,255,0.3)",
-            color: isMockMode ? "#F5D547" : "rgba(255,255,255,0.7)",
-            padding: "4px 8px",
+            color: isMockMode ? "#F5D547" : "rgba(255,255,255,0.8)",
+            padding: "4px 9px",
             borderRadius: "12px",
-            fontSize: "11px",
+            fontSize: "10.5px",
             fontWeight: 600,
             cursor: "pointer",
             backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
           }}
         >
           {isMockMode ? "🧪 MOCK" : "🌐 LIVE"}

@@ -314,4 +314,8 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
 const app = createProxyApp();
 export default app;
 export { verifyAndResolveScanResponse } from "./verifier/verify-response";
+export { createGeminiVisionAdapter } from "./adapters/gemini";
+export { createOpenAIVisionAdapter } from "./adapters/openai";
+export { getPromptConfig } from "./prompts";
+export { v1PromptConfig } from "./prompts/v1";
 

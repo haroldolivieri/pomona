@@ -263,4 +263,46 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(screen.getByTestId("runner-up-tag")).toHaveTextContent("1st Pick · 8.4");
     expect(screen.getByTestId("score-prev-mark")).toHaveStyle({ left: "84%" });
   });
+
+  it("allows dragging anywhere on the bottom sheet and translates the sheet + parallax photo without shrinking the photo height", () => {
+    const state = {
+      ...initialScanMachineState(),
+      phase: "S4_InitialResult" as const,
+      firstPick: sampleFirstPick,
+      runnerUp: sampleRunnerUp,
+      lastResponse: baseResponse,
+      round1PhotoDataUrl: "data:image/webp;base64,mock",
+    };
+
+    render(
+      <ResultStage
+        state={state}
+        onCompareWithRunnerUp={vi.fn()}
+        onStartFinalCheck={vi.fn()}
+        onReset={vi.fn()}
+      />
+    );
+
+    const sheet = screen.getByTestId("result-bottom-sheet");
+    const photoViewport = screen.getByTestId("result-photo-viewport");
+
+    // Initial state: photo height is fixed 46dvh, transform is 0px
+    expect(photoViewport.style.height).toBe("46dvh");
+    expect(sheet.style.transform).toBe("translate3d(0, 0px, 0)");
+
+    // Drag up from the middle of the sheet (e.g. on headline text)
+    const headlineEl = screen.getByText("Buy it.");
+    fireEvent.touchStart(headlineEl, { touches: [{ clientY: 500 }] });
+    fireEvent.touchMove(headlineEl, { touches: [{ clientY: 420 }] }); // -80px drag up
+
+    // Live drag moves sheet up by 80px and photo viewport by parallax (-80 * 0.22 = -17.6px)
+    expect(sheet.style.transform).toBe("translate3d(0, -80px, 0)");
+    expect(photoViewport.style.height).toBe("46dvh");
+
+    // Release snap expands sheet (-110px) and keeps photo height unchanged at 46dvh
+    fireEvent.touchEnd(headlineEl);
+    expect(sheet.style.transform).toBe("translate3d(0, -110px, 0)");
+    expect(photoViewport.style.height).toBe("46dvh");
+    expect(photoViewport.style.transform).toBe("translate3d(0, -24.2px, 0)");
+  });
 });

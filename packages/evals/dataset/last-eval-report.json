@@ -1,0 +1,332 @@
+{
+  "timestamp": "2026-10-17T12:47:34.988Z",
+  "model": "google:gemini-3.8-flash",
+  "passed": 6,
+  "total": 6,
+  "results": [
+    {
+      "id": "01-watermelon-crate-clear-winner",
+      "model": "google:gemini-3.8-flash",
+      "pass": true,
+      "score": 1,
+      "reason": "Passed ScanResponse schema, verifier invariants, and spatial ground-truth expectations",
+      "latencyMs": 6689,
+      "rawOutput": {
+        "status": "ok",
+        "message": null,
+        "produce": {
+          "type": "watermelon",
+          "displayName": "Watermelon",
+          "variety": "Standard Seedless"
+        },
+        "candidates": [
+          {
+            "id": "c1",
+            "box": [
+              414,
+              155,
+              781,
+              517
+            ],
+            "score": 9.4,
+            "ripeness": "ripe",
+            "traits": [
+              "Rich yellow field spot",
+              "Brown sugar webbing",
+              "Dull matte rind",
+              "Uniform round shape"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c2",
+            "box": [
+              429,
+              547,
+              775,
+              881
+            ],
+            "score": 7.2,
+            "ripeness": "almost_ripe",
+            "traits": [
+              "Light creamy spot",
+              "Deep green skin",
+              "Slight gloss"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c3",
+            "box": [
+              251,
+              411,
+              497,
+              650
+            ],
+            "score": 5.1,
+            "ripeness": "underripe",
+            "traits": [
+              "White ground spot",
+              "Shiny surface rind"
+            ],
+            "flipSummary": null
+          }
+        ],
+        "verdict": {
+          "winnerId": "c1",
+          "runnerUpId": "c2",
+          "confidence": "high",
+          "headline": "Pick the left one."
+        },
+        "followUp": {
+          "targetCandidateId": "c2",
+          "targetRole": "runner_up",
+          "bannerText": "Check the other side of candidate c2 for deeper ground colour and webbing.",
+          "flipHeadline": "Inspect the runner-up Watermelon",
+          "instruction": "Rotate candidate c2 to inspect its opposite side and see if there is a more mature field spot."
+        },
+        "afterPurchase": {
+          "readyInDays": {
+            "min": 0,
+            "max": 0
+          },
+          "eatWithinDays": {
+            "min": 5,
+            "max": 7
+          },
+          "eatWithinLabel": "5–7 days",
+          "storage": {
+            "beforeCut": {
+              "where": "counter",
+              "whereLabel": "Countertop",
+              "summary": "Room temperature · whole",
+              "tip": "Keep away from direct sunlight; store whole at room temperature until ready to slice."
+            },
+            "afterCut": {
+              "where": "fridge",
+              "whereLabel": "Refrigerator",
+              "summary": "Airtight container · chilled",
+              "tip": "Wrap cut surfaces tightly in cling wrap or place cubes in an airtight tub."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "02-avocado-polygon-isolation",
+      "model": "google:gemini-3.8-flash",
+      "pass": true,
+      "score": 1,
+      "reason": "Passed ScanResponse schema, verifier invariants, and spatial ground-truth expectations",
+      "latencyMs": 5359,
+      "rawOutput": {
+        "status": "ok",
+        "message": null,
+        "produce": {
+          "type": "avocado",
+          "displayName": "Avocado",
+          "variety": "Hass"
+        },
+        "candidates": [
+          {
+            "id": "c1",
+            "box": [
+              496,
+              107,
+              908,
+              473
+            ],
+            "score": 9.2,
+            "ripeness": "ripe",
+            "traits": [
+              "Dark pebbled skin",
+              "Even colouring",
+              "Ready to eat"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c2",
+            "box": [
+              469,
+              549,
+              876,
+              907
+            ],
+            "score": 4.5,
+            "ripeness": "underripe",
+            "traits": [
+              "Bright green skin",
+              "Firm skin texture",
+              "Needs ripening"
+            ],
+            "flipSummary": null
+          }
+        ],
+        "verdict": {
+          "winnerId": "c1",
+          "runnerUpId": "c2",
+          "confidence": "high",
+          "headline": "Buy this one."
+        },
+        "followUp": {
+          "targetCandidateId": "c2",
+          "targetRole": "runner_up",
+          "bannerText": "Want to check the other Avocado? Turn it over to check for soft spots.",
+          "flipHeadline": "Turn the Avocado over",
+          "instruction": "Turn the runner-up Avocado over to inspect the reverse side and stem area."
+        },
+        "afterPurchase": {
+          "readyInDays": {
+            "min": 0,
+            "max": 1
+          },
+          "eatWithinDays": {
+            "min": 1,
+            "max": 3
+          },
+          "eatWithinLabel": "1–3 days",
+          "storage": {
+            "beforeCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Chill to slow ripening",
+              "tip": "Store ripe avocados in the fridge crisping drawer to keep them firm."
+            },
+            "afterCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Sealed container with lemon",
+              "tip": "Squeeze lemon juice on the exposed flesh and cover tightly with cling film."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "03-unclear-blurry-photo",
+      "model": "google:gemini-3.8-flash",
+      "pass": true,
+      "score": 1,
+      "reason": "Correctly returned domain error status \"unclear_photo\" with message: \"The photo is too blurry and distorted to identify or inspect any produce. Please hold the camera steady and try again.\"",
+      "latencyMs": 3179,
+      "rawOutput": {
+        "status": "unclear_photo",
+        "message": "The photo is too blurry and distorted to identify or inspect any produce. Please hold the camera steady and try again.",
+        "produce": null,
+        "candidates": [],
+        "verdict": null,
+        "followUp": null,
+        "afterPurchase": null
+      }
+    },
+    {
+      "id": "04-no-produce-cereal-box",
+      "model": "google:gemini-3.8-flash",
+      "pass": true,
+      "score": 1,
+      "reason": "Correctly returned domain error status \"no_produce\" with message: \"No fresh produce detected. The image displays packaged grocery items such as cereals and canned goods.\"",
+      "latencyMs": 2779,
+      "rawOutput": {
+        "status": "no_produce",
+        "message": "No fresh produce detected. The image displays packaged grocery items such as cereals and canned goods.",
+        "produce": null,
+        "candidates": [],
+        "verdict": null,
+        "followUp": null,
+        "afterPurchase": null
+      }
+    },
+    {
+      "id": "05-multiple-types-mixed",
+      "model": "google:gemini-3.8-flash",
+      "pass": true,
+      "score": 1,
+      "reason": "Correctly returned domain error status \"multiple_types\" with message: \"Multiple produce types (apples, pineapple, bananas) detected. Please frame a single type or provide a focus area.\"",
+      "latencyMs": 2812,
+      "rawOutput": {
+        "status": "multiple_types",
+        "message": "Multiple produce types (apples, pineapple, bananas) detected. Please frame a single type or provide a focus area.",
+        "produce": null,
+        "candidates": [],
+        "verdict": null,
+        "followUp": null,
+        "afterPurchase": null
+      }
+    },
+    {
+      "id": "06-round2-runner-up-flip-overtakes",
+      "model": "google:gemini-3.8-flash",
+      "pass": true,
+      "score": 1,
+      "reason": "Passed ScanResponse schema, verifier invariants, and spatial ground-truth expectations",
+      "latencyMs": 4837,
+      "rawOutput": {
+        "status": "ok",
+        "message": null,
+        "produce": {
+          "type": "watermelon",
+          "displayName": "Watermelon",
+          "variety": "Seedless"
+        },
+        "candidates": [
+          {
+            "id": "c2",
+            "box": [
+              121,
+              131,
+              883,
+              884
+            ],
+            "score": 9.4,
+            "ripeness": "ripe",
+            "traits": [
+              "Deep buttery field spot",
+              "Extensive sugar webbing",
+              "Dull matte skin"
+            ],
+            "flipSummary": "Rich deep yellow field spot with prominent pollination sugar webbing."
+          }
+        ],
+        "verdict": {
+          "winnerId": "c2",
+          "runnerUpId": "c1",
+          "confidence": "high",
+          "headline": "Buy this one."
+        },
+        "followUp": {
+          "targetCandidateId": "c1",
+          "targetRole": "first_pick",
+          "bannerText": "Check your original pick Watermelon",
+          "flipHeadline": "Inspect the first Watermelon",
+          "instruction": "Turn your first pick Watermelon over to compare its ground spot before final selection."
+        },
+        "afterPurchase": {
+          "readyInDays": {
+            "min": 0,
+            "max": 1
+          },
+          "eatWithinDays": {
+            "min": 5,
+            "max": 8
+          },
+          "eatWithinLabel": "5–8 days",
+          "storage": {
+            "beforeCut": {
+              "where": "counter",
+              "whereLabel": "Countertop",
+              "summary": "Room temp · whole",
+              "tip": "Store whole at room temperature out of direct sunlight."
+            },
+            "afterCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Tightly wrapped · cold",
+              "tip": "Cover exposed cut surfaces tightly with wrap or in a sealed container."
+            }
+          }
+        }
+      }
+    }
+  ]
+}

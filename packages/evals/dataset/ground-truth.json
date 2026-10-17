@@ -1,0 +1,180 @@
+[
+  {
+    "id": "01-watermelon-crate-clear-winner",
+    "filename": "01-watermelon-crate-clear-winner.jpg",
+    "imagePath": "dataset/images/01-watermelon-crate-clear-winner.jpg",
+    "imageBase64PreviewLength": 798720,
+    "description": "Round 1: Photorealistic crate of 3 whole striped watermelons. Bottom-left melon (ripe, large creamy butter-yellow field spot, matte dark rind, heavy brown sugar webbing scars) is the clear winner. Bottom-right melon (almost_ripe, smaller pale cream spot) is the runner-up. Top-center melon is underripe (glossy bright green, stark white spot).",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "ok",
+      "expectedProduceType": "watermelon",
+      "focusPolygon": null,
+      "expectedCandidateCountMin": 2,
+      "expectedCandidateCountMax": 3,
+      "expectedWinnerBox": [
+        415,
+        150,
+        780,
+        520
+      ],
+      "expectedRunnerUpBox": [
+        430,
+        545,
+        775,
+        880
+      ],
+      "forbiddenWordsInCopy": [
+        "avocado",
+        "pineapple",
+        "banana",
+        "tomato",
+        "mango"
+      ]
+    }
+  },
+  {
+    "id": "02-avocado-polygon-isolation",
+    "filename": "02-avocado-polygon-isolation.jpg",
+    "imagePath": "dataset/images/02-avocado-polygon-isolation.jpg",
+    "imageBase64PreviewLength": 869844,
+    "description": "Round 1 Adversarial Polygon: Photorealistic overhead shot of 3 Hass Avocados on a wooden market table. The top-left avocado is dark-pebbled ripe, but the user drew a focusPolygon strictly around the two bottom avocados ([80, 460] to [950, 950]). The model MUST ignore the top-left avocado and pick the dark-pebbled ripe one at bottom-left inside the polygon.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "ok",
+      "expectedProduceType": "avocado",
+      "focusPolygon": [
+        [
+          80,
+          460
+        ],
+        [
+          950,
+          460
+        ],
+        [
+          950,
+          950
+        ],
+        [
+          80,
+          950
+        ]
+      ],
+      "expectedCandidateCountMin": 2,
+      "expectedCandidateCountMax": 2,
+      "expectedWinnerBox": [
+        495,
+        105,
+        915,
+        475
+      ],
+      "expectedRunnerUpBox": [
+        465,
+        550,
+        885,
+        905
+      ],
+      "forbiddenWordsInCopy": [
+        "watermelon",
+        "melon",
+        "cantaloupe",
+        "field spot",
+        "rind"
+      ]
+    }
+  },
+  {
+    "id": "03-unclear-blurry-photo",
+    "filename": "03-unclear-blurry-photo.jpg",
+    "imagePath": "dataset/images/03-unclear-blurry-photo.jpg",
+    "imageBase64PreviewLength": 442416,
+    "description": "Adversarial Error Case: Photorealistic smartphone photo with extreme camera shake, motion blur streaks, and lens glare in a dim grocery aisle. Expects status = 'unclear_photo'.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "unclear_photo",
+      "expectedProduceType": null,
+      "focusPolygon": null
+    }
+  },
+  {
+    "id": "04-no-produce-cereal-box",
+    "filename": "04-no-produce-cereal-box.jpg",
+    "imagePath": "dataset/images/04-no-produce-cereal-box.jpg",
+    "imageBase64PreviewLength": 672820,
+    "description": "Adversarial Error Case: Photorealistic supermarket shelf with Crunchy Oats cereal box ($4.99) and Morning Brew ground coffee tin ($7.29) with barcodes and zero fresh produce. Expects status = 'no_produce'.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "no_produce",
+      "expectedProduceType": null,
+      "focusPolygon": null
+    }
+  },
+  {
+    "id": "05-multiple-types-mixed",
+    "filename": "05-multiple-types-mixed.jpg",
+    "imagePath": "dataset/images/05-multiple-types-mixed.jpg",
+    "imageBase64PreviewLength": 850212,
+    "description": "Adversarial Error Case: Photorealistic wicker display basket containing red Honeycrisp Apples on the left, a whole Golden Pineapple in the center, and yellow Cavendish Bananas on the right with no focusPolygon drawn. Expects status = 'multiple_types'.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "multiple_types",
+      "expectedProduceType": null,
+      "focusPolygon": null
+    }
+  },
+  {
+    "id": "06-round2-runner-up-flip-overtakes",
+    "filename": "06-round2-runner-up-flip-overtakes.jpg",
+    "imagePath": "dataset/images/06-round2-runner-up-flip-overtakes.jpg",
+    "imageBase64PreviewLength": 871696,
+    "description": "Round 2 Close-Up Flip: Photorealistic close-up of Runner-Up Watermelon (#c2, previously 8.1) flipped over in a wooden crate to reveal a massive, deep golden-yellow belly spot and dense brown sugar webbing scars, overtaking 1st Pick (#c1, 8.6).",
+    "groundTruth": {
+      "round": 2,
+      "expectedStatus": "ok",
+      "expectedProduceType": "watermelon",
+      "focusPolygon": null,
+      "followUpContext": {
+        "produceType": "watermelon",
+        "produceDisplayName": "Watermelon",
+        "targetCandidateId": "c2",
+        "targetRole": "runner_up",
+        "requestedInstruction": "Flip the Runner-Up Watermelon over to inspect its underside ground spot.",
+        "previousWinner": {
+          "id": "c1",
+          "role": "first_pick",
+          "score": 8.6,
+          "ripeness": "ripe",
+          "traits": [
+            "Yellow field spot",
+            "Matte rind"
+          ],
+          "anglesInspected": 1
+        },
+        "previousRunnerUp": {
+          "id": "c2",
+          "role": "runner_up",
+          "score": 8.1,
+          "ripeness": "almost_ripe",
+          "traits": [
+            "Even shape",
+            "Dark stripes"
+          ],
+          "anglesInspected": 1
+        }
+      },
+      "expectedWinnerBox": [
+        120,
+        125,
+        885,
+        885
+      ],
+      "requireFlipSummaryNonNull": true,
+      "forbiddenWordsInCopy": [
+        "avocado",
+        "pineapple",
+        "banana"
+      ]
+    }
+  }
+]
