@@ -16,8 +16,8 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     groundTruth: Record<string, any>;
   }> = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf-8"));
 
-  it("verifies all 10 generated ground-truth images exist on disk and are non-empty JPEGs", () => {
-    expect(manifest.length).toBe(10);
+  it("verifies all 11 generated ground-truth images exist on disk and are non-empty JPEGs", () => {
+    expect(manifest.length).toBe(11);
     for (const item of manifest) {
       const fullPath = path.resolve(__dirname, "..", item.imagePath);
       expect(fs.existsSync(fullPath)).toBe(true);
@@ -459,5 +459,76 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     };
 
     expect(verifyPromptfooOutput(JSON.stringify(validSolo), { vars: gtSolo }).pass).toBe(true);
+  });
+
+  it("Scenario 11 (Pack/Bunch Grape Punnet Selection): passes when model boxes entire punnets as units of purchase, and FAILS if model boxes individual berries", () => {
+    const gtPack = manifest.find((m) => m.id === "11-grape-punnet-pack-selection")!.groundTruth;
+
+    // 1. Valid model output: 2 candidate boxes enclosing the full punnets
+    const validPackOutput = {
+      status: "ok",
+      message: null,
+      produce: { type: "grapes", displayName: "Red Seedless Grapes", variety: "Crimson" },
+      candidates: [
+        {
+          id: "c1",
+          box: [285, 85, 755, 475], // Entire left punnet
+          score: 9.2,
+          ripeness: "ripe",
+          traits: ["Vibrant green stem", "Plump bloom", "No mold at bottom"],
+          flipSummary: null,
+        },
+        {
+          id: "c2",
+          box: [305, 535, 765, 915], // Entire right punnet
+          score: 8.0,
+          ripeness: "almost_ripe",
+          traits: ["Dry brownish stem", "Loose berries"],
+          flipSummary: null,
+        },
+      ],
+      verdict: {
+        winnerId: "c1",
+        runnerUpId: "c2",
+        confidence: "high",
+        headline: "Buy this pack.",
+      },
+      followUp: {
+        targetCandidateId: "c2",
+        targetRole: "runner_up",
+        bannerText: "Runner-Up scored 8.0. Check underside of the punnet before deciding.",
+        flipHeadline: "Flip the Grape punnet over",
+        instruction: "Turn the punnet over to inspect bottom berries for squashed fruit or dampness.",
+      },
+      afterPurchase: {
+        readyInDays: { min: 0, max: 0 },
+        eatWithinDays: { min: 5, max: 7 },
+        eatWithinLabel: "5–7 days",
+        storage: {
+          beforeCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · ventilated", tip: "Keep in original ventilated punnet, unwashed until eating" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · container", tip: "Store separated washed grapes in airtight container with paper towel" },
+        },
+      },
+    };
+
+    expect(verifyPromptfooOutput(JSON.stringify(validPackOutput), { vars: gtPack }).pass).toBe(true);
+
+    // 2. Adversarial failure: Model violates Unit of Purchase rule by boxing individual loose berries inside the pack
+    const invalidPerBerryOutput = {
+      ...validPackOutput,
+      candidates: [
+        // Tiny bounding boxes for individual berries instead of whole punnets
+        { id: "c1", box: [380, 150, 440, 210], score: 9.0, ripeness: "ripe", traits: ["Single berry"], flipSummary: null },
+        { id: "c2", box: [450, 220, 510, 280], score: 8.8, ripeness: "ripe", traits: ["Single berry"], flipSummary: null },
+        { id: "c3", box: [520, 160, 580, 220], score: 8.5, ripeness: "ripe", traits: ["Single berry"], flipSummary: null },
+        { id: "c4", box: [390, 600, 450, 660], score: 8.0, ripeness: "almost_ripe", traits: ["Single berry"], flipSummary: null },
+        { id: "c5", box: [460, 670, 520, 730], score: 7.8, ripeness: "almost_ripe", traits: ["Single berry"], flipSummary: null },
+      ],
+      verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "medium", headline: "Buy it." },
+    };
+
+    const resFailure = verifyPromptfooOutput(JSON.stringify(invalidPerBerryOutput), { vars: gtPack });
+    expect(resFailure.pass).toBe(false);
+    expect(resFailure.reason).toContain("Expected at most 2 candidates");
   });
 });

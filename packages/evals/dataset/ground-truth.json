@@ -382,5 +382,40 @@
         "rind"
       ]
     }
+  },
+  {
+    "id": "11-grape-punnet-pack-selection",
+    "filename": "11-grape-punnet-pack-selection.jpg",
+    "imagePath": "dataset/images/11-grape-punnet-pack-selection.jpg",
+    "imageBase64PreviewLength": 68997,
+    "description": "Round 1 Pack/Bunch Selection: Two clear plastic punnets of Red Seedless Grapes on a grocery display shelf. Left punnet (Winner [280, 80, 760, 480]) contains plump red grapes with fresh green stems and clean dry bottom with no mold. Right punnet (Runner-Up [300, 530, 770, 920]) has slight stem browning and loose berries. Verifies unit-of-purchase rule: model must return exactly 2 candidate boxes enclosing the entire punnets, NOT individual berries inside the pack.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "ok",
+      "expectedProduceType": "grapes",
+      "focusPolygon": null,
+      "expectedCandidateCountMin": 2,
+      "expectedCandidateCountMax": 2,
+      "expectedWinnerBox": [
+        280,
+        80,
+        760,
+        480
+      ],
+      "expectedRunnerUpBox": [
+        300,
+        530,
+        770,
+        920
+      ],
+      "forbiddenWordsInCopy": [
+        "watermelon",
+        "melon",
+        "avocado",
+        "pineapple",
+        "field spot",
+        "rind"
+      ]
+    }
   }
 ]

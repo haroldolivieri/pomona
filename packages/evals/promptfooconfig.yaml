@@ -252,3 +252,19 @@ tests:
       forbiddenWordsInCopy: ["watermelon", "melon", "avocado", "field spot", "rind"]
       imageDescription: "A single ripe golden-yellow pineapple standing alone on a wooden table."
 
+  # 11. Pack / Bunch Produce Selection (Unit of Purchase)
+  - description: "11 - Grape Punnet Pack Selection (Unit of purchase: 2 full punnets boxed, NOT individual loose berries)"
+    vars:
+      round: 1
+      imagePath: "dataset/images/11-grape-punnet-pack-selection.jpg"
+      expectedStatus: "ok"
+      expectedProduceType: "grapes"
+      produceDisplayName: "Red Seedless Grapes"
+      expectedCandidateCountMin: 2
+      expectedCandidateCountMax: 2
+      expectedWinnerBox: [280, 80, 760, 480]
+      expectedRunnerUpBox: [300, 530, 770, 920]
+      forbiddenWordsInCopy: ["watermelon", "melon", "avocado", "pineapple", "field spot", "rind"]
+      imageDescription: "Two clear plastic punnets of red seedless grapes on a supermarket display shelf."
+
+

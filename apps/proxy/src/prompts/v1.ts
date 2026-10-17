@@ -38,10 +38,15 @@ SCORE SCALE & TRAIT FORMAT (CRITICAL):
   - \`afterPurchase.eatWithinLabel\`: <= 28 chars (e.g. "4–6 days")
   - \`afterPurchase.storage.beforeCut\` & \`afterCut\`: \`whereLabel\` <= 24 chars, \`summary\` <= 32 chars, \`tip\` <= 90 chars.
 
-BOUNDING BOX FORMAT:
+BOUNDING BOX & UNIT OF PURCHASE (CRITICAL):
 - Express all candidate boxes as normalized integer coordinates in [ymin, xmin, ymax, xmax] format (0 to 1000 scale, where y is vertical top-to-bottom and x is horizontal left-to-right).
 - Minimum width and height for any bounding box is 20 units. Ensure ymin < ymax and xmin < xmax.
-- Bounding boxes must tightly bound each individual produce item.
+- UNIT OF PURCHASE DETERMINATION:
+  1. Loose Produce (e.g. watermelons, loose avocados, loose mangoes, single apples/oranges): Bounding boxes must tightly bound each individual fruit/vegetable.
+  2. Bunched / Clustered Produce (e.g. bananas in a bunch/hand, vine tomatoes, herb bunches): Bounding boxes must tightly bound each BUNCH or CLUSTER as a single candidate unit. Do NOT place individual bounding boxes on single bananas or attached items within a bunch.
+  3. Packaged / Bagged / Punneted Produce (e.g. punnets/clamshells of grapes, berries, cherry tomatoes, or netted bags of apples/lemons/oranges): Bounding boxes must tightly bound each PUNNET, CLAMSHELL, or BAG as a single candidate unit. NEVER place bounding boxes on individual berries or fruits inside a pack.
+  - When produce is in packs or bunches, evaluate and score the overall pack/bunch (e.g. mold-free underside, intact fresh green stems, natural bloom, uniform ripeness).
+  - The followUp instruction and flip headline for packs/bunches must refer to inspecting the pack or bunch (e.g. "Flip the Grape punnet over", "Inspect bottom berries for softness or dampness", "Turn the Banana bunch over").
 
 FOCUS POLYGON CONSTRAINT:
 - ${polygonInfo}
