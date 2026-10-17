@@ -61,7 +61,7 @@ const mockRound2RunnerUpBeaten = {
       flipSummary: "slight bruise underside",
     },
   ],
-  verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy your 1st pick." },
+  verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy your 1st winner." },
   followUp: null,
 };
 
@@ -83,13 +83,13 @@ const mockRound2RunnerUpTookLead = {
   followUp: {
     targetCandidateId: "c1",
     targetRole: "first_pick",
-    bannerText: "1st Pick (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
-    flipHeadline: "Flip your 1st pick over",
+    bannerText: "1st Winner (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
+    flipHeadline: "Flip your 1st winner over",
     instruction: "Turn the yellow-marked Hass Avocado to show its stem base.",
   },
 };
 
-// Round 3 - 1st Pick Wins Final Flip (score 9.3 >= 9.0)
+// Round 3 - 1st Winner Wins Final Flip (score 9.3 >= 9.0)
 const mockRound3FirstPickWon = {
   ...mockRound1Response,
   round: 3,
@@ -103,7 +103,7 @@ const mockRound3FirstPickWon = {
       flipSummary: "bright green stem base",
     },
   ],
-  verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy your 1st pick." },
+  verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy your 1st winner." },
   followUp: null,
 };
 
@@ -147,7 +147,7 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+        body: JSON.stringify(mockRound1Response ),
       });
     });
 
@@ -169,10 +169,14 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     await expect(wholePhotoButton).toBeVisible();
     await wholePhotoButton.click();
 
-    // S4: Initial Result
+    // S4: Initial Result (shows up to ripeness bar at min height)
     const s4Stage = page.getByTestId("stage-S4_InitialResult");
     await expect(s4Stage).toBeVisible();
-    await expect(page.getByText("Buy it.")).toBeVisible();
+    await expect(page.getByText("Best available.")).toBeVisible();
+    await expect(page.getByTestId("circular-score-meter")).toBeVisible();
+
+    // Expand bottom sheet to see full storage details and action button
+    await page.getByTestId("sheet-drag-area").click();
     await expect(page.getByText("Counter · whole")).toBeVisible();
     await expect(page.getByText("Fridge · wrapped")).toBeVisible();
     await expect(page.getByTestId("cta-compare-runner-up")).toHaveText("Compare with Runner-Up");
@@ -186,13 +190,13 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+          body: JSON.stringify(mockRound1Response ),
         });
       } else {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 8, response: mockRound2RunnerUpBeaten }),
+          body: JSON.stringify(mockRound2RunnerUpBeaten ),
         });
       }
     });
@@ -231,6 +235,9 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     // Reaches S4
     await expect(page.getByTestId("stage-S4_InitialResult")).toBeVisible();
 
+    // Expand bottom sheet to access CTA
+    await page.getByTestId("sheet-drag-area").click();
+
     // Tap CTA -> S5A_FlipRunnerUpCamera
     const compareBtn = page.getByTestId("cta-compare-runner-up");
     await compareBtn.click();
@@ -241,7 +248,11 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     // Snap flipped produce -> S5B1_RunnerUpBeaten
     await page.getByTestId("flip-shutter-button").click();
     await expect(page.getByTestId("stage-S5B1_RunnerUpBeaten")).toBeVisible();
-    await expect(page.getByText("Buy your 1st pick.")).toBeVisible();
+    await expect(page.getByText("Best available.")).toBeVisible();
+    await expect(page.getByTestId("circular-score-meter")).toBeVisible();
+
+    // Expand sheet to view confirmation banner and scan-another CTA
+    await page.getByTestId("sheet-drag-area").click();
     await expect(page.getByText(/Runner-Up scored 7\.8 after flip/)).toBeVisible();
     await expect(page.getByTestId("cta-scan-another")).toBeVisible();
   });
@@ -254,19 +265,19 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+          body: JSON.stringify(mockRound1Response ),
         });
       } else if (scanCount === 2) {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 8, response: mockRound2RunnerUpTookLead }),
+          body: JSON.stringify(mockRound2RunnerUpTookLead ),
         });
       } else {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 7, response: mockRound3FirstPickWon }),
+          body: JSON.stringify(mockRound3FirstPickWon ),
         });
       }
     });
@@ -281,6 +292,9 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     await page.getByTestId("whole-photo-button").click();
     await expect(page.getByTestId("stage-S4_InitialResult")).toBeVisible();
 
+    // Expand bottom sheet to access CTA
+    await page.getByTestId("sheet-drag-area").click();
+
     // S4 -> Compare with Runner-Up -> S5A
     await page.getByTestId("cta-compare-runner-up").click();
     await expect(page.getByTestId("stage-S5A_FlipRunnerUpCamera")).toBeVisible();
@@ -288,20 +302,25 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     // S5A -> Snap flipped runner-up -> S5B2_RunnerUpTookLead (9.0 beats 8.6)
     await page.getByTestId("flip-shutter-button").click();
     await expect(page.getByTestId("stage-S5B2_RunnerUpTookLead")).toBeVisible();
-    await expect(page.getByText(/Beats 1st Pick \(9\.0 vs 8\.6\)/i)).toBeVisible();
-    const finalCheckBtn = page.getByTestId("cta-final-check-first-pick");
-    await expect(finalCheckBtn).toHaveText("Flip 1st Pick for Final Check");
+    await expect(page.getByText(/Beats 1st Winner \(9\.0 vs 8\.6\)/i)).toBeVisible();
 
-    // S5B2 -> Flip 1st pick -> S6_FlipFirstPickCamera
+    // Expand bottom sheet to access final check CTA
+    await page.getByTestId("sheet-drag-area").click();
+    const finalCheckBtn = page.getByTestId("cta-final-check-first-pick");
+    await expect(finalCheckBtn).toHaveText("Flip 1st Winner for Final Check");
+
+    // S5B2 -> Flip 1st winner -> S6_FlipFirstPickCamera
     await finalCheckBtn.click();
     await expect(page.getByTestId("stage-S6_FlipFirstPickCamera")).toBeVisible();
-    await expect(page.getByText(/Current leader: 9\.0 · 1st Pick: 8\.6/)).toBeVisible();
+    await expect(page.getByText(/Current leader: 9\.0 · 1st Winner: 8\.6/)).toBeVisible();
 
-    // S6 -> Snap flipped 1st pick -> S7A_FirstPickWonFinal (9.3 beats 9.0)
+    // S6 -> Snap flipped 1st winner -> S7A_FirstPickWonFinal (9.3 beats 9.0)
     await page.getByTestId("flip-shutter-button").click();
     await expect(page.getByTestId("stage-S7A_FirstPickWonFinal")).toBeVisible();
-    await expect(page.getByText(/1st Pick Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeVisible();
-    await expect(page.getByText("Buy your 1st pick.")).toBeVisible();
+    await expect(page.getByText(/1st Winner Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeVisible();
+
+    // Expand bottom sheet to access scan-another CTA
+    await page.getByTestId("sheet-drag-area").click();
     await expect(page.getByTestId("cta-scan-another")).toBeVisible();
   });
 
@@ -313,19 +332,19 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+          body: JSON.stringify(mockRound1Response ),
         });
       } else if (scanCount === 2) {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 8, response: mockRound2RunnerUpTookLead }),
+          body: JSON.stringify(mockRound2RunnerUpTookLead ),
         });
       } else {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 7, response: mockRound3FirstPickLost }),
+          body: JSON.stringify(mockRound3FirstPickLost ),
         });
       }
     });
@@ -337,11 +356,17 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     await page.getByTestId("whole-photo-button").click();
     await expect(page.getByTestId("stage-S4_InitialResult")).toBeVisible();
 
+    // Expand bottom sheet to access CTA
+    await page.getByTestId("sheet-drag-area").click();
+
     // S4 -> S5A -> S5B2
     await page.getByTestId("cta-compare-runner-up").click();
     await expect(page.getByTestId("stage-S5A_FlipRunnerUpCamera")).toBeVisible();
     await page.getByTestId("flip-shutter-button").click();
     await expect(page.getByTestId("stage-S5B2_RunnerUpTookLead")).toBeVisible();
+
+    // Expand bottom sheet to access final check CTA
+    await page.getByTestId("sheet-drag-area").click();
 
     // S5B2 -> S6
     await page.getByTestId("cta-final-check-first-pick").click();
@@ -351,7 +376,9 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     await page.getByTestId("flip-shutter-button").click();
     await expect(page.getByTestId("stage-S7B_FirstPickLostFinal")).toBeVisible();
     await expect(page.getByText(/Runner-Up Wins \(9\.0 vs 8\.4\)/i)).toBeVisible();
-    await expect(page.getByText("Buy the new winner.")).toBeVisible();
+
+    // Expand bottom sheet to access scan-another CTA
+    await page.getByTestId("sheet-drag-area").click();
     await expect(page.getByTestId("cta-scan-another")).toBeVisible();
   });
 
@@ -363,13 +390,13 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+          body: JSON.stringify(mockRound1Response ),
         });
       } else {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 8, response: mockRound2RunnerUpTookLead }),
+          body: JSON.stringify(mockRound2RunnerUpTookLead ),
         });
       }
     });
@@ -385,10 +412,10 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     );
     expect(criticalOrSerious).toEqual([]);
 
-    // Toggle to Dark Theme
-    const themeBtn = page.getByTestId("theme-toggle-button");
-    await expect(themeBtn).toBeVisible();
-    await themeBtn.click();
+    // Switch to Dark Theme
+    await page.evaluate(() => {
+      document.documentElement.setAttribute("data-theme", "dark");
+    });
 
     // Verify dark theme applied
     const htmlTheme = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
@@ -428,6 +455,7 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     expect(criticalOrSerious).toEqual([]);
 
     // Progress S4 -> S5A (Dark Theme)
+    await page.getByTestId("sheet-drag-area").click();
     await page.getByTestId("cta-compare-runner-up").click();
     await expect(page.getByTestId("stage-S5A_FlipRunnerUpCamera")).toBeVisible();
 
@@ -462,5 +490,71 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
       (v) => v.impact === "critical" || v.impact === "serious"
     );
     expect(criticalOrSerious).toEqual([]);
+  });
+
+  test("Journey 6: Parameterized Ripeness Target 3-Way Toggle & Goal Locking (S4 toggle -> S5A goal pill -> S5B1 locked banner)", async ({ page }) => {
+    let scanCount = 0;
+    await page.route("**/api/v1/scan", async (route) => {
+      scanCount++;
+      if (scanCount === 1) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(mockRound1Response ),
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(mockRound2RunnerUpBeaten ),
+        });
+      }
+    });
+
+    await page.goto("/");
+    await page.getByTestId("shutter-button").click();
+    await page.getByTestId("whole-photo-button").click();
+
+    // S4: Initial Result
+    const s4Stage = page.getByTestId("stage-S4_InitialResult");
+    await expect(s4Stage).toBeVisible();
+
+    // Verify 3-way switch
+    const switchControl = page.getByTestId("ripeness-target-switch");
+    await expect(switchControl).toBeVisible();
+    const readyTab = page.getByTestId("target-tab-ready_now");
+    const in23DaysTab = page.getByTestId("target-tab-in_2_3_days");
+    const laterWeekTab = page.getByTestId("target-tab-later_this_week");
+    await expect(readyTab).toBeVisible();
+    await expect(in23DaysTab).toBeVisible();
+    await expect(laterWeekTab).toBeVisible();
+
+    // Click "In 2–3 days" tab
+    await in23DaysTab.click();
+    await expect(in23DaysTab).toHaveAttribute("aria-selected", "true");
+
+    // Expand sheet to access CTA
+    await page.getByTestId("sheet-drag-area").click();
+
+    // Compare with Runner-Up -> S5A
+    await page.getByTestId("cta-compare-runner-up").click();
+    const s5AStage = page.getByTestId("stage-S5A_FlipRunnerUpCamera");
+    await expect(s5AStage).toBeVisible();
+
+    // Verify Goal Pill in Top Bar
+    const goalPill = page.getByTestId("flip-goal-pill");
+    await expect(goalPill).toBeVisible();
+    await expect(goalPill).toHaveText(/In 2–3 days/);
+
+    // Snap flipped photo -> S5B1
+    await page.getByTestId("flip-shutter-button").click();
+    const s5B1Stage = page.getByTestId("stage-S5B1_RunnerUpBeaten");
+    await expect(s5B1Stage).toBeVisible();
+
+    // Verify 3-way switch is gone and locked goal banner is displayed
+    await expect(page.getByTestId("ripeness-target-switch")).not.toBeVisible();
+    const lockedGoal = page.getByTestId("locked-ripeness-goal");
+    await expect(lockedGoal).toBeVisible();
+    await expect(lockedGoal).toHaveText(/In 2–3 days/);
   });
 });

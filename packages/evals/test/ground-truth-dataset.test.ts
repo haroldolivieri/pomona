@@ -16,8 +16,8 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     groundTruth: Record<string, any>;
   }> = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf-8"));
 
-  it("verifies all 12 generated ground-truth images exist on disk and are non-empty JPEGs", () => {
-    expect(manifest.length).toBe(12);
+  it("verifies all 15 generated ground-truth images exist on disk and are non-empty JPEGs", () => {
+    expect(manifest.length).toBe(15);
     for (const item of manifest) {
       const fullPath = path.resolve(__dirname, "..", item.imagePath);
       expect(fs.existsSync(fullPath)).toBe(true);
@@ -612,5 +612,147 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     const failSingleRes = verifyPromptfooOutput(JSON.stringify(invalidSingleCandidateOutput), { vars: gt });
     expect(failSingleRes.pass).toBe(false);
     expect(failSingleRes.reason).toContain("Expected at least 2 candidates");
+  });
+
+  it("Scenario 13 (Overlapping Carrot Bags in Crate): passes when model boxes whole bags, rejects when individual loose carrots inside bag are boxed", () => {
+    const gt = manifest.find((m) => m.id === "13-carrot-packs-crate")!.groundTruth;
+
+    const validBagsOutput = {
+      status: "ok",
+      message: null,
+      produce: { type: "carrots", displayName: "British Carrots", variety: null },
+      candidates: [
+        {
+          id: "c1",
+          box: [470, 200, 720, 520], // Foreground British Carrots bag
+          score: 8.5,
+          ripeness: "ripe",
+          traits: ["Bright orange", "Firm roots", "Clear bag"],
+          flipSummary: null,
+        },
+        {
+          id: "c2",
+          box: [220, 180, 480, 500], // Upper bag in crate
+          score: 8.0,
+          ripeness: "almost_ripe",
+          traits: ["Uniform size", "Intact pack"],
+          flipSummary: null,
+        },
+      ],
+      verdict: {
+        winnerId: "c1",
+        runnerUpId: "c2",
+        confidence: "high",
+        headline: "Buy this pack.",
+      },
+      followUp: {
+        targetCandidateId: "c2",
+        targetRole: "runner_up",
+        bannerText: "The other bag scored 8.0. Check back of pack for condensation.",
+        flipHeadline: "Flip the carrot bag over",
+        instruction: "Turn the bag over to inspect roots on the bottom.",
+      },
+      afterPurchase: {
+        readyInDays: { min: 0, max: 0 },
+        eatWithinDays: { min: 7, max: 14 },
+        eatWithinLabel: "1–2 weeks",
+        storage: {
+          beforeCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · crisper", tip: "Keep in perforated bag" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · water", tip: "Submerge in fresh cold water" },
+        },
+      },
+    };
+
+    expect(verifyPromptfooOutput(JSON.stringify(validBagsOutput), { vars: gt }).pass).toBe(true);
+  });
+
+  it("Scenario 14 (Bagged Potatoes Crate): passes when whole potato bags are selected", () => {
+    const gt = manifest.find((m) => m.id === "14-potato-packs-crate")!.groundTruth;
+
+    const validPotatoOutput = {
+      status: "ok",
+      message: null,
+      produce: { type: "potatoes", displayName: "Baking Potatoes", variety: null },
+      candidates: [
+        {
+          id: "c1",
+          box: [420, 160, 880, 840], // Foreground large 4 Baking Potatoes bag
+          score: 8.7,
+          ripeness: "ripe",
+          traits: ["Firm spuds", "No sprouting", "Clean bag"],
+          flipSummary: null,
+        },
+        {
+          id: "c2",
+          box: [160, 500, 410, 860], // Upper bag
+          score: 8.1,
+          ripeness: "almost_ripe",
+          traits: ["Good size"],
+          flipSummary: null,
+        },
+      ],
+      verdict: {
+        winnerId: "c1",
+        runnerUpId: "c2",
+        confidence: "high",
+        headline: "Buy this pack.",
+      },
+      followUp: {
+        targetCandidateId: "c2",
+        targetRole: "runner_up",
+        bannerText: "Other bag scored 8.1. Check for green skin or soft eyes.",
+        flipHeadline: "Turn the potato pack over",
+        instruction: "Inspect bottom potatoes for softness.",
+      },
+      afterPurchase: {
+        readyInDays: { min: 0, max: 0 },
+        eatWithinDays: { min: 14, max: 21 },
+        eatWithinLabel: "2–3 weeks",
+        storage: {
+          beforeCut: { where: "cool_dark", whereLabel: "Pantry", summary: "Dark · cool place", tip: "Keep away from onions" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · submerged", tip: "Keep cut potatoes in cold water" },
+        },
+      },
+    };
+
+    expect(verifyPromptfooOutput(JSON.stringify(validPotatoOutput), { vars: gt }).pass).toBe(true);
+  });
+
+  it("Scenario 15 (Bagged Bananas Crate): selects whole bunch/pack unit, not individual banana", () => {
+    const gt = manifest.find((m) => m.id === "15-banana-pack-bagged")!.groundTruth;
+
+    const validBananaOutput = {
+      status: "ok",
+      message: null,
+      produce: { type: "banana", displayName: "Banana", variety: "Cavendish" },
+      candidates: [
+        {
+          id: "c1",
+          box: [180, 180, 520, 720], // Whole bunch / cluster in foreground
+          score: 8.6,
+          ripeness: "ripe",
+          traits: ["Golden yellow", "Green stems", "No bruising"],
+          flipSummary: null,
+        },
+      ],
+      verdict: {
+        winnerId: "c1",
+        runnerUpId: null,
+        confidence: "high",
+        headline: "Buy this bunch.",
+      },
+      followUp: null,
+      afterPurchase: {
+        readyInDays: { min: 0, max: 0 },
+        eatWithinDays: { min: 3, max: 5 },
+        eatWithinLabel: "3–5 days",
+        storage: {
+          beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · hang", tip: "Keep at room temp away from apples" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · container", tip: "Store sliced banana with lemon juice" },
+        },
+      },
+    };
+
+    expect(verifyPromptfooOutput(JSON.stringify(validBananaOutput), { vars: gt }).pass).toBe(true);
   });
 });

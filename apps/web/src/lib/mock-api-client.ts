@@ -2,11 +2,31 @@ import type { ScanRequest, ScanResponse } from "@pomona/contract";
 import type { PomonaApiClient, QuotaInfo } from "./api-client";
 
 export function createMockApiClient(): PomonaApiClient {
+  let mockRemainingScans = 10;
+
   return {
     async getQuota(): Promise<QuotaInfo> {
       return {
-        remainingDeviceScans: 10,
+        remainingDeviceScans: mockRemainingScans,
         budgetOpen: true,
+      };
+    },
+
+    async overrideQuota(
+      params: { remainingScans?: number; deviceDailyLimit?: number; reset?: boolean } | number
+    ) {
+      if (typeof params === "number") {
+        mockRemainingScans = Math.max(0, params);
+      } else if (params.reset) {
+        mockRemainingScans = 10;
+      } else if (typeof params.remainingScans === "number") {
+        mockRemainingScans = Math.max(0, params.remainingScans);
+      }
+      return {
+        success: true,
+        deviceId: "mock-device-id",
+        deviceLimit: 10,
+        remainingDeviceScans: mockRemainingScans,
       };
     },
 
@@ -27,7 +47,7 @@ export function createMockApiClient(): PomonaApiClient {
 
       if (forcedError === "unclear_photo") {
         return {
-          remainingScans: 9,
+          remainingScans: mockRemainingScans, // Errors do not burn daily quota
           response: {
             schemaVersion: "1.0",
             promptVersion: "v1",
@@ -46,7 +66,7 @@ export function createMockApiClient(): PomonaApiClient {
 
       if (forcedError === "no_produce") {
         return {
-          remainingScans: 9,
+          remainingScans: mockRemainingScans, // Errors do not burn daily quota
           response: {
             schemaVersion: "1.0",
             promptVersion: "v1",
@@ -63,11 +83,14 @@ export function createMockApiClient(): PomonaApiClient {
         };
       }
 
+      // Successful scans decrement daily scan quota
+      mockRemainingScans = Math.max(0, mockRemainingScans - 1);
+
       if (request.round === 1) {
         // Round 1 mock: Watermelon pile with 2 candidates (winner & runner-up)
         // If focusPolygon was drawn, candidates fit inside it or central crop
         return {
-          remainingScans: 9,
+          remainingScans: mockRemainingScans,
           response: {
             schemaVersion: "1.0",
             promptVersion: "v1",
@@ -95,6 +118,22 @@ export function createMockApiClient(): PomonaApiClient {
                 score: 8.1,
                 ripeness: "almost_ripe",
                 traits: ["Slightly glossy rind", "Small field spot"],
+                flipSummary: null,
+              },
+              {
+                id: "c3",
+                box: [180, 420, 440, 720],
+                score: 7.2,
+                ripeness: "underripe",
+                traits: ["Bright glossy green", "Small white spot"],
+                flipSummary: null,
+              },
+              {
+                id: "c4",
+                box: [620, 310, 880, 610],
+                score: 6.8,
+                ripeness: "underripe",
+                traits: ["Firm striped rind", "Chalky white spot"],
                 flipSummary: null,
               },
             ],
@@ -137,7 +176,7 @@ export function createMockApiClient(): PomonaApiClient {
       if (request.round === 2) {
         // Round 2 mock: Runner-Up took the lead (9.0 beats 8.6)
         return {
-          remainingScans: 8,
+          remainingScans: mockRemainingScans,
           response: {
             schemaVersion: "1.0",
             promptVersion: "v1",
@@ -169,8 +208,8 @@ export function createMockApiClient(): PomonaApiClient {
             followUp: {
               targetCandidateId: "c1",
               targetRole: "first_pick",
-              bannerText: "1st Pick (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
-              flipHeadline: "Flip your 1st pick over",
+              bannerText: "1st Winner (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
+              flipHeadline: "Flip your 1st winner over",
               instruction: "Turn the yellow-marked Watermelon to show its underside.",
             },
             afterPurchase: {
@@ -196,9 +235,9 @@ export function createMockApiClient(): PomonaApiClient {
         };
       }
 
-      // Round 3 mock: 1st Pick reclaims the win (9.3 beats 9.0)
+      // Round 3 mock: 1st Winner reclaims the win (9.3 beats 9.0)
       return {
-        remainingScans: 7,
+        remainingScans: mockRemainingScans,
         response: {
           schemaVersion: "1.0",
           promptVersion: "v1",
@@ -225,7 +264,7 @@ export function createMockApiClient(): PomonaApiClient {
             winnerId: "c1",
             runnerUpId: "c2",
             confidence: "high",
-            headline: "Buy your 1st pick.",
+            headline: "Buy your 1st winner.",
           },
           followUp: null,
           afterPurchase: {

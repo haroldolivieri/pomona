@@ -91,13 +91,24 @@ describe("ResultStage (Mockup Parity)", () => {
     // Runner-Up badge / tag
     expect(screen.getByTestId("runner-up-tag")).toHaveTextContent("Runner-Up");
 
-    // Eyebrow & Headline & Subhead
-    expect(screen.getByText(/BEST IN VIEW/i)).toBeInTheDocument();
-    expect(screen.getByText("Buy it.")).toBeInTheDocument();
+    // In min-height collapsed mode, only the target switch tab bar is shown; expand sheet to see details
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
+
+    // Headline & Subhead (eyebrow removed in S4 to reduce clutter)
+    expect(screen.queryByText(/BEST IN VIEW/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Best available.")).toBeInTheDocument();
     expect(screen.getByText(/High confidence · 3 compared in view/i)).toBeInTheDocument();
 
-    // Score meter
-    expect(screen.getByText("8.6 / 10")).toBeInTheDocument();
+    // Score meter (round score meter visible in expanded sheet)
+    expect(screen.getByTestId("circular-score-meter")).toBeInTheDocument();
+    expect(screen.getByTestId("circular-score-meter")).toHaveTextContent("8.6");
+
+    // Divider 1
+    expect(screen.getByTestId("sheet-divider-top")).toBeInTheDocument();
+
+    // Dividers 2 & 3
+    expect(screen.getByTestId("sheet-divider-middle")).toBeInTheDocument();
+    expect(screen.getByTestId("sheet-divider-bottom")).toBeInTheDocument();
 
     // Storage 2-row
     expect(screen.getByText(/🗓 Eat within/i)).toBeInTheDocument();
@@ -107,8 +118,9 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(screen.getByText(/❄️ After cut/i)).toBeInTheDocument();
     expect(screen.getByText("Fridge · wrapped")).toBeInTheDocument();
 
-    // Hint box directly above CTA
+    // Hint box directly above CTA with flip icon
     expect(screen.getByTestId("follow-up-hint")).toHaveTextContent("The blue one could be sweeter. Flip it and snap.");
+    expect(screen.getByTestId("flip-hint-icon")).toBeInTheDocument();
     expect(screen.getByTestId("cta-compare-runner-up")).toBeInTheDocument();
   });
 
@@ -134,14 +146,16 @@ describe("ResultStage (Mockup Parity)", () => {
 
     render(<ResultStage state={state} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} />);
 
-    // Eyebrow & headline
-    expect(screen.getByText(/✓ 1ST PICK WINS · BEATS RUNNER-UP \(8\.6 VS 7\.2\)/i)).toBeInTheDocument();
-    expect(screen.getByText("Buy your 1st pick.")).toBeInTheDocument();
+    // Expand bottom sheet to see headline and details
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
 
-    // Tick marker on meter for previous/other candidate score (7.2 -> 72%)
+    // Eyebrow & headline
+    expect(screen.getByText(/✓ 1ST WINNER WINS · BEATS RUNNER-UP \(8\.6 VS 7\.2\)/i)).toBeInTheDocument();
+    expect(screen.getByText("Best available.")).toBeInTheDocument();
+
+    // Tick marker on circular score meter for previous/other candidate score (7.2)
     const tick = screen.getByTestId("score-prev-mark");
     expect(tick).toBeInTheDocument();
-    expect(tick).toHaveStyle({ left: "72%" });
 
     // Confirmation card
     const confirmCard = screen.getByTestId("confirmation-card");
@@ -169,29 +183,32 @@ describe("ResultStage (Mockup Parity)", () => {
         followUp: {
           targetCandidateId: "c1",
           targetRole: "first_pick" as const,
-          bannerText: "1st Pick (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
-          flipHeadline: "Flip your 1st pick over",
-          instruction: "Turn over 1st pick",
+          bannerText: "1st Winner (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
+          flipHeadline: "Flip your 1st winner over",
+          instruction: "Turn over 1st winner",
         },
       },
     };
 
     render(<ResultStage state={state} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} />);
 
-    expect(screen.getByText(/★ NEW WINNER · BEATS 1ST PICK \(9\.0 VS 8\.6\)/i)).toBeInTheDocument();
-    expect(screen.getByText("Buy this one.")).toBeInTheDocument();
+    // Expand bottom sheet to see headline and details
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
+
+    expect(screen.getByText(/★ NEW WINNER · BEATS 1ST WINNER \(9\.0 VS 8\.6\)/i)).toBeInTheDocument();
+    expect(screen.getByText("Buy this Runner-Up.")).toBeInTheDocument();
 
     // Winner badge is 9.0
     expect(screen.getByTestId("winner-score-badge")).toHaveTextContent("9.0");
-    // Runner-up box tag is 1st Pick · 8.6
-    expect(screen.getByTestId("runner-up-tag")).toHaveTextContent("1st Pick · 8.6");
+    // Runner-up box tag is 1st Winner · 8.6
+    expect(screen.getByTestId("runner-up-tag")).toHaveTextContent("1st Winner · 8.6");
 
-    // Tick marker on meter at 86%
+    // Tick marker on circular meter
     const tick = screen.getByTestId("score-prev-mark");
-    expect(tick).toHaveStyle({ left: "86%" });
+    expect(tick).toBeInTheDocument();
 
     // Hint and CTA
-    expect(screen.getByTestId("follow-up-hint")).toHaveTextContent(/1st Pick \(8\.6\) was only graded from the top/i);
+    expect(screen.getByTestId("follow-up-hint")).toHaveTextContent(/1st Winner \(8\.6\) was only graded from the top/i);
     expect(screen.getByTestId("cta-final-check-first-pick")).toBeInTheDocument();
   });
 
@@ -224,10 +241,12 @@ describe("ResultStage (Mockup Parity)", () => {
     };
 
     const { rerender } = render(<ResultStage state={stateS7A} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} />);
-    expect(screen.getByText(/★ FINAL VERDICT · 1ST PICK RECLAIMS THE WIN \(9\.3 VS 9\.0\)/i)).toBeInTheDocument();
-    expect(screen.getByText("Buy your 1st pick.")).toBeInTheDocument();
+    // Expand bottom sheet
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
+    expect(screen.getByText(/★ FINAL VERDICT · 1ST WINNER RECLAIMS THE WIN \(9\.3 VS 9\.0\)/i)).toBeInTheDocument();
+    expect(screen.getByText("Best available.")).toBeInTheDocument();
     expect(screen.getByTestId("winner-score-badge")).toHaveTextContent("9.3");
-    expect(screen.getByTestId("score-prev-mark")).toHaveStyle({ left: "90%" });
+    expect(screen.getByTestId("score-prev-mark")).toBeInTheDocument();
 
     // S7B
     const stateS7B = {
@@ -258,10 +277,10 @@ describe("ResultStage (Mockup Parity)", () => {
 
     rerender(<ResultStage state={stateS7B} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} />);
     expect(screen.getByText(/★ FINAL VERDICT · RUNNER-UP WINS \(9\.0 VS 8\.4\)/i)).toBeInTheDocument();
-    expect(screen.getByText("Buy the new winner.")).toBeInTheDocument();
+    expect(screen.getByText("Buy the Runner-Up.")).toBeInTheDocument();
     expect(screen.getByTestId("winner-score-badge")).toHaveTextContent("9.0");
-    expect(screen.getByTestId("runner-up-tag")).toHaveTextContent("1st Pick · 8.4");
-    expect(screen.getByTestId("score-prev-mark")).toHaveStyle({ left: "84%" });
+    expect(screen.getByTestId("runner-up-tag")).toHaveTextContent("1st Winner · 8.4");
+    expect(screen.getByTestId("score-prev-mark")).toBeInTheDocument();
   });
 
   it("allows dragging anywhere on the bottom sheet and translates the sheet + parallax photo without shrinking the photo height", () => {
@@ -286,23 +305,135 @@ describe("ResultStage (Mockup Parity)", () => {
     const sheet = screen.getByTestId("result-bottom-sheet");
     const photoViewport = screen.getByTestId("result-photo-viewport");
 
-    // Initial state: photo height is fixed 46dvh, transform is 0px
-    expect(photoViewport.style.height).toBe("46dvh");
+    // Initial state: photo viewport is full-bleed 100%, sheet transform is 0px
+    expect(photoViewport.style.height).toBe("100%");
     expect(sheet.style.transform).toBe("translate3d(0, 0px, 0)");
 
-    // Drag up from the middle of the sheet (e.g. on headline text)
-    const headlineEl = screen.getByText("Buy it.");
-    fireEvent.touchStart(headlineEl, { touches: [{ clientY: 500 }] });
-    fireEvent.touchMove(headlineEl, { touches: [{ clientY: 420 }] }); // -80px drag up
+    // Drag up from the grab handle / drag area
+    const dragArea = screen.getByTestId("sheet-drag-area");
+    fireEvent.touchStart(dragArea, { touches: [{ clientY: 500 }] });
+    fireEvent.touchMove(dragArea, { touches: [{ clientY: 420 }] }); // -80px drag up
 
-    // Live drag moves sheet up by 80px and photo viewport by parallax (-80 * 0.22 = -17.6px)
+    // Live drag moves sheet up by 80px
     expect(sheet.style.transform).toBe("translate3d(0, -80px, 0)");
-    expect(photoViewport.style.height).toBe("46dvh");
+    expect(photoViewport.style.height).toBe("100%");
 
-    // Release snap expands sheet (-110px) and keeps photo height unchanged at 46dvh
-    fireEvent.touchEnd(headlineEl);
-    expect(sheet.style.transform).toBe("translate3d(0, -110px, 0)");
-    expect(photoViewport.style.height).toBe("46dvh");
-    expect(photoViewport.style.transform).toBe("translate3d(0, -24.2px, 0)");
+    // Release snap expands sheet to 'expanded' static state (transform resets to 0, height is auto, maxHeight 86dvh)
+    fireEvent.touchEnd(dragArea);
+    expect(sheet.style.transform).toBe("translate3d(0, 0px, 0)");
+    expect(sheet.style.maxHeight).toBe("86dvh");
+    expect(screen.getByTestId("sheet-expanded-content")).toBeInTheDocument();
+    expect(photoViewport.style.height).toBe("100%");
+  });
+
+  it("renders 3-way ripeness switch in S4_InitialResult and triggers onSetTargetRipeness", () => {
+    const onSetTargetRipeness = vi.fn();
+    const state = {
+      ...initialScanMachineState(),
+      phase: "S4_InitialResult" as const,
+      firstPick: sampleFirstPick,
+      runnerUp: sampleRunnerUp,
+      lastResponse: baseResponse,
+      targetRipeness: "ready_now" as const,
+    };
+
+    render(
+      <ResultStage
+        state={state}
+        onCompareWithRunnerUp={vi.fn()}
+        onStartFinalCheck={vi.fn()}
+        onReset={vi.fn()}
+        onSetTargetRipeness={onSetTargetRipeness}
+      />
+    );
+
+    const switchWrap = screen.getByTestId("ripeness-target-switch");
+    expect(switchWrap).toBeInTheDocument();
+
+    const readyNowTab = screen.getByTestId("target-tab-ready_now");
+    const in23DaysTab = screen.getByTestId("target-tab-in_2_3_days");
+    const laterWeekTab = screen.getByTestId("target-tab-later_this_week");
+
+    expect(readyNowTab).toBeInTheDocument();
+    expect(in23DaysTab).toBeInTheDocument();
+    expect(laterWeekTab).toBeInTheDocument();
+
+    fireEvent.click(in23DaysTab);
+    expect(onSetTargetRipeness).toHaveBeenCalledWith("in_2_3_days");
+  });
+
+  it("renders locked ripeness goal banner in S5B1 and S5B2 instead of interactive switch", () => {
+    const stateS5B1 = {
+      ...initialScanMachineState(),
+      phase: "S5B1_RunnerUpBeaten" as const,
+      firstPick: sampleFirstPick,
+      runnerUp: sampleRunnerUp,
+      lastResponse: {
+        ...baseResponse,
+        round: 2 as const,
+      },
+      targetRipeness: "in_2_3_days" as const,
+    };
+
+    render(
+      <ResultStage
+        state={stateS5B1}
+        onCompareWithRunnerUp={vi.fn()}
+        onStartFinalCheck={vi.fn()}
+        onReset={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByTestId("ripeness-target-switch")).not.toBeInTheDocument();
+    const lockedGoal = screen.getByTestId("locked-ripeness-goal");
+    expect(lockedGoal).toBeInTheDocument();
+    expect(lockedGoal).toHaveTextContent("In 2–3 days");
+  });
+
+  it("auto-scrolls photo so winner is centered in visible photo area above bottom sheet", () => {
+    // Winner located in bottom quadrant [700, 200, 900, 500] (center Y = 800)
+    const bottomWinner = {
+      ...sampleFirstPick,
+      id: "c_bottom",
+      box: [700, 200, 900, 500] as [number, number, number, number],
+    };
+
+    const state = {
+      ...initialScanMachineState(),
+      phase: "S4_InitialResult" as const,
+      firstPick: bottomWinner,
+      runnerUp: sampleRunnerUp,
+      lastResponse: {
+        ...baseResponse,
+        candidates: [bottomWinner, sampleRunnerUp],
+      },
+      round1PhotoDataUrl: "data:image/jpeg;base64,mock",
+    };
+
+    render(
+      <ResultStage
+        state={state}
+        onCompareWithRunnerUp={vi.fn()}
+        onStartFinalCheck={vi.fn()}
+        onReset={vi.fn()}
+      />
+    );
+
+    const photoViewport = screen.getByTestId("result-photo-viewport");
+    // Mock viewport dimensions (e.g. 400x800)
+    Object.defineProperty(photoViewport, "clientWidth", { value: 400, configurable: true });
+    Object.defineProperty(photoViewport, "clientHeight", { value: 800, configurable: true });
+
+    const img = photoViewport.querySelector("img");
+    expect(img).toBeInTheDocument();
+    if (img) {
+      Object.defineProperty(img, "naturalWidth", { value: 1000, configurable: true });
+      Object.defineProperty(img, "naturalHeight", { value: 1000, configurable: true });
+      fireEvent.load(img);
+    }
+
+    // After image load and coverRect computation, auto-centering runs and applies translation
+    // Since winner is low in frame (Y=800), desiredPanY is negative to pull image up into view
+    expect(photoViewport.style.transform).not.toBe("translate3d(0, 0px, 0)");
   });
 });

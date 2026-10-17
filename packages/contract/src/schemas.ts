@@ -68,6 +68,13 @@ export const AfterPurchaseSchema = z.object({
   }),
 });
 
+export const TargetRipenessWindowSchema = z.enum([
+  "ready_now",
+  "in_2_3_days",
+  "later_this_week",
+]);
+export type TargetRipenessWindow = z.infer<typeof TargetRipenessWindowSchema>;
+
 export const ScanRequestSchema = z.object({
   schemaVersion: z.literal("1.0"),
   sessionId: z.string().uuid(),
@@ -85,6 +92,7 @@ export const ScanRequestSchema = z.object({
       requestedInstruction: z.string(),
       previousWinner: CandidateMemorySchema,
       previousRunnerUp: CandidateMemorySchema,
+      targetRipeness: TargetRipenessWindowSchema.optional(),
     })
     .nullable(), // non-null on rounds 2 and 3
 });

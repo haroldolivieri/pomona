@@ -1,9 +1,11 @@
-import type {
-  ScanResponse,
-  Candidate,
-  Point,
-  ScanRequest,
-  ScanStatus,
+import {
+  type ScanResponse,
+  type Candidate,
+  type Point,
+  type ScanRequest,
+  type ScanStatus,
+  type TargetRipenessWindow,
+  resolveCandidatesForTarget,
 } from "@pomona/contract";
 import { remapBoxFromCropToFrame, type CropRect } from "../lib/image-pipeline";
 
@@ -39,6 +41,7 @@ export interface ScanMachineState {
   firstPick: PreservedCandidate | null;
   runnerUp: PreservedCandidate | null;
   allCandidatesRound1: Candidate[];
+  targetRipeness: TargetRipenessWindow;
 }
 
 export type ScanMachineAction =
@@ -52,6 +55,7 @@ export type ScanMachineAction =
   | { type: "SCAN_FAILED"; error: string }
   | { type: "DISMISS_ERROR" }
   | { type: "DRAW_FOCUS_AFTER_ERROR" }
+  | { type: "SET_TARGET_RIPENESS"; targetRipeness: TargetRipenessWindow }
   | { type: "COMPARE_WITH_RUNNER_UP" }
   | { type: "FOLLOW_UP_CAPTURED"; photoDataUrl: string }
   | { type: "START_FINAL_CHECK_ON_FIRST_PICK" }
@@ -71,6 +75,7 @@ export function initialScanMachineState(): ScanMachineState {
     firstPick: null,
     runnerUp: null,
     allCandidatesRound1: [],
+    targetRipeness: "ready_now",
   };
 }
 
@@ -108,6 +113,7 @@ export function buildFollowUpRequestContext(
       traits: state.runnerUp.traits,
       anglesInspected: state.runnerUp.anglesInspected,
     },
+    targetRipeness: state.targetRipeness,
   };
 }
 
@@ -310,6 +316,77 @@ export function scanMachineReducer(
       }
 
       return state;
+    }
+
+    case "SET_TARGET_RIPENESS": {
+      if (state.phase !== "S4_InitialResult" || !state.lastResponse) {
+        return state;
+      }
+
+      const resolution = resolveCandidatesForTarget(
+        state.allCandidatesRound1,
+        action.targetRipeness
+      );
+
+      const winnerCandidate = resolution.winner;
+      const runnerCandidate = resolution.runnerUp;
+
+      const firstPick: PreservedCandidate | null = winnerCandidate
+        ? {
+            ...winnerCandidate,
+            initialScore: winnerCandidate.score,
+            anglesInspected: 1,
+            role: "first_pick",
+          }
+        : null;
+
+      const runnerUp: PreservedCandidate | null = runnerCandidate
+        ? {
+            ...runnerCandidate,
+            initialScore: runnerCandidate.score,
+            anglesInspected: 1,
+            role: "runner_up",
+          }
+        : null;
+
+      const updatedVerdict = state.lastResponse?.verdict
+        ? {
+            ...state.lastResponse.verdict,
+            winnerId: winnerCandidate?.id ?? state.lastResponse.verdict.winnerId,
+            runnerUpId: runnerCandidate?.id ?? null,
+            headline: resolution.headline === "Buy it." ? "Best available." : resolution.headline,
+          }
+        : null;
+
+      const updatedFollowUp = state.lastResponse?.followUp && runnerCandidate
+        ? {
+            ...state.lastResponse.followUp,
+            targetCandidateId: runnerCandidate.id,
+            targetRole: "runner_up" as const,
+            bannerText: resolution.followUpHintOverride || state.lastResponse.followUp.bannerText,
+          }
+        : state.lastResponse?.followUp ?? null;
+
+      // Update candidates list with target-specific contextual scores so all candidates reflect the target ripeness window
+      const updatedCandidates = state.lastResponse?.candidates.map((c) => {
+        const matchingRanked = resolution.rankedCandidates.find((rc) => rc.id === c.id);
+        return matchingRanked ? { ...c, score: matchingRanked.score } : c;
+      }) ?? state.lastResponse?.candidates ?? [];
+
+      return {
+        ...state,
+        targetRipeness: action.targetRipeness,
+        firstPick,
+        runnerUp,
+        lastResponse: state.lastResponse
+          ? {
+              ...state.lastResponse,
+              candidates: updatedCandidates,
+              verdict: updatedVerdict,
+              followUp: updatedFollowUp,
+            }
+          : null,
+      };
     }
 
     case "COMPARE_WITH_RUNNER_UP": {

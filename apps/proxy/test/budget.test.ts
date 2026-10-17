@@ -119,4 +119,25 @@ describe("HMAC device token & $10/month budget circuit breaker", () => {
     expect(res.remainingDeviceScans).toBe(9);
     expect(res.monthlySpendMicroCents).toBe(spend);
   });
+
+  it("createKvQuotaStore properly preserves customLimit = 0 without evaluating to null", async () => {
+    const memoryKv = new Map<string, string>();
+    const kv = {
+      async get(key: string) { return memoryKv.get(key) ?? null; },
+      async put(key: string, value: string) { memoryKv.set(key, value); },
+      async delete(key: string) { memoryKv.delete(key); },
+    };
+
+    const store = (await import("../src/quota/budget")).createKvQuotaStore(kv as any);
+    await store.setDeviceDailyLimit("dev-zero", 0);
+    const limit = await store.getDeviceDailyLimit("dev-zero");
+    expect(limit).toBe(0);
+
+    const check = await checkQuotaAndSelectModel(store, {
+      deviceId: "dev-zero",
+      ip: "1.1.1.1",
+    });
+    expect(check.allowed).toBe(false);
+    expect(check.remainingDeviceScans).toBe(0);
+  });
 });

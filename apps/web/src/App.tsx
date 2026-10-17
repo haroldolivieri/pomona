@@ -1,5 +1,5 @@
 import React, { useReducer, useState, useEffect } from "react";
-import type { ScanRequest, Point } from "@pomona/contract";
+import type { ScanRequest, Point, ScanResponse } from "@pomona/contract";
 import type { PomonaApiClient } from "./lib/api-client";
 import type { TelemetryProvider } from "./lib/telemetry";
 import {
@@ -37,6 +37,7 @@ export interface PomonaAppProps {
   telemetry: TelemetryProvider;
   initialState?: Partial<ScanMachineState>;
   enableDebugOverride?: boolean;
+  initialRemainingScans?: number;
 }
 
 export const PomonaApp: React.FC<PomonaAppProps> = ({
@@ -44,6 +45,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
   telemetry,
   initialState,
   enableDebugOverride,
+  initialRemainingScans,
 }) => {
   const [state, dispatch] = useReducer(scanMachineReducer, {
     ...initialScanMachineState(),
@@ -70,6 +72,82 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
 
   const [mockApiClient] = useState<PomonaApiClient>(() => createMockApiClient());
   const activeApiClient = isDevMode && isMockMode ? mockApiClient : realApiClient;
+
+  const [remainingScans, setRemainingScans] = useState<number>(initialRemainingScans ?? 10);
+
+  useEffect(() => {
+    // Check if URL has ?scans=N to override backend limit for this device
+    if (typeof window !== "undefined" && typeof window.location !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const scansParam = params.get("scans");
+      if (scansParam !== null) {
+        const parsed = parseInt(scansParam, 10);
+        if (!isNaN(parsed) && parsed >= 0) {
+          activeApiClient
+            .overrideQuota({ remainingScans: parsed })
+            .then((res) => {
+              if (typeof res?.remainingDeviceScans === "number") {
+                setRemainingScans(res.remainingDeviceScans);
+              }
+            })
+            .catch((err) => console.warn("[quota] Failed to override backend quota:", err));
+          return;
+        }
+      }
+    }
+
+    // Authoritative backend quota for this device
+    activeApiClient
+      .getQuota()
+      .then((info) => {
+        if (typeof info?.remainingDeviceScans === "number") {
+          setRemainingScans(info.remainingDeviceScans);
+        }
+      })
+      .catch((err) => console.warn("[quota] Failed to fetch quota from backend:", err));
+  }, [activeApiClient]);
+
+  const handleQuotaPrompt = () => {
+    if (typeof window === "undefined" || typeof window.prompt !== "function") return;
+    const current = remainingScans;
+    const val = window.prompt(
+      "Set backend scan quota for this device (currently " + current + "):",
+      String(current)
+    );
+    if (val !== null) {
+      const parsed = parseInt(val.trim(), 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        activeApiClient
+          .overrideQuota({ remainingScans: parsed })
+          .then((res) => {
+            if (typeof res?.remainingDeviceScans === "number") {
+              setRemainingScans(res.remainingDeviceScans);
+            }
+          })
+          .catch((err) => {
+            console.error("[quota] Failed to override quota on backend:", err);
+            if (typeof window.alert === "function") {
+              window.alert("Could not update backend quota: " + err.message);
+            }
+          });
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).__setRemainingScans = (count: number) => {
+        activeApiClient
+          .overrideQuota({ remainingScans: count })
+          .then((res) => {
+            if (typeof res?.remainingDeviceScans === "number") {
+              setRemainingScans(res.remainingDeviceScans);
+            }
+          })
+          .catch(console.error);
+      };
+    }
+  }, [activeApiClient]);
 
   // Shake detection listener: only mounted in development / debug mode
   useEffect(() => {
@@ -196,6 +274,11 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
           ? (result as any).response
           : (result as unknown as ScanResponse);
 
+      // Update authoritative remaining scans returned by backend
+      if (typeof result?.remainingScans === "number") {
+        setRemainingScans(result.remainingScans);
+      }
+
       telemetry.capture("scan_completed", { round, status: scanResponse.status });
       dispatch({ type: "SCAN_SUCCEEDED", response: scanResponse });
     } catch (err: any) {
@@ -239,6 +322,8 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
         return (
           <CameraViewfinder
             onCapture={handleFrameCaptured}
+            remainingScans={remainingScans}
+            onQuotaClick={handleQuotaPrompt}
             onToggleTheme={toggleTheme}
             theme={theme}
           />
@@ -251,6 +336,8 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             onAnalyse={handleStartAnalyse}
             onRetake={handleReset}
             errorMessage={state.errorMessage}
+            remainingScans={remainingScans}
+            onQuotaClick={handleQuotaPrompt}
           />
         );
 
@@ -261,6 +348,8 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             focusPolygon={state.focusPolygon}
             cropRect={state.cropRect}
             onCancel={handleReset}
+            remainingScans={remainingScans}
+            onQuotaClick={handleQuotaPrompt}
           />
         );
 
@@ -272,7 +361,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             photoDataUrl={state.currentPhotoDataUrl || state.round1PhotoDataUrl}
             onRetake={() => dispatch({ type: "DISMISS_ERROR" })}
             onDrawFocus={
-              state.status === "multiple_types"
+              state.status === "multiple_types" || state.status === "unclear_photo"
                 ? () => dispatch({ type: "DRAW_FOCUS_AFTER_ERROR" })
                 : undefined
             }
@@ -290,6 +379,10 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             onCompareWithRunnerUp={handleCompareWithRunnerUp}
             onStartFinalCheck={handleStartFinalCheck}
             onReset={handleReset}
+            onSetTargetRipeness={(targetRipeness) => {
+              telemetry.capture("target_ripeness_selected", { targetRipeness });
+              dispatch({ type: "SET_TARGET_RIPENESS", targetRipeness });
+            }}
           />
         );
 
@@ -335,37 +428,67 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
 
       {/* Discrete tap target below top bar on left (DEV ONLY) */}
       {isDevMode && (
-        <button
-          type="button"
-          onClick={() => {
-            setIsMockMode((prev) => {
-              const next = !prev;
-              try {
-                localStorage.setItem("pomona-mock-mode", String(next));
-              } catch {}
-              return next;
-            });
-          }}
-          aria-label="Toggle Mock Mode"
+        <div
           style={{
             position: "fixed",
             top: "calc(max(16px, env(safe-area-inset-top)) + 50px)",
             left: "16px",
             zIndex: 80,
-            background: isMockMode ? "rgba(245, 213, 71, 0.2)" : "rgba(0,0,0,0.35)",
-            border: isMockMode ? "1px solid #F5D547" : "1px solid rgba(255,255,255,0.3)",
-            color: isMockMode ? "#F5D547" : "rgba(255,255,255,0.8)",
-            padding: "4px 9px",
-            borderRadius: "12px",
-            fontSize: "10.5px",
-            fontWeight: 600,
-            cursor: "pointer",
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
+            display: "flex",
+            gap: "6px",
+            alignItems: "center",
           }}
         >
-          {isMockMode ? "🧪 MOCK" : "🌐 LIVE"}
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsMockMode((prev) => {
+                const next = !prev;
+                try {
+                  localStorage.setItem("pomona-mock-mode", String(next));
+                } catch {}
+                return next;
+              });
+            }}
+            aria-label="Toggle Mock Mode"
+            style={{
+              background: isMockMode ? "rgba(245, 213, 71, 0.2)" : "rgba(0,0,0,0.35)",
+              border: isMockMode ? "1px solid #F5D547" : "1px solid rgba(255,255,255,0.3)",
+              color: isMockMode ? "#F5D547" : "rgba(255,255,255,0.8)",
+              padding: "4px 9px",
+              borderRadius: "12px",
+              fontSize: "10.5px",
+              fontWeight: 600,
+              cursor: "pointer",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+            }}
+          >
+            {isMockMode ? "🧪 MOCK" : "🌐 LIVE"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleQuotaPrompt}
+            aria-label="Set remaining scans"
+            data-testid="dev-set-scans-button"
+            title="Click to override scan quota"
+            style={{
+              background: "rgba(0,0,0,0.35)",
+              border: "1px solid rgba(255,255,255,0.3)",
+              color: "#F5D547",
+              padding: "4px 9px",
+              borderRadius: "12px",
+              fontSize: "10.5px",
+              fontWeight: 600,
+              cursor: "pointer",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+            }}
+          >
+            ⚡ {remainingScans} scans
+          </button>
+        </div>
       )}
     </div>
   );

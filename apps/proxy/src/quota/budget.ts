@@ -12,11 +12,14 @@ export interface KVNamespaceLike {
 export interface QuotaStore {
   getDailyDeviceCount(deviceId: string, dateStr: string): Promise<number>;
   incrementDailyDeviceCount(deviceId: string, dateStr: string): Promise<number>;
+  setDailyDeviceCount(deviceId: string, dateStr: string, count: number): Promise<void>;
   getDailyIpCount(ip: string, dateStr: string): Promise<number>;
   incrementDailyIpCount(ip: string, dateStr: string): Promise<number>;
   getMonthlySpendMicroCents(monthStr: string): Promise<number>;
   incrementMonthlySpendMicroCents(monthStr: string, deltaMicroCents: number): Promise<number>;
   setMonthlySpendMicroCents(monthStr: string, microCents: number): Promise<void>;
+  getDeviceDailyLimit(deviceId: string): Promise<number | null>;
+  setDeviceDailyLimit(deviceId: string, limit: number | null): Promise<void>;
 }
 
 export const DEVICE_DAILY_LIMIT = 10;
@@ -99,6 +102,7 @@ export function formatMonthKey(date: Date = new Date()): string {
 
 export function createInMemoryQuotaStore(): QuotaStore {
   const deviceCounts = new Map<string, number>();
+  const deviceLimits = new Map<string, number>();
   const ipCounts = new Map<string, number>();
   const monthlySpend = new Map<string, number>();
 
@@ -111,6 +115,9 @@ export function createInMemoryQuotaStore(): QuotaStore {
       const count = (deviceCounts.get(key) ?? 0) + 1;
       deviceCounts.set(key, count);
       return count;
+    },
+    async setDailyDeviceCount(deviceId: string, dateStr: string, count: number): Promise<void> {
+      deviceCounts.set(`${dateStr}:${deviceId}`, Math.max(0, count));
     },
     async getDailyIpCount(ip: string, dateStr: string): Promise<number> {
       return ipCounts.get(`${dateStr}:${ip}`) ?? 0;
@@ -134,6 +141,16 @@ export function createInMemoryQuotaStore(): QuotaStore {
     async setMonthlySpendMicroCents(monthStr: string, microCents: number): Promise<void> {
       monthlySpend.set(`spend:${monthStr}`, microCents);
     },
+    async getDeviceDailyLimit(deviceId: string): Promise<number | null> {
+      return deviceLimits.get(deviceId) ?? null;
+    },
+    async setDeviceDailyLimit(deviceId: string, limit: number | null): Promise<void> {
+      if (limit === null) {
+        deviceLimits.delete(deviceId);
+      } else {
+        deviceLimits.set(deviceId, Math.max(0, limit));
+      }
+    },
   };
 }
 
@@ -155,6 +172,10 @@ export function createKvQuotaStore(kv: KVNamespaceLike): QuotaStore {
       const next = current + 1;
       await kv.put(key, next.toString(), { expirationTtl: DAILY_TTL_SECONDS });
       return next;
+    },
+    async setDailyDeviceCount(deviceId: string, dateStr: string, count: number): Promise<void> {
+      const key = `device:${dateStr}:${deviceId}`;
+      await kv.put(key, Math.max(0, count).toString(), { expirationTtl: DAILY_TTL_SECONDS });
     },
     async getDailyIpCount(ip: string, dateStr: string): Promise<number> {
       const val = await kv.get(`ip:${dateStr}:${ip}`);
@@ -182,6 +203,24 @@ export function createKvQuotaStore(kv: KVNamespaceLike): QuotaStore {
     async setMonthlySpendMicroCents(monthStr: string, microCents: number): Promise<void> {
       await kv.put(`spend:${monthStr}`, microCents.toString());
     },
+    async getDeviceDailyLimit(deviceId: string): Promise<number | null> {
+      const val = await kv.get(`limit:${deviceId}`);
+      if (val === null || val === undefined || val === "") return null;
+      const parsed = parseInt(val, 10);
+      return Number.isFinite(parsed) ? parsed : null;
+    },
+    async setDeviceDailyLimit(deviceId: string, limit: number | null): Promise<void> {
+      const key = `limit:${deviceId}`;
+      if (limit === null) {
+        if (typeof (kv as any).delete === "function") {
+          await (kv as any).delete(key);
+        } else {
+          await kv.put(key, "", { expirationTtl: 1 });
+        }
+      } else {
+        await kv.put(key, Math.max(0, limit).toString(), { expirationTtl: 7 * 86400 });
+      }
+    },
   };
 }
 
@@ -202,8 +241,8 @@ export type CheckQuotaResult =
 /**
  * Checks all daily and monthly quota gates and determines the active vision model:
  * 1. Monthly Hard Cap ($10.00 / 1_000_000 micro-cents) -> rejected ("monthly_budget_cap")
- * 2. Daily Device Limit (10 scans/day) -> rejected ("device_daily_limit")
- * 3. Daily IP Limit (20 scans/day) -> rejected ("ip_daily_limit")
+ * 2. Daily Device Limit (10 scans/day default or custom tester override limit) -> rejected ("device_daily_limit")
+ * 3. Daily IP Limit (20 scans/day) -> rejected ("ip_daily_limit", bypassed if tester override is set)
  * 4. Monthly Soft Cap ($9.50 / 950_000 micro-cents) -> downgrade to "gemini-2.5-flash-lite"
  */
 export async function checkQuotaAndSelectModel(
@@ -213,11 +252,16 @@ export async function checkQuotaAndSelectModel(
     ip: string;
     now?: Date;
     defaultModel?: string;
+    deviceDailyLimit?: number;
+    ipDailyLimit?: number;
   }
 ): Promise<CheckQuotaResult> {
   const now = params.now ?? new Date();
   const dateStr = formatDateKey(now);
   const monthStr = formatMonthKey(now);
+  const customLimit = await store.getDeviceDailyLimit(params.deviceId);
+  const deviceLimit = customLimit ?? params.deviceDailyLimit ?? DEVICE_DAILY_LIMIT;
+  const ipLimit = params.ipDailyLimit ?? IP_DAILY_LIMIT;
 
   const [deviceCount, ipCount, monthlySpend] = await Promise.all([
     store.getDailyDeviceCount(params.deviceId, dateStr),
@@ -225,7 +269,7 @@ export async function checkQuotaAndSelectModel(
     store.getMonthlySpendMicroCents(monthStr),
   ]);
 
-  const remainingDeviceScans = Math.max(0, DEVICE_DAILY_LIMIT - deviceCount);
+  const remainingDeviceScans = Math.max(0, deviceLimit - deviceCount);
 
   // Layer 3 hard circuit breaker: Monthly spend cap ($10.00)
   if (monthlySpend >= MONTHLY_HARD_CAP_MICRO_CENTS) {
@@ -238,18 +282,18 @@ export async function checkQuotaAndSelectModel(
     };
   }
 
-  // Daily device quota: 10 scans/day
-  if (deviceCount >= DEVICE_DAILY_LIMIT) {
+  // Daily device quota
+  if (deviceCount >= deviceLimit) {
     return {
       allowed: false,
       reason: "device_daily_limit",
-      message: "You've used all 10 free scans for today. Come back tomorrow!",
+      message: `You've used all ${deviceLimit} free scans for today. Come back tomorrow!`,
       remainingDeviceScans: 0,
     };
   }
 
-  // Daily IP quota: 20 scans/day
-  if (ipCount >= IP_DAILY_LIMIT) {
+  // Daily IP quota (bypassed if device has an explicit tester override limit)
+  if (customLimit === null && ipCount >= ipLimit) {
     return {
       allowed: false,
       reason: "ip_daily_limit",
@@ -310,8 +354,10 @@ export async function recordScanOutcome(
     newDeviceCount = await store.getDailyDeviceCount(params.deviceId, dateStr);
   }
 
+  const customLimit = await store.getDeviceDailyLimit(params.deviceId);
+  const activeLimit = customLimit ?? DEVICE_DAILY_LIMIT;
   const monthlySpendMicroCents = await spendPromise;
-  const remainingDeviceScans = Math.max(0, DEVICE_DAILY_LIMIT - newDeviceCount);
+  const remainingDeviceScans = Math.max(0, activeLimit - newDeviceCount);
 
   return {
     remainingDeviceScans,

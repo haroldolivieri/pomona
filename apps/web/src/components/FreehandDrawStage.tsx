@@ -6,6 +6,7 @@ import {
   computeObjectFitCoverRect,
   type CropRect,
   type RenderedCoverRect,
+  type NormalizePolygonResult,
 } from "../lib/image-pipeline";
 
 export interface FreehandDrawStageProps {
@@ -13,6 +14,8 @@ export interface FreehandDrawStageProps {
   onAnalyse: (focusPolygon: Point[] | null, cropRect: CropRect | null) => void;
   onRetake: () => void;
   errorMessage?: string | null;
+  remainingScans?: number;
+  onQuotaClick?: () => void;
 }
 
 export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
@@ -20,6 +23,8 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
   onAnalyse,
   onRetake,
   errorMessage,
+  remainingScans = 10,
+  onQuotaClick,
 }) => {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -28,12 +33,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
   const [points, setPoints] = useState<Point[]>([]);
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const [canAnalyseDrawn, setCanAnalyseDrawn] = useState<boolean>(false);
-  const [normalizedResult, setNormalizedResult] = useState<{
-    valid: boolean;
-    cropRect: CropRect;
-    areaRatio: number;
-    polygonInCrop: Point[];
-  } | null>(null);
+  const [normalizedResult, setNormalizedResult] = useState<NormalizePolygonResult | null>(null);
 
   const updateCoverRect = () => {
     const vp = containerRef.current;
@@ -103,7 +103,9 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
 
   const handleAnalyseDrawn = () => {
     if (normalizedResult && normalizedResult.valid) {
-      onAnalyse(normalizedResult.polygon, normalizedResult.cropRect);
+      // Pass null for cropRect: the full image is sent with focusPolygon in [0..1000] image space.
+      // Candidate bounding boxes returned by the model are already in [0..1000] image space!
+      onAnalyse(normalizedResult.polygon, null);
     }
   };
 
@@ -174,23 +176,29 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
         </button>
 
         <div
+          data-testid="scan-quota-pill"
+          onClick={onQuotaClick}
+          role={onQuotaClick ? "button" : undefined}
+          tabIndex={onQuotaClick ? 0 : undefined}
+          title={onQuotaClick ? "Tap to override scan quota (testing)" : undefined}
           style={{
-            backgroundColor: "rgba(251, 250, 246, 0.88)",
+            background: "rgba(251,250,246,0.92)",
             color: "#142117",
             backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
             fontFamily: "Inter, system-ui, sans-serif",
             fontWeight: 600,
-            fontSize: "11px",
+            fontSize: "12px",
             lineHeight: 1,
             padding: "7px 12px",
             borderRadius: "999px",
-            display: "flex",
+            display: "inline-flex",
             alignItems: "center",
-            gap: "6px",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.18)",
+            cursor: onQuotaClick ? "pointer" : "default",
           }}
         >
-          {t("draw.topBarChip", { defaultValue: "Draw focus area (optional)" })}
+          {t("camera.scansLeftToday", { count: remainingScans ?? 10 })}
         </div>
 
         <button

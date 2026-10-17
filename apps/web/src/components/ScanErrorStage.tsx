@@ -35,6 +35,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
       tip = t("errors.unclearPhotoTip");
       primaryCtaLabel = t("errors.unclearPhotoCta");
       primaryAction = onRetake;
+      showDrawButton = Boolean(onDrawFocus);
       break;
 
     case "no_produce":

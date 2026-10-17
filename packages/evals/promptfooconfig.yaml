@@ -281,4 +281,42 @@ tests:
       forbiddenWordsInCopy: ["watermelon", "melon", "avocado", "pineapple", "field spot", "rind"]
       imageDescription: "Fresh round tomatoes in an open grocery display basket with a drawn focus polygon around the top basket."
 
+  # 13. Real-World Overlapping Carrot Bags in Crate
+  - description: "13 - Overlapping British Carrot Bags in Crate (Unit of purchase: whole bags, not individual carrots; no heavily intersecting boxes)"
+    vars:
+      round: 1
+      imagePath: "dataset/images/13-carrot-packs-crate.jpg"
+      expectedStatus: "ok"
+      expectedProduceType: "carrots"
+      produceDisplayName: "British Carrots"
+      expectedCandidateCountMin: 2
+      expectedCandidateCountMax: 4
+      forbiddenWordsInCopy: ["watermelon", "melon", "avocado", "pineapple", "field spot", "rind"]
+      imageDescription: "Multiple overlapping plastic bags of British Carrots inside a green supermarket crate."
+
+  # 14. Real-World Overlapping Potato Bags in Crate
+  - description: "14 - Overlapping British Baking Potato Bags in Crate (Unit of purchase: whole potato bags, not individual potatoes)"
+    vars:
+      round: 1
+      imagePath: "dataset/images/14-potato-packs-crate.jpg"
+      expectedStatus: "ok"
+      expectedProduceType: "potatoes"
+      produceDisplayName: "Baking Potatoes"
+      expectedCandidateCountMin: 2
+      expectedCandidateCountMax: 4
+      forbiddenWordsInCopy: ["watermelon", "melon", "avocado", "pineapple", "field spot", "rind"]
+      imageDescription: "Multiple plastic bags of British Baking Potatoes stacked in a green supermarket crate."
+
+  # 15. Real-World Bagged Banana Pack in Crate
+  - description: "15 - Bagged Banana Bunch/Pack in Crate (Unit of purchase: whole cluster/bunch, not single loose banana)"
+    vars:
+      round: 1
+      imagePath: "dataset/images/15-banana-pack-bagged.jpg"
+      expectedStatus: "ok"
+      expectedProduceType: "banana"
+      produceDisplayName: "Banana"
+      expectedCandidateCountMin: 1
+      expectedCandidateCountMax: 4
+      forbiddenWordsInCopy: ["watermelon", "melon", "avocado", "field spot", "rind"]
+      imageDescription: "Bananas in a plastic-lined crate; evaluates whole bunch/pack unit."
 

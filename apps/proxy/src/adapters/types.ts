@@ -105,6 +105,9 @@ export async function runVerifiedVisionScan(
     );
     addUsage(raw1.usage);
 
+    console.log(
+      `[proxy:rawModel] Attempt 1 raw candidates: ${Array.isArray((raw1.object as any)?.candidates) ? (raw1.object as any).candidates.length : "none"}, status: ${(raw1.object as any)?.status}`
+    );
     const verify1 = verifyAndResolveScanResponse(raw1.object, {
       request,
       promptVersion: promptConfig.version,

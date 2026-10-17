@@ -42,19 +42,30 @@ BOUNDING BOX & UNIT OF PURCHASE (CRITICAL):
 - Express all candidate boxes as normalized integer coordinates in [ymin, xmin, ymax, xmax] format (0 to 1000 scale, where y is vertical top-to-bottom and x is horizontal left-to-right).
 - Minimum width and height for any bounding box is 20 units. Ensure ymin < ymax and xmin < xmax.
 - UNIT OF PURCHASE DETERMINATION:
-  1. Loose Produce (e.g. watermelons, loose avocados, loose mangoes, single apples/oranges): Bounding boxes must tightly bound each individual fruit/vegetable.
-  2. Bunched / Clustered Produce (e.g. bananas in a bunch/hand, vine tomatoes, herb bunches): Bounding boxes must tightly bound each BUNCH or CLUSTER as a single candidate unit. Do NOT place individual bounding boxes on single bananas or attached items within a bunch.
-  3. Packaged / Bagged / Punneted Produce (e.g. punnets/clamshells of grapes, berries, cherry tomatoes, or netted bags of apples/lemons/oranges): Bounding boxes must tightly bound each PUNNET, CLAMSHELL, or BAG as a single candidate unit. NEVER place bounding boxes on individual berries or fruits inside a pack.
-  - When produce is in packs or bunches, evaluate and score the overall pack/bunch (e.g. mold-free underside, intact fresh green stems, natural bloom, uniform ripeness).
-  - The followUp instruction and flip headline for packs/bunches must refer to inspecting the pack or bunch (e.g. "Flip the Grape punnet over", "Inspect bottom berries for softness or dampness", "Turn the Banana bunch over").
+  1. Loose Produce (e.g. loose watermelons, loose avocados, single loose apples/oranges): Bounding boxes must tightly bound each individual fruit/vegetable.
+  2. Bunched / Clustered Produce (e.g. bananas in a bunch/hand, vine tomatoes, herb bunches): Bounding boxes must tightly bound each BUNCH or CLUSTER as a single candidate unit. NEVER place bounding boxes on individual bananas inside a bunch.
+  3. Packaged / Bagged / Punneted / Boxed Produce (e.g. berries in plastic punnets/clamshells, netted/sealed bags of carrots, baking potatoes, onions):
+     - If produce is sealed or sold in a retail pre-pack (such as a plastic clamshell of berries, a sealed bag of onions/carrots with a barcode/label), the ENTIRE pre-pack is the candidate unit.
+     - OPEN DISPLAY BASKETS / CRATES OF LOOSE PRODUCE (CRITICAL): When produce (such as loose tomatoes, loose plums, loose peppers, loose citrus) is piled loose in an open cardboard punnet, wooden tray, display basket, or bulk crate:
+       - The customer is picking individual fruits/vegetables, OR comparing individual tomatoes inside that basket!
+       - NEVER treat the entire crate or basket as one giant single candidate when individual produce items are clearly visible.
+       - Each candidate bounding box MUST tightly surround an INDIVIDUAL fruit/vegetable (e.g. an individual tomato).
+       - When a user draws a \`focusPolygon\` around a group of fruits or inside a basket, detect and grade INDIVIDUAL produce items (e.g. 2 to 6 individual tomatoes) inside that drawn area so the user can choose the best individual one!
+     - OVERLAPPING / STACKED PACKS IN CRATES: When sealed retail pre-packs/bags are stacked, detect distinct individual packs. Each candidate bounding box must tightly enclose ONE distinct bag/pack.
+  - The followUp instruction and flip headline must refer to inspecting the specific produce item or pack.
 
 FOCUS POLYGON CONSTRAINT:
 - ${polygonInfo}
 - Note coordinate order: \`focusPolygon\` points are \`[x, y]\` (horizontal x first, vertical y second), whereas candidate \`box\` is \`[ymin, xmin, ymax, xmax]\` (vertical y first, horizontal x second).
-- When a focusPolygon is provided, you MUST include every visible produce item whose center point lies inside the polygon, and exclude any item outside it.
+- When a focusPolygon is provided, you MUST detect, box, and grade ALL visible individual produce items (detect every visible fruit/vegetable, typically up to 10–12 items) whose bounds or center overlap the region.
+- CRITICAL: Never arbitrarily cap candidate detection or return only a partial subset of candidates if more produce items are visible! Detect EVERY distinct produce item inside the boundary so the user can inspect and compare all contestants in their selection. Exclude items clearly outside the boundary.
 
 MULTI-ROUND FLIP WORKFLOW:
-- Round 1: Identify produce type (lowercase slug, e.g. "watermelon", "avocado", "pineapple") and displayName. Score all visible candidates inside the focus area (c1, c2, etc.) on the 0.0–10.0 scale. The highest scoring candidate is winnerId. If a second candidate exists, set runnerUpId and provide a non-null \`followUp\` targeting the runner-up. If only 1 item exists in the frame, runnerUpId and followUp MUST be null.
+- Round 1 (CANDIDATE COMPARISON & RIPENESS WINDOW):
+  - You MUST detect, bound, and grade ALL visible candidate produce items across the entire crate/pile/frame (detect every visible produce item, up to 10–12 candidates, including partially visible or edge items, e.g. c1, c2, c3, c4, c5, c6, c7, c8...). Do NOT stop at 4 or 5 candidates when more items are visible in the photo!
+  - CRITICAL: Never return only 1 or a partial subset of candidates when multiple fruits/vegetables are visible! The app features a 3-way Shopping Goal switcher ("Ready now", "In 2–3 days", "Later this week") which ranks and chooses the winner dynamically across ALL returned candidates based on each candidate's \`ripeness\` ("ripe" | "almost_ripe" | "underripe"). If you miss items, the user cannot see ratings or compare those fruits!
+  - Score each candidate on the 0.0–10.0 scale and accurately classify each candidate's \`ripeness\` ("ripe", "almost_ripe", "underripe", or "overripe").
+  - For the default "ready_now" peak-ripe goal, set winnerId to the highest scoring ripe candidate, set runnerUpId to the second-best candidate, and provide a non-null \`followUp\` targeting the runner-up. Only if truly a single solo fruit exists in the entire frame should candidates have length 1.
 - Round 2: Close-up inspection of the runner-up candidate after being flipped/rotated. Output ONLY the single foreground close-up candidate in \`candidates\` using \`id: followUpContext.targetCandidateId\` (e.g. "c2"), ignoring any distant background items. Provide a non-null \`flipSummary\` (<= 80 chars) describing what the flipped angle revealed, and an updated \`score\` (0.0–10.0).
   - If the flipped underside reveals superior ripeness (e.g. deep creamy golden-yellow field spot with dense brown sugar webbing), score it higher than \`previousWinner.score\`, set \`verdict.winnerId\` to \`targetCandidateId\`, \`verdict.runnerUpId\` to \`previousWinner.id\`, and provide a non-null \`followUp\` targeting \`previousWinner.id\` (role: "first_pick").
   - If the flipped underside is disappointing, underripe, or defective (e.g. stark chalky-white spot, pale greenish belly, or lack of webbing), lower its score strictly below \`previousWinner.score\`, keep \`verdict.winnerId\` as \`previousWinner.id\`, set \`verdict.runnerUpId\` to \`targetCandidateId\`, and set \`followUp: null\`.
@@ -78,7 +89,7 @@ STORAGE & SHELF-LIFE GUIDANCE:
 
 STATUS HANDLING:
 - If no fresh produce is visible (e.g. packaged cereal boxes, tins, barcodes): status = "no_produce" (with descriptive message, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null).
-- If the image is too blurry, dark, or motion-blurred to grade ripeness: status = "unclear_photo" (with descriptive message, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null).
+- If the image is too blurry, dark, motion-blurred, OR there are too many overlapping bags/packs heavily obscuring each other such that you cannot clearly inspect or distinguish a confident winner: status = "unclear_photo" with a helpful descriptive message (e.g. "Too many overlapping packs to grade reliably. Move closer to 1–2 bags or draw a loop around a clear pack.").
 - If multiple distinct types of produce are mixed together (e.g. apples, bananas, pineapples) with no focusPolygon isolating one type: status = "multiple_types" (with descriptive message, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null).
 - Otherwise: status = "ok" (with message=null).`;
 }
@@ -88,25 +99,28 @@ export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[])
 
   if (request.round === 1) {
     if (request.focusPolygon && request.focusPolygon.length >= 3) {
-      prompt += `\nUser drew a focusPolygon: ${describeFocusPolygonBounds(request.focusPolygon)} Detect and grade ALL produce items inside this region (both left and right items inside the y/x bounds), and ignore any item outside it.`;
+      prompt += `\nUser drew a focusPolygon: ${describeFocusPolygonBounds(request.focusPolygon)}
+CRITICAL: Detect, tightly bound, and grade ALL visible individual produce items (detect every single contestant visible inside this drawn area, up to 10–12 items, e.g. c1, c2, c3, c4, c5, c6, c7, c8, etc.). Each candidate must have its own score and ripeness tier ("ripe" | "almost_ripe" | "underripe") so the user can see all contenders and use the Shopping Goal tabs. Do NOT omit any visible items inside the drawn area, and exclude items clearly outside the loop.`;
     } else {
-      prompt += `\nEvaluate all visible produce candidates in the image.`;
+      prompt += `\nEvaluate all visible produce candidates in the image. Detect and grade EVERY visible produce item in view across the pile/crate (up to 10–12 candidates, including items along the edges), returning their ripeness classification and bounding boxes so every single fruit has a square rating and the user can compare them across shopping goal tabs. Do NOT stop at 4 or 5 if more fruits are visible!`;
     }
   } else if (request.round === 2 && request.followUpContext) {
     const ctx = request.followUpContext;
-    prompt += `\nRound 2 close-up inspection:
+    const targetGoal = ctx.targetRipeness ? ` (shopping target window: "${ctx.targetRipeness}")` : "";
+    prompt += `\nRound 2 close-up inspection${targetGoal}:
 Inspecting ONLY the foreground candidate "${ctx.targetCandidateId}" (${ctx.produceDisplayName}, role: ${ctx.targetRole}).
 Requested instruction: "${ctx.requestedInstruction}".
 Previous 1st pick candidate "${ctx.previousWinner.id}" scored ${ctx.previousWinner.score}/10 (${ctx.previousWinner.ripeness}).
 Previous runner-up candidate "${ctx.previousRunnerUp.id}" scored ${ctx.previousRunnerUp.score}/10.
-Output ONLY candidate "${ctx.targetCandidateId}" in candidates with a non-null flipSummary (<= 80 chars) and an updated score on the 0.0–10.0 scale. If the underside is chalky white or underripe, score it below ${ctx.previousWinner.score} and set followUp to null. If it has a deep golden-yellow spot and heavy webbing, score it above ${ctx.previousWinner.score} and provide a followUp targeting "${ctx.previousWinner.id}".`;
+Output ONLY candidate "${ctx.targetCandidateId}" in candidates with a non-null flipSummary (<= 80 chars) and an updated score on the 0.0–10.0 scale. If the underside is chalky white, bruised, or underripe for the target, score it below ${ctx.previousWinner.score} and set followUp to null. If it exhibits high quality and suitability for the target, score it above ${ctx.previousWinner.score} and provide a followUp targeting "${ctx.previousWinner.id}".`;
   } else if (request.round === 3 && request.followUpContext) {
     const ctx = request.followUpContext;
-    prompt += `\nRound 3 final check inspection:
+    const targetGoal = ctx.targetRipeness ? ` (shopping target window: "${ctx.targetRipeness}")` : "";
+    prompt += `\nRound 3 final check inspection${targetGoal}:
 Inspecting ONLY the foreground candidate "${ctx.targetCandidateId}" (${ctx.produceDisplayName}, role: ${ctx.targetRole}). Ignore any background items.
 Requested instruction: "${ctx.requestedInstruction}".
 Previous winner candidate "${ctx.previousWinner.id}" scored ${ctx.previousWinner.score}/10.
-Output ONLY candidate "${ctx.targetCandidateId}" in candidates with a non-null flipSummary (<= 80 chars) and an updated score on the 0.0–10.0 scale. If the underside is pale, bruised, or water-soaked, score it strictly below ${ctx.previousWinner.score}. If it has a huge deep golden-yellow spot and heavy sugar webbing, score it >= ${ctx.previousWinner.score}. Hard ceiling: followUp must be null.`;
+Output ONLY candidate "${ctx.targetCandidateId}" in candidates with a non-null flipSummary (<= 80 chars) and an updated score on the 0.0–10.0 scale. If the underside is pale, bruised, water-soaked, or inferior, score it strictly below ${ctx.previousWinner.score}. If it shows peak quality for the target, score it >= ${ctx.previousWinner.score}. Hard ceiling: followUp must be null.`;
   }
 
   if (repairErrors && repairErrors.length > 0) {

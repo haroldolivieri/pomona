@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
@@ -61,8 +62,8 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
           followUp: {
             targetCandidateId: "c1",
             targetRole: "first_pick",
-            bannerText: "1st Pick (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
-            flipHeadline: "Flip your 1st pick over",
+            bannerText: "1st Winner (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
+            flipHeadline: "Flip your 1st winner over",
             instruction: "Turn the yellow-marked Hass Avocado to show its stem base.",
           },
           afterPurchase: {
@@ -106,6 +107,7 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
 
     const apiClient = {
       getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
+      overrideQuota: vi.fn().mockResolvedValue({ success: true, deviceId: "d1", deviceLimit: 10, remainingDeviceScans: 10 }),
       submitScan: mockScan,
     };
 
@@ -118,7 +120,10 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     // State 2 -> Whole Photo -> State 3 -> State 4
     fireEvent.click(screen.getByTestId("whole-photo-button"));
     expect(await screen.findByTestId("stage-S4_InitialResult")).toBeTruthy();
-    expect(screen.getByText("Buy it.")).toBeTruthy();
+    // Expand bottom sheet to see headline, score meter, full storage details, and action button
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
+    expect(screen.getByText("Best available.")).toBeTruthy();
+    expect(screen.getByTestId("circular-score-meter")).toBeTruthy();
     expect(screen.getByText("Counter · whole")).toBeTruthy();
     expect(screen.getByText("Fridge · wrapped")).toBeTruthy();
     expect(screen.getByTestId("cta-compare-runner-up").textContent).toBe("Compare with Runner-Up");
@@ -132,20 +137,25 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     // State 5A -> Snap -> State 5B-2 (Runner-Up Took Lead)
     fireEvent.click(screen.getByTestId("flip-shutter-button"));
     expect(await screen.findByTestId("stage-S5B2_RunnerUpTookLead")).toBeTruthy();
-    expect(screen.getByText(/Beats 1st Pick \(9\.0 vs 8\.6\)/i)).toBeTruthy();
-    expect(screen.getByTestId("cta-final-check-first-pick").textContent).toBe("Flip 1st Pick for Final Check");
+    // Expand bottom sheet to access headline and final check CTA
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
+    expect(screen.getByText(/Beats 1st Winner \(9\.0 vs 8\.6\)/i)).toBeTruthy();
+    expect(screen.getByTestId("cta-final-check-first-pick").textContent).toBe("Flip 1st Winner for Final Check");
 
-    // State 5B-2 -> Flip 1st Pick -> State 6 -> Snap -> State 7A (1st Pick Reclaims Win)
+    // State 5B-2 -> Flip 1st Winner -> State 6 -> Snap -> State 7A (1st Winner Reclaims Win)
     fireEvent.click(screen.getByTestId("cta-final-check-first-pick"));
     expect(await screen.findByTestId("stage-S6_FlipFirstPickCamera")).toBeTruthy();
     fireEvent.click(screen.getByTestId("flip-shutter-button"));
     expect(await screen.findByTestId("stage-S7A_FirstPickWonFinal")).toBeTruthy();
-    expect(screen.getByText(/1st Pick Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeTruthy();
+    // Expand bottom sheet to access verdict headline
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
+    expect(screen.getByText(/1st Winner Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeTruthy();
   }, 25000);
 
   it("transitions into S_ScanError and displays detailed error message when scan fails", async () => {
     const mockClient = {
       getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
+      overrideQuota: vi.fn().mockResolvedValue({ success: true, deviceId: "d1", deviceLimit: 10, remainingDeviceScans: 10 }),
       submitScan: vi.fn().mockRejectedValue(new Error("Scan request failed (413): Request body too large")),
     };
 
@@ -172,5 +182,75 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     // Clicking primary CTA resets back to camera
     fireEvent.click(screen.getByTestId("error-primary-cta"));
     expect(await screen.findByTestId("stage-S1_LiveCamera")).toBeTruthy();
+  });
+
+  it("unifies top middle chip (quota vs produce name) and decrements/overrides scan counter", async () => {
+    const mockScan = vi.fn().mockResolvedValue({
+      remainingScans: 9,
+      response: {
+        schemaVersion: "1.0",
+        promptVersion: "v1",
+        modelId: "gemini-2.5-flash",
+        round: 1,
+        status: "ok",
+        message: null,
+        produce: { type: "mango", displayName: "Alphonso Mango", variety: "Alphonso" },
+        candidates: [
+          { id: "c1", box: [385, 370, 625, 655], score: 8.9, ripeness: "ripe", traits: ["Golden amber"], flipSummary: null },
+        ],
+        verdict: { winnerId: "c1", runnerUpId: null, confidence: "high", headline: "Buy it." },
+        followUp: null,
+        afterPurchase: {
+          readyInDays: { min: 0, max: 0 },
+          eatWithinDays: { min: 2, max: 3 },
+          eatWithinLabel: "2–3 days",
+          storage: {
+            beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter", tip: "" },
+            afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge", tip: "" },
+          },
+        },
+      },
+    });
+
+    const apiClient = {
+      getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
+      overrideQuota: vi.fn().mockImplementation(async (params: any) => {
+        const remaining = typeof params === "number" ? params : params.remainingScans ?? 10;
+        return { success: true, deviceId: "d1", deviceLimit: 10, remainingDeviceScans: remaining };
+      }),
+      submitScan: mockScan,
+    };
+
+    render(
+      <PomonaApp
+        apiClient={apiClient}
+        telemetry={createNoopTelemetry()}
+        initialRemainingScans={10}
+      />
+    );
+
+    // State 1: Top middle chip shows 10 scans left today
+    expect(screen.getByTestId("scan-quota-pill")).toHaveTextContent("10 scans left today");
+
+    // Snap photo -> State 2: Top middle chip STILL shows 10 scans left today
+    fireEvent.click(screen.getByTestId("shutter-button"));
+    expect(await screen.findByTestId("stage-S2_DrawFocusArea")).toBeTruthy();
+    expect(screen.getByTestId("scan-quota-pill")).toHaveTextContent("10 scans left today");
+
+    // Scan whole photo -> State 4: Top middle chip shows Alphonso Mango ONLY
+    fireEvent.click(screen.getByTestId("whole-photo-button"));
+    expect(await screen.findByTestId("stage-S4_InitialResult")).toBeTruthy();
+    expect(screen.getByTestId("produce-name-chip")).toHaveTextContent("Alphonso Mango");
+
+    // Retake / Reset to Camera -> Counter has decremented to 9
+    fireEvent.click(screen.getByTestId("retake-button"));
+    expect(await screen.findByTestId("stage-S1_LiveCamera")).toBeTruthy();
+    expect(screen.getByTestId("scan-quota-pill")).toHaveTextContent("9 scans left today");
+
+    // Test override mechanism by clicking the quota chip pill
+    const promptSpy = vi.spyOn(window, "prompt").mockReturnValueOnce("3");
+    fireEvent.click(screen.getByTestId("scan-quota-pill"));
+    expect(promptSpy).toHaveBeenCalled();
+    expect(await screen.findByText("3 scans left today")).toBeTruthy();
   });
 });

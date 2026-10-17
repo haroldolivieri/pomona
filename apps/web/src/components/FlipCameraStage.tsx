@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { ScanMachineState } from "../state/scan-state-machine";
 
 import { ProduceFlipGraphic } from "./ProduceFlipGraphic";
+import { captureViewportCrop } from "../lib/image-pipeline";
 
 export interface FlipCameraStageProps {
   state: ScanMachineState;
@@ -24,10 +25,18 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
 
   const followUp = lastResponse?.followUp;
   const isFinalCheck = phase === "S6_FlipFirstPickCamera";
+  const targetRipeness = state.targetRipeness || "ready_now";
 
-  // Parameterized produce name and instructions
-  const headline = followUp?.flipHeadline || (isFinalCheck ? "Flip your 1st pick over" : "Flip the produce over");
-  const instruction = followUp?.instruction || "Turn over to inspect the underside.";
+  // Parameterized produce name and instructions (sanitize any "1st pick" -> "1st winner")
+  const rawHeadline = followUp?.flipHeadline || (isFinalCheck ? "Flip your 1st winner over" : "Flip the produce over");
+  const headline = rawHeadline.replace(/1st\s*pick/gi, "1st winner").replace(/first\s*pick/gi, "first winner");
+  let rawInstruction = followUp?.instruction || "Turn over to inspect the underside.";
+  if (targetRipeness !== "ready_now") {
+    rawInstruction = `Show the hidden underside so Pomona can check the underside for hidden bruises or uneven ripening before storing for ${
+      targetRipeness === "in_2_3_days" ? "2–3 days" : "later this week"
+    }.`;
+  }
+  const instruction = rawInstruction.replace(/1st\s*pick/gi, "1st winner").replace(/first\s*pick/gi, "first winner");
   
   // Scores for State 5A & State 6
   const winnerToBeatScore = firstPick?.score?.toFixed(1) ?? "8.6";
@@ -73,17 +82,17 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
     };
   }, []);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const handleCapture = () => {
     if (videoRef.current && streamActive) {
       const video = videoRef.current;
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/webp", 0.75);
-        onCapture(dataUrl);
+      const container = containerRef.current;
+      const cw = container?.clientWidth || window.innerWidth;
+      const ch = container?.clientHeight || window.innerHeight;
+      const croppedUrl = captureViewportCrop(video, cw, ch, "image/webp", 0.85);
+      if (croppedUrl && croppedUrl.startsWith("data:")) {
+        onCapture(croppedUrl);
         return;
       }
     }
@@ -186,6 +195,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
           ←
         </button>
 
+        {/* Top middle chip: Produce name ONLY */}
         <div
           data-testid="flip-top-chip"
           style={{
@@ -194,37 +204,16 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
             padding: "7px 14px",
             borderRadius: "999px",
             fontSize: "12px",
-            fontWeight: 600,
+            fontWeight: 700,
             display: "flex",
             alignItems: "center",
-            gap: "7px",
+            gap: "6px",
             backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
             boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
           }}
         >
-          {isFinalCheck ? (
-            <span
-              style={{
-                width: "9px",
-                height: "9px",
-                borderRadius: "2px",
-                background: "#F5D547",
-                border: "1.5px solid #142117",
-                display: "inline-block",
-              }}
-            />
-          ) : (
-            <span
-              style={{
-                width: "9px",
-                height: "9px",
-                borderRadius: "2px",
-                border: "2px dashed #2f6db5",
-                display: "inline-block",
-              }}
-            />
-          )}
-          <span>{isFinalCheck ? "1st Pick · Final Check" : "Runner-Up · Step 2"}</span>
+          {state.lastResponse?.produce?.displayName || "Produce"}
         </div>
 
         <button
@@ -290,13 +279,14 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
               color: isFinalCheck ? "#142117" : "#FFFFFF",
             }}
           >
-            {isFinalCheck ? "1st Pick" : "Runner-Up"}
+            {isFinalCheck ? "1st Winner" : "Runner-Up"}
           </div>
         </div>
       )}
 
       {/* Live Camera Feed */}
       <div
+        ref={containerRef}
         style={{
           flex: 1,
           width: "100%",
@@ -545,24 +535,59 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
             {instruction}
           </p>
 
-          {/* Score Pill */}
+          {/* Goal & Score Pills */}
           <div
-            data-testid="flip-score-pill"
             style={{
-              display: "inline-block",
+              display: "flex",
+              gap: "8px",
+              justifyContent: "center",
+              alignItems: "center",
               marginTop: "8px",
-              backgroundColor: "#eee9dc",
-              color: "#142117",
-              fontFamily: "Inter, sans-serif",
-              fontSize: "11px",
-              fontWeight: 700,
-              padding: "5px 12px",
-              borderRadius: "999px",
+              flexWrap: "wrap",
             }}
           >
-            {isFinalCheck
-              ? `Current leader: ${runnerUpScore} · 1st Pick: ${firstPickScore} (top only)`
-              : `Winner to beat: ${winnerToBeatScore} / 10`}
+            <div
+              data-testid="flip-goal-pill"
+              style={{
+                backgroundColor: "#eee9dc",
+                color: "#142117",
+                fontFamily: "Inter, sans-serif",
+                fontSize: "11px",
+                fontWeight: 700,
+                padding: "5px 12px",
+                borderRadius: "999px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+              }}
+            >
+              <span>🎯</span>
+              <span>
+                {targetRipeness === "in_2_3_days"
+                  ? "In 2–3 days"
+                  : targetRipeness === "later_this_week"
+                  ? "Later this week"
+                  : "Ready now"}
+              </span>
+            </div>
+
+            <div
+              data-testid="flip-score-pill"
+              style={{
+                display: "inline-block",
+                backgroundColor: "#eee9dc",
+                color: "#142117",
+                fontFamily: "Inter, sans-serif",
+                fontSize: "11px",
+                fontWeight: 700,
+                padding: "5px 12px",
+                borderRadius: "999px",
+              }}
+            >
+              {isFinalCheck
+                ? `Current leader: ${runnerUpScore} · 1st Winner: ${firstPickScore} (top only)`
+                : `Winner to beat: ${winnerToBeatScore} / 10`}
+            </div>
           </div>
         </div>
 

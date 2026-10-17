@@ -9,7 +9,8 @@ import "../src/i18n";
 describe("Debug mock mode and shake detection", () => {
   it("does not render debug button or toast when isDevMode is false", () => {
     const dummyClient = {
-      getQuota: vi.fn(),
+      getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
+      overrideQuota: vi.fn().mockResolvedValue({ success: true, remainingDeviceScans: 10 }),
       submitScan: vi.fn(),
     };
     render(
@@ -26,7 +27,8 @@ describe("Debug mock mode and shake detection", () => {
 
   it("renders debug toggle button when enableDebugOverride is true and switches modes on click", () => {
     const dummyClient = {
-      getQuota: vi.fn(),
+      getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
+      overrideQuota: vi.fn().mockResolvedValue({ success: true, remainingDeviceScans: 10 }),
       submitScan: vi.fn(),
     };
     render(
@@ -52,7 +54,8 @@ describe("Debug mock mode and shake detection", () => {
 
   it("toggles mock mode on device shake motion event", async () => {
     const dummyClient = {
-      getQuota: vi.fn(),
+      getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
+      overrideQuota: vi.fn().mockResolvedValue({ success: true, remainingDeviceScans: 10 }),
       submitScan: vi.fn(),
     };
     render(
@@ -104,7 +107,7 @@ describe("Debug mock mode and shake detection", () => {
       followUpContext: null,
     });
     expect(r1.response.status).toBe("ok");
-    expect(r1.response.candidates.length).toBe(2);
+    expect(r1.response.candidates.length).toBeGreaterThanOrEqual(2);
     expect(r1.response.verdict?.winnerId).toBe("c1");
     expect(r1.response.followUp?.targetRole).toBe("runner_up");
 

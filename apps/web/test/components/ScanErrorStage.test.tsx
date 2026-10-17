@@ -61,4 +61,24 @@ describe("ScanErrorStage", () => {
     fireEvent.click(screen.getByTestId("error-draw-button"));
     expect(handleDraw).toHaveBeenCalledTimes(1);
   });
+
+  it("renders unclear_photo error state with 'Draw Around One' button when onDrawFocus is provided", () => {
+    const handleDraw = vi.fn();
+    const handleRetake = vi.fn();
+    render(
+      <ScanErrorStage
+        status="unclear_photo"
+        errorMessage="Too many overlapping bags to grade reliably."
+        photoDataUrl="data:image/webp;base64,mock"
+        onRetake={handleRetake}
+        onDrawFocus={handleDraw}
+      />
+    );
+
+    expect(screen.getByText("Photo isn't clear enough")).toBeInTheDocument();
+    expect(screen.getByText("Too many overlapping bags to grade reliably.")).toBeInTheDocument();
+    expect(screen.getByTestId("error-draw-button")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("error-draw-button"));
+    expect(handleDraw).toHaveBeenCalledTimes(1);
+  });
 });

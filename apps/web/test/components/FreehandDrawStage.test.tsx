@@ -24,9 +24,9 @@ describe("FreehandDrawStage (State 2 Parity)", () => {
     expect(wholeBtn.style.backgroundColor).toBe("transparent");
     expect(analyseBtn).toHaveStyle({ backgroundColor: "var(--cta-primary)" });
 
-    // Top bar checks: back button, chip, and reset button
+    // Top bar checks: back button, quota chip, and reset button
     expect(screen.getByTestId("retake-button")).toHaveTextContent("←");
-    expect(screen.getByText("Draw focus area (optional)")).toBeInTheDocument();
+    expect(screen.getByTestId("scan-quota-pill")).toHaveTextContent("10 scans left today");
     expect(screen.getByTestId("reset-draw-button")).toHaveTextContent("↺");
   });
 });
