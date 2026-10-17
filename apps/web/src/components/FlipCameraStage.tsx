@@ -24,10 +24,16 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
 
   const followUp = lastResponse?.followUp;
   const isFinalCheck = phase === "S6_FlipFirstPickCamera";
+  const targetRipeness = state.targetRipeness || "ready_now";
 
   // Parameterized produce name and instructions
   const headline = followUp?.flipHeadline || (isFinalCheck ? "Flip your 1st pick over" : "Flip the produce over");
-  const instruction = followUp?.instruction || "Turn over to inspect the underside.";
+  let instruction = followUp?.instruction || "Turn over to inspect the underside.";
+  if (targetRipeness !== "ready_now") {
+    instruction = `Show the hidden underside so Pomona can check the underside for hidden bruises or uneven ripening before storing for ${
+      targetRipeness === "in_2_3_days" ? "2–3 days" : "later this week"
+    }.`;
+  }
   
   // Scores for State 5A & State 6
   const winnerToBeatScore = firstPick?.score?.toFixed(1) ?? "8.6";
@@ -225,6 +231,33 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
             />
           )}
           <span>{isFinalCheck ? "1st Pick · Final Check" : "Runner-Up · Step 2"}</span>
+        </div>
+
+        {/* Goal Pill in Top Bar */}
+        <div
+          data-testid="flip-goal-pill"
+          style={{
+            backgroundColor: "rgba(251, 250, 246, 0.88)",
+            color: "#142117",
+            padding: "7px 12px",
+            borderRadius: "999px",
+            fontSize: "11px",
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            gap: "5px",
+            backdropFilter: "blur(10px)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          }}
+        >
+          <span>🎯</span>
+          <span>
+            {targetRipeness === "in_2_3_days"
+              ? "In 2–3 days"
+              : targetRipeness === "later_this_week"
+              ? "Later this week"
+              : "Ready now"}
+          </span>
         </div>
 
         <button
