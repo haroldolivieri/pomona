@@ -179,7 +179,7 @@ describe("ResultStage (Mockup Parity)", () => {
     render(<ResultStage state={state} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} />);
 
     expect(screen.getByText(/★ NEW WINNER · BEATS 1ST PICK \(9\.0 VS 8\.6\)/i)).toBeInTheDocument();
-    expect(screen.getByText("Buy this one.")).toBeInTheDocument();
+    expect(screen.getByText("Buy this Runner-Up.")).toBeInTheDocument();
 
     // Winner badge is 9.0
     expect(screen.getByTestId("winner-score-badge")).toHaveTextContent("9.0");
@@ -258,7 +258,7 @@ describe("ResultStage (Mockup Parity)", () => {
 
     rerender(<ResultStage state={stateS7B} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} />);
     expect(screen.getByText(/★ FINAL VERDICT · RUNNER-UP WINS \(9\.0 VS 8\.4\)/i)).toBeInTheDocument();
-    expect(screen.getByText("Buy the new winner.")).toBeInTheDocument();
+    expect(screen.getByText("Buy the Runner-Up.")).toBeInTheDocument();
     expect(screen.getByTestId("winner-score-badge")).toHaveTextContent("9.0");
     expect(screen.getByTestId("runner-up-tag")).toHaveTextContent("1st Pick · 8.4");
     expect(screen.getByTestId("score-prev-mark")).toHaveStyle({ left: "84%" });
@@ -286,8 +286,8 @@ describe("ResultStage (Mockup Parity)", () => {
     const sheet = screen.getByTestId("result-bottom-sheet");
     const photoViewport = screen.getByTestId("result-photo-viewport");
 
-    // Initial state: photo height is fixed 46dvh, transform is 0px
-    expect(photoViewport.style.height).toBe("46dvh");
+    // Initial state: photo height is spacious 54dvh, transform is 0px
+    expect(photoViewport.style.height).toBe("54dvh");
     expect(sheet.style.transform).toBe("translate3d(0, 0px, 0)");
 
     // Drag up from the middle of the sheet (e.g. on headline text)
@@ -295,15 +295,15 @@ describe("ResultStage (Mockup Parity)", () => {
     fireEvent.touchStart(headlineEl, { touches: [{ clientY: 500 }] });
     fireEvent.touchMove(headlineEl, { touches: [{ clientY: 420 }] }); // -80px drag up
 
-    // Live drag moves sheet up by 80px and photo viewport by parallax (-80 * 0.22 = -17.6px)
+    // Live drag moves sheet up by 80px and photo viewport by parallax (-80 * 0.2 = -16px)
     expect(sheet.style.transform).toBe("translate3d(0, -80px, 0)");
-    expect(photoViewport.style.height).toBe("46dvh");
+    expect(photoViewport.style.height).toBe("54dvh");
 
-    // Release snap expands sheet (-110px) and keeps photo height unchanged at 46dvh
+    // Release snap expands sheet (-120px) and keeps photo height unchanged at 54dvh
     fireEvent.touchEnd(headlineEl);
-    expect(sheet.style.transform).toBe("translate3d(0, -110px, 0)");
-    expect(photoViewport.style.height).toBe("46dvh");
-    expect(photoViewport.style.transform).toBe("translate3d(0, -24.2px, 0)");
+    expect(sheet.style.transform).toBe("translate3d(0, -120px, 0)");
+    expect(photoViewport.style.height).toBe("54dvh");
+    expect(photoViewport.style.transform).toBe("translate3d(0, -24px, 0)");
   });
 
   it("renders 3-way ripeness switch in S4_InitialResult and triggers onSetTargetRipeness", () => {

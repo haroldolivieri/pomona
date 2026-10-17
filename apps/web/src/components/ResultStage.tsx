@@ -25,7 +25,11 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   onSetTargetRipeness,
 }) => {
   const { t } = useTranslation();
-  const [sheetExpanded, setSheetExpanded] = useState<boolean>(false);
+  // 3-way bottom sheet snap mode:
+  // 'collapsed': minimum sheet size (peek mode) showing handle + target goal + verdict headline + score bar; picture maximized to ~68dvh
+  // 'default': standard balance showing above + traits + storage cards
+  // 'expanded': scrolled up to clearly show follow-up hint and action buttons
+  const [sheetMode, setSheetMode] = useState<"collapsed" | "default" | "expanded">("default");
   const [dragOffsetY, setDragOffsetY] = useState<number>(0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const dragStartY = useRef<number | null>(null);
@@ -138,8 +142,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     const score2 = winnerScoreStr(runnerUp?.score);
     eyebrow = `✓ 1ST PICK WINS · BEATS RUNNER-UP (${score1} VS ${score2})`;
     headline = "Buy your 1st pick.";
-    subtitle = "Confirmed winner · Runner-Up fell short after flip";
-    confirmationBanner = `Runner-Up scored ${score2} after flip (${runnerUp?.flipSummary || "inspected"}). Stick with your 1st pick in the yellow box.`;
+    subtitle = "Your initial pick in the yellow box remains the best produce.";
+    confirmationBanner = `Runner-Up scored ${score2} after flip (${runnerUp?.flipSummary || "inspected"}). Stick with your initial 1st pick in the yellow box.`;
     prevMarkScore = runnerUp?.score ?? null;
     runnerUpTagLabel = `Runner-Up · ${score2}`;
   } else if (phase === "S5B2_RunnerUpTookLead") {
@@ -148,9 +152,9 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     const score1 = winnerScoreStr(firstPick?.score);
     const score2 = winnerScoreStr(runnerUp?.score);
     eyebrow = `★ NEW WINNER · BEATS 1ST PICK (${score2} VS ${score1})`;
-    headline = verdict?.headline || "Buy this one.";
-    subtitle = "Runner-Up took the lead · 1 final check available";
-    followUpHint = followUp?.bannerText || `1st Pick (${score1}) was only graded from the top. Flip it too for a fair final check, or take this one now.`;
+    headline = "Buy this Runner-Up.";
+    subtitle = `The flipped fruit scored ${score2} and took the lead over your 1st pick (${score1}).`;
+    followUpHint = followUp?.bannerText || `Your 1st Pick (${score1}) was only inspected from the top. Flip it too for a fair final check, or take this new winner now.`;
     prevMarkScore = firstPick?.score ?? null;
     runnerUpTagLabel = `1st Pick · ${score1}`;
   } else if (phase === "S7A_FirstPickWonFinal") {
@@ -159,9 +163,9 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     const score1 = winnerScoreStr(firstPick?.score);
     const score2 = winnerScoreStr(runnerUp?.score);
     eyebrow = `★ FINAL VERDICT · 1ST PICK RECLAIMS THE WIN (${score1} VS ${score2})`;
-    headline = verdict?.headline || "Buy your 1st pick.";
-    subtitle = "Both checked from both sides · Highest overall grade";
-    confirmationBanner = `After flipping, your 1st pick jumped to ${score1} and beat the Runner-Up (${score2}).`;
+    headline = "Buy your 1st pick.";
+    subtitle = `After checking both sides, your original 1st pick won overall (${score1} vs ${score2}).`;
+    confirmationBanner = `After flipping your 1st pick, its final score reached ${score1}, beating the Runner-Up (${score2}). Take your original pick!`;
     prevMarkScore = runnerUp?.score ?? null;
     runnerUpTagLabel = `Runner-Up · ${score2}`;
   } else if (phase === "S7B_FirstPickLostFinal") {
@@ -170,9 +174,9 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     const score1 = winnerScoreStr(firstPick?.score);
     const score2 = winnerScoreStr(runnerUp?.score);
     eyebrow = `★ FINAL VERDICT · RUNNER-UP WINS (${score2} VS ${score1})`;
-    headline = verdict?.headline || "Buy the new winner.";
-    subtitle = "Both checked from both sides · Runner-Up confirmed best";
-    confirmationBanner = `1st Pick scored ${score1} after flip. The former Runner-Up (${score2}) is confirmed as the best pick.`;
+    headline = "Buy the Runner-Up.";
+    subtitle = `Both checked from both sides · The fruit flipped in Round 2 won (${score2} vs ${score1}).`;
+    confirmationBanner = `Your 1st Pick scored ${score1} after flip. The Runner-Up you flipped in Round 2 (${score2}) is confirmed as the best pick.`;
     prevMarkScore = firstPick?.score ?? null;
     runnerUpTagLabel = `1st Pick · ${score1}`;
   }
@@ -193,18 +197,20 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const isLostStyle = phase === "S5B1_RunnerUpBeaten" || phase === "S7A_FirstPickWonFinal" || phase === "S7B_FirstPickLostFinal";
 
   // Calculate sheet translation and parallax offset
-  // Expanded moves sheet up by 120px; collapsed is 0px
-  const baseTranslateY = sheetExpanded ? -110 : 0;
-  const activeTranslateY = Math.max(-160, Math.min(80, baseTranslateY + dragOffsetY));
-  // Subtle parallax: photo + bounding boxes shift at 25% of sheet movement without changing dimensions
-  const parallaxY = activeTranslateY * 0.22;
+  // 'collapsed': sheet pushed down (+140px) so image expands to ~68% screen, keeping header & score bar visible
+  // 'default': 0px offset
+  // 'expanded': sheet pulled up (-120px) so CTA button and all details are visible
+  const baseTranslateY = sheetMode === "collapsed" ? 140 : sheetMode === "expanded" ? -120 : 0;
+  const activeTranslateY = Math.max(-180, Math.min(180, baseTranslateY + dragOffsetY));
+  // Subtle parallax: photo + bounding boxes shift at 20% of sheet movement
+  const parallaxY = activeTranslateY * 0.2;
 
   const handleDragStart = (clientY: number, target: EventTarget | null) => {
-    // Do not hijack taps on buttons
-    if (target instanceof HTMLElement && target.closest("button")) {
+    // Do not hijack taps on buttons or tabs
+    if (target instanceof HTMLElement && (target.closest("button") || target.closest("[role='tab']"))) {
       return;
     }
-    // If sheet is scrolled down internally, allow normal scroll up first
+    // If sheet is scrolled down internally, allow normal internal scroll first
     if (sheetRef.current && sheetRef.current.scrollTop > 0) {
       return;
     }
@@ -220,10 +226,20 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
   const handleDragEnd = () => {
     if (dragStartY.current === null) return;
-    if (dragOffsetY < -35) {
-      setSheetExpanded(true);
-    } else if (dragOffsetY > 35) {
-      setSheetExpanded(false);
+    if (dragOffsetY < -45) {
+      // Dragging UP
+      if (sheetMode === "collapsed") {
+        setSheetMode("default");
+      } else {
+        setSheetMode("expanded");
+      }
+    } else if (dragOffsetY > 45) {
+      // Dragging DOWN
+      if (sheetMode === "expanded") {
+        setSheetMode("default");
+      } else {
+        setSheetMode("collapsed");
+      }
     }
     dragStartY.current = null;
     setDragOffsetY(0);
@@ -354,7 +370,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         style={{
           position: "relative",
           width: "100%",
-          height: "46dvh",
+          height: "54dvh",
           backgroundColor: "#000000",
           overflow: "hidden",
           flexShrink: 0,
@@ -508,12 +524,12 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           color: "var(--text-primary)",
           borderTopLeftRadius: "26px",
           borderTopRightRadius: "26px",
-          marginTop: "-22px",
-          marginBottom: "-160px",
-          paddingTop: "14px",
+          marginTop: "-24px",
+          marginBottom: "-120px",
+          paddingTop: "12px",
           paddingLeft: "20px",
           paddingRight: "20px",
-          paddingBottom: "calc(max(28px, env(safe-area-inset-bottom)) + 160px)",
+          paddingBottom: "calc(max(28px, env(safe-area-inset-bottom)) + 140px)",
           zIndex: 15,
           display: "flex",
           flexDirection: "column",
@@ -521,21 +537,22 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.28)",
           transform: `translate3d(0, ${activeTranslateY}px, 0)`,
           transition: isDragging ? "none" : "transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
-          overflowY: sheetExpanded ? "auto" : "visible",
-          touchAction: "pan-y",
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
           willChange: "transform",
-          cursor: isDragging ? "grabbing" : "grab",
         }}
       >
         {/* Interactive Grab Handle Pill */}
         <div
-          onClick={() => setSheetExpanded((prev) => !prev)}
-          aria-label="Drag or tap to resize bottom sheet"
+          onClick={() => {
+            setSheetMode((prev) => (prev === "collapsed" ? "default" : prev === "default" ? "expanded" : "collapsed"));
+          }}
+          aria-label="Drag or tap to collapse or expand bottom sheet"
           role="button"
           tabIndex={0}
           style={{
             width: "100%",
-            padding: "4px 0",
+            padding: "6px 0 10px 0",
             display: "flex",
             justifyContent: "center",
             cursor: "pointer",
@@ -543,10 +560,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         >
           <div
             style={{
-              width: "36px",
-              height: "4px",
+              width: "40px",
+              height: "5px",
               borderRadius: "4px",
-              backgroundColor: "rgba(107, 106, 101, 0.35)",
+              backgroundColor: "rgba(107, 106, 101, 0.4)",
             }}
           />
         </div>

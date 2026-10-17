@@ -236,13 +236,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
   const renderCurrentStage = () => {
     switch (state.phase) {
       case "S1_LiveCamera":
-        return (
-          <CameraViewfinder
-            onCapture={handleFrameCaptured}
-            onToggleTheme={toggleTheme}
-            theme={theme}
-          />
-        );
+        return <CameraViewfinder onCapture={handleFrameCaptured} />;
 
       case "S2_DrawFocusArea":
         return (

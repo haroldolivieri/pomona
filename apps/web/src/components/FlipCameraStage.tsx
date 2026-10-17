@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { ScanMachineState } from "../state/scan-state-machine";
 
 import { ProduceFlipGraphic } from "./ProduceFlipGraphic";
+import { captureViewportCrop } from "../lib/image-pipeline";
 
 export interface FlipCameraStageProps {
   state: ScanMachineState;
@@ -79,17 +80,17 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
     };
   }, []);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const handleCapture = () => {
     if (videoRef.current && streamActive) {
       const video = videoRef.current;
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/webp", 0.75);
-        onCapture(dataUrl);
+      const container = containerRef.current;
+      const cw = container?.clientWidth || window.innerWidth;
+      const ch = container?.clientHeight || window.innerHeight;
+      const croppedUrl = captureViewportCrop(video, cw, ch, "image/webp", 0.85);
+      if (croppedUrl && croppedUrl.startsWith("data:")) {
+        onCapture(croppedUrl);
         return;
       }
     }
@@ -330,6 +331,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
 
       {/* Live Camera Feed */}
       <div
+        ref={containerRef}
         style={{
           flex: 1,
           width: "100%",

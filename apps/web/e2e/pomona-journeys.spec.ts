@@ -147,7 +147,7 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+        body: JSON.stringify(mockRound1Response ),
       });
     });
 
@@ -186,13 +186,13 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+          body: JSON.stringify(mockRound1Response ),
         });
       } else {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 8, response: mockRound2RunnerUpBeaten }),
+          body: JSON.stringify(mockRound2RunnerUpBeaten ),
         });
       }
     });
@@ -254,19 +254,19 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+          body: JSON.stringify(mockRound1Response ),
         });
       } else if (scanCount === 2) {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 8, response: mockRound2RunnerUpTookLead }),
+          body: JSON.stringify(mockRound2RunnerUpTookLead ),
         });
       } else {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 7, response: mockRound3FirstPickWon }),
+          body: JSON.stringify(mockRound3FirstPickWon ),
         });
       }
     });
@@ -313,19 +313,19 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+          body: JSON.stringify(mockRound1Response ),
         });
       } else if (scanCount === 2) {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 8, response: mockRound2RunnerUpTookLead }),
+          body: JSON.stringify(mockRound2RunnerUpTookLead ),
         });
       } else {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 7, response: mockRound3FirstPickLost }),
+          body: JSON.stringify(mockRound3FirstPickLost ),
         });
       }
     });
@@ -351,7 +351,7 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     await page.getByTestId("flip-shutter-button").click();
     await expect(page.getByTestId("stage-S7B_FirstPickLostFinal")).toBeVisible();
     await expect(page.getByText(/Runner-Up Wins \(9\.0 vs 8\.4\)/i)).toBeVisible();
-    await expect(page.getByText("Buy the new winner.")).toBeVisible();
+    await expect(page.getByText("Buy the Runner-Up.")).toBeVisible();
     await expect(page.getByTestId("cta-scan-another")).toBeVisible();
   });
 
@@ -363,13 +363,13 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+          body: JSON.stringify(mockRound1Response ),
         });
       } else {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 8, response: mockRound2RunnerUpTookLead }),
+          body: JSON.stringify(mockRound2RunnerUpTookLead ),
         });
       }
     });
@@ -385,10 +385,10 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     );
     expect(criticalOrSerious).toEqual([]);
 
-    // Toggle to Dark Theme
-    const themeBtn = page.getByTestId("theme-toggle-button");
-    await expect(themeBtn).toBeVisible();
-    await themeBtn.click();
+    // Switch to Dark Theme
+    await page.evaluate(() => {
+      document.documentElement.setAttribute("data-theme", "dark");
+    });
 
     // Verify dark theme applied
     const htmlTheme = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
@@ -472,13 +472,13 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+          body: JSON.stringify(mockRound1Response ),
         });
       } else {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ remainingScans: 8, response: mockRound2RunnerUpBeaten }),
+          body: JSON.stringify(mockRound2RunnerUpBeaten ),
         });
       }
     });

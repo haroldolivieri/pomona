@@ -504,6 +504,87 @@ export async function downsampleDataUrl(
   });
 }
 
+/**
+ * Crops a video element frame to match the exact aspect ratio and visible framing of its container
+ * when displayed with CSS `object-fit: cover`.
+ * This ensures the captured snapshot image exactly matches what the user saw in the viewfinder,
+ * preventing any bounding-box coordinate misalignment.
+ */
+export function captureViewportCrop(
+  video: HTMLVideoElement,
+  containerWidth: number,
+  containerHeight: number,
+  format: "image/webp" | "image/jpeg" = "image/webp",
+  quality = 0.85
+): string {
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+
+  if (!vw || !vh || !containerWidth || !containerHeight) {
+    const canvas = document.createElement("canvas");
+    canvas.width = vw || 640;
+    canvas.height = vh || 480;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL(format, quality);
+    }
+    return "";
+  }
+
+  const containerAspect = containerWidth / containerHeight;
+  const videoAspect = vw / vh;
+
+  let sourceX = 0;
+  let sourceY = 0;
+  let sourceWidth = vw;
+  let sourceHeight = vh;
+
+  if (videoAspect > containerAspect) {
+    // Video is wider than viewfinder container: crop horizontally from sides
+    sourceWidth = vh * containerAspect;
+    sourceX = (vw - sourceWidth) / 2;
+  } else {
+    // Video is taller than viewfinder container: crop vertically from top/bottom
+    sourceHeight = vw / containerAspect;
+    sourceY = (vh - sourceHeight) / 2;
+  }
+
+  // Create canvas with aspect ratio matching the visible container
+  const maxEdge = 1280;
+  let destWidth = sourceWidth;
+  let destHeight = sourceHeight;
+  if (destWidth > maxEdge || destHeight > maxEdge) {
+    if (destWidth > destHeight) {
+      destHeight = Math.round((destHeight * maxEdge) / destWidth);
+      destWidth = maxEdge;
+    } else {
+      destWidth = Math.round((destWidth * maxEdge) / destHeight);
+      destHeight = maxEdge;
+    }
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = destWidth;
+  canvas.height = destHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+
+  ctx.drawImage(
+    video,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    destWidth,
+    destHeight
+  );
+
+  return canvas.toDataURL(format, quality);
+}
+
 export interface RenderedCoverRect {
   left: number;
   top: number;

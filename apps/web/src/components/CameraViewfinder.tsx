@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { captureViewportCrop } from "../lib/image-pipeline";
 
 export interface CameraViewfinderProps {
   onCapture: (photoDataUrl: string) => void;
@@ -83,17 +84,17 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
     }
   };
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const handleCapture = () => {
     if (videoRef.current && streamActive) {
       const video = videoRef.current;
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/webp", 0.75);
-        onCapture(dataUrl);
+      const container = containerRef.current;
+      const cw = container?.clientWidth || window.innerWidth;
+      const ch = container?.clientHeight || window.innerHeight;
+      const croppedUrl = captureViewportCrop(video, cw, ch, "image/webp", 0.85);
+      if (croppedUrl && croppedUrl.startsWith("data:")) {
+        onCapture(croppedUrl);
         return;
       }
     }
@@ -241,32 +242,6 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
             ⚡
           </button>
 
-          {onToggleTheme && (
-            <button
-              onClick={onToggleTheme}
-              aria-label="Toggle theme"
-              data-testid="theme-toggle-button"
-              style={{
-                background: "rgba(251,250,246,0.92)",
-                border: "none",
-                borderRadius: "50%",
-                width: "36px",
-                height: "36px",
-                color: "#142117",
-                cursor: "pointer",
-                fontSize: "14px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                backdropFilter: "blur(10px)",
-                WebkitBackdropFilter: "blur(10px)",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
-              }}
-            >
-              {theme === "dark" ? "☀️" : "🌙"}
-            </button>
-          )}
-
           {onClose && (
             <button
               onClick={onClose}
@@ -297,6 +272,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
 
       {/* Video Viewfinder & Framing Corners */}
       <div
+        ref={containerRef}
         style={{
           flex: 1,
           width: "100%",

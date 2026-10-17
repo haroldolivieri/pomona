@@ -20,6 +20,8 @@ import { isPointInPolygon, isValidBoundingBox } from "./geometry";
  *   - winner & runner-up score ranking & multi-round promotion rules
  *   - shelf-life min/max sanity
  */
+function trimMax(val: string, maxLen: number): string;
+function trimMax(val: unknown, maxLen: number): unknown;
 function trimMax(val: unknown, maxLen: number): unknown {
   if (typeof val !== "string" || val.length <= maxLen) return val;
   return val.slice(0, Math.max(1, maxLen - 1)).trimEnd() + "…";

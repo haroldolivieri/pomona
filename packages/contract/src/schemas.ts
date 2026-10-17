@@ -92,7 +92,7 @@ export const ScanRequestSchema = z.object({
       requestedInstruction: z.string(),
       previousWinner: CandidateMemorySchema,
       previousRunnerUp: CandidateMemorySchema,
-      targetRipeness: TargetRipenessWindowSchema.optional().default("ready_now"),
+      targetRipeness: TargetRipenessWindowSchema.optional(),
     })
     .nullable(), // non-null on rounds 2 and 3
 });
