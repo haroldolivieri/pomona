@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { ScanResponse, Candidate, BoundingBox } from "@pomona/contract";
 import type { ScanMachineState } from "../state/scan-state-machine";
@@ -18,6 +18,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   onReset,
 }) => {
   const { t } = useTranslation();
+  const [sheetExpanded, setSheetExpanded] = useState<boolean>(false);
+  const dragStartY = useRef<number | null>(null);
   const { phase, lastResponse, firstPick, runnerUp, round1PhotoDataUrl } = state;
 
   if (!lastResponse || lastResponse.status !== "ok") {
@@ -143,7 +145,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         style={{
           position: "relative",
           width: "100%",
-          height: "44vh",
+          height: sheetExpanded ? "22vh" : "44vh",
+          transition: "height 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)",
           backgroundColor: "#000000",
           overflow: "hidden",
           flexShrink: 0,
@@ -280,13 +283,53 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           borderTopLeftRadius: "24px",
           borderTopRightRadius: "24px",
           marginTop: "-16px",
-          padding: "24px 20px 40px",
+          padding: "12px 20px 40px",
           zIndex: 10,
           display: "flex",
           flexDirection: "column",
           gap: "18px",
+          boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.25)",
         }}
       >
+        {/* Interactive Grab Handle Pill */}
+        <div
+          onTouchStart={(e) => {
+            dragStartY.current = e.touches[0].clientY;
+          }}
+          onTouchMove={(e) => {
+            if (dragStartY.current === null) return;
+            const deltaY = e.touches[0].clientY - dragStartY.current;
+            if (deltaY < -40) {
+              setSheetExpanded(true);
+            } else if (deltaY > 40) {
+              setSheetExpanded(false);
+            }
+          }}
+          onTouchEnd={() => {
+            dragStartY.current = null;
+          }}
+          onClick={() => setSheetExpanded((prev) => !prev)}
+          aria-label="Drag or tap to resize bottom sheet"
+          role="button"
+          tabIndex={0}
+          style={{
+            width: "100%",
+            padding: "8px 0",
+            display: "flex",
+            justifyContent: "center",
+            cursor: "pointer",
+            touchAction: "none",
+          }}
+        >
+          <div
+            style={{
+              width: "44px",
+              height: "5px",
+              borderRadius: "3px",
+              backgroundColor: "rgba(128, 128, 128, 0.4)",
+            }}
+          />
+        </div>
         {/* Eyebrow & Headline */}
         <div>
           <span

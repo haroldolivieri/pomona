@@ -243,20 +243,57 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
           }}
         >
           <div
-            className="animate-flip-3d"
             style={{
-              width: "140px",
-              height: "140px",
+              width: "130px",
+              height: "130px",
               borderRadius: "50%",
-              border: "3px dashed rgba(245, 213, 71, 0.8)",
+              padding: "4px",
+              border: "2px dashed rgba(245, 213, 71, 0.75)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "48px",
-              backgroundColor: "rgba(0,0,0,0.25)",
+              position: "relative",
             }}
           >
-            🥑
+            <div className="produce-flip-flipper">
+              {/* Front Face: Top View */}
+              <div className="produce-flip-face produce-flip-front">
+                <span style={{ fontSize: "42px", lineHeight: 1 }}>
+                  {state.lastResponse?.produce?.type === "watermelon" ? "🍉" : "🥑"}
+                </span>
+                <span
+                  style={{
+                    fontSize: "9px",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    color: "rgba(255,255,255,0.85)",
+                    marginTop: "2px",
+                  }}
+                >
+                  Top
+                </span>
+              </div>
+
+              {/* Back Face: Underside / Ground Spot */}
+              <div className="produce-flip-face produce-flip-back">
+                <span style={{ fontSize: "42px", lineHeight: 1, filter: "hue-rotate(45deg) brightness(1.1)" }}>
+                  {state.lastResponse?.produce?.type === "watermelon" ? "🍉" : "🥑"}
+                </span>
+                <span
+                  style={{
+                    fontSize: "9px",
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    color: "#1A261D",
+                    marginTop: "2px",
+                  }}
+                >
+                  Underside ☀️
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
