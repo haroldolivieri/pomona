@@ -195,6 +195,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
           ←
         </button>
 
+        {/* Top middle chip: Produce name ONLY */}
         <div
           data-testid="flip-top-chip"
           style={{
@@ -203,64 +204,16 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
             padding: "7px 14px",
             borderRadius: "999px",
             fontSize: "12px",
-            fontWeight: 600,
-            display: "flex",
-            alignItems: "center",
-            gap: "7px",
-            backdropFilter: "blur(10px)",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-          }}
-        >
-          {isFinalCheck ? (
-            <span
-              style={{
-                width: "9px",
-                height: "9px",
-                borderRadius: "2px",
-                background: "#F5D547",
-                border: "1.5px solid #142117",
-                display: "inline-block",
-              }}
-            />
-          ) : (
-            <span
-              style={{
-                width: "9px",
-                height: "9px",
-                borderRadius: "2px",
-                border: "2px dashed #2f6db5",
-                display: "inline-block",
-              }}
-            />
-          )}
-          <span>{isFinalCheck ? "1st Winner · Final Check" : "Runner-Up · Step 2"}</span>
-        </div>
-
-        {/* Goal Pill in Top Bar */}
-        <div
-          data-testid="flip-goal-pill"
-          style={{
-            backgroundColor: "rgba(251, 250, 246, 0.88)",
-            color: "#142117",
-            padding: "7px 12px",
-            borderRadius: "999px",
-            fontSize: "11px",
             fontWeight: 700,
             display: "flex",
             alignItems: "center",
-            gap: "5px",
+            gap: "6px",
             backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
             boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
           }}
         >
-          <span>🎯</span>
-          <span>
-            {targetRipeness === "in_2_3_days"
-              ? "In 2–3 days"
-              : targetRipeness === "later_this_week"
-              ? "Later this week"
-              : "Ready now"}
-          </span>
+          {state.lastResponse?.produce?.displayName || "Produce"}
         </div>
 
         <button
@@ -582,24 +535,59 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
             {instruction}
           </p>
 
-          {/* Score Pill */}
+          {/* Goal & Score Pills */}
           <div
-            data-testid="flip-score-pill"
             style={{
-              display: "inline-block",
+              display: "flex",
+              gap: "8px",
+              justifyContent: "center",
+              alignItems: "center",
               marginTop: "8px",
-              backgroundColor: "#eee9dc",
-              color: "#142117",
-              fontFamily: "Inter, sans-serif",
-              fontSize: "11px",
-              fontWeight: 700,
-              padding: "5px 12px",
-              borderRadius: "999px",
+              flexWrap: "wrap",
             }}
           >
-            {isFinalCheck
-              ? `Current leader: ${runnerUpScore} · 1st Winner: ${firstPickScore} (top only)`
-              : `Winner to beat: ${winnerToBeatScore} / 10`}
+            <div
+              data-testid="flip-goal-pill"
+              style={{
+                backgroundColor: "#eee9dc",
+                color: "#142117",
+                fontFamily: "Inter, sans-serif",
+                fontSize: "11px",
+                fontWeight: 700,
+                padding: "5px 12px",
+                borderRadius: "999px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+              }}
+            >
+              <span>🎯</span>
+              <span>
+                {targetRipeness === "in_2_3_days"
+                  ? "In 2–3 days"
+                  : targetRipeness === "later_this_week"
+                  ? "Later this week"
+                  : "Ready now"}
+              </span>
+            </div>
+
+            <div
+              data-testid="flip-score-pill"
+              style={{
+                display: "inline-block",
+                backgroundColor: "#eee9dc",
+                color: "#142117",
+                fontFamily: "Inter, sans-serif",
+                fontSize: "11px",
+                fontWeight: 700,
+                padding: "5px 12px",
+                borderRadius: "999px",
+              }}
+            >
+              {isFinalCheck
+                ? `Current leader: ${runnerUpScore} · 1st Winner: ${firstPickScore} (top only)`
+                : `Winner to beat: ${winnerToBeatScore} / 10`}
+            </div>
           </div>
         </div>
 

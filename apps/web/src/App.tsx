@@ -37,6 +37,7 @@ export interface PomonaAppProps {
   telemetry: TelemetryProvider;
   initialState?: Partial<ScanMachineState>;
   enableDebugOverride?: boolean;
+  initialRemainingScans?: number;
 }
 
 export const PomonaApp: React.FC<PomonaAppProps> = ({
@@ -44,11 +45,70 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
   telemetry,
   initialState,
   enableDebugOverride,
+  initialRemainingScans,
 }) => {
   const [state, dispatch] = useReducer(scanMachineReducer, {
     ...initialScanMachineState(),
     ...initialState,
   });
+
+  const [remainingScans, setRemainingScans] = useState<number>(() => {
+    if (typeof initialRemainingScans === "number") {
+      return initialRemainingScans;
+    }
+    try {
+      if (typeof window !== "undefined" && typeof window.location !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        const scansParam = params.get("scans");
+        if (scansParam !== null) {
+          const parsed = parseInt(scansParam, 10);
+          if (!isNaN(parsed) && parsed >= 0) return parsed;
+        }
+      }
+      if (typeof localStorage !== "undefined") {
+        const override = localStorage.getItem("pomona-scans-override");
+        if (override !== null) {
+          const parsed = parseInt(override, 10);
+          if (!isNaN(parsed) && parsed >= 0) return parsed;
+        }
+        const saved = localStorage.getItem("pomona-scans-remaining");
+        if (saved !== null) {
+          const parsed = parseInt(saved, 10);
+          if (!isNaN(parsed) && parsed >= 0) return parsed;
+        }
+      }
+    } catch {}
+    return 10;
+  });
+
+  const updateRemainingScans = (count: number) => {
+    const safeCount = Math.max(0, count);
+    setRemainingScans(safeCount);
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("pomona-scans-remaining", String(safeCount));
+        localStorage.setItem("pomona-scans-override", String(safeCount));
+      }
+    } catch {}
+  };
+
+  const handleQuotaPrompt = () => {
+    if (typeof window === "undefined" || typeof window.prompt !== "function") return;
+    const current = remainingScans;
+    const val = window.prompt("Set remaining scans (currently " + current + "):", String(current));
+    if (val !== null) {
+      const parsed = parseInt(val.trim(), 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        updateRemainingScans(parsed);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).__setRemainingScans = updateRemainingScans;
+    }
+  }, []);
 
   // Debug mock mode is strictly active only during development (import.meta.env.DEV)
   // or when explicitly enabled via enableDebugOverride (e.g. in targeted tests)
@@ -196,6 +256,17 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
           ? (result as any).response
           : (result as unknown as ScanResponse);
 
+      // Decrement remaining scans on scan execution
+      setRemainingScans((prev) => {
+        const next = Math.max(0, prev - 1);
+        try {
+          if (typeof localStorage !== "undefined") {
+            localStorage.setItem("pomona-scans-remaining", String(next));
+          }
+        } catch {}
+        return next;
+      });
+
       telemetry.capture("scan_completed", { round, status: scanResponse.status });
       dispatch({ type: "SCAN_SUCCEEDED", response: scanResponse });
     } catch (err: any) {
@@ -236,7 +307,15 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
   const renderCurrentStage = () => {
     switch (state.phase) {
       case "S1_LiveCamera":
-        return <CameraViewfinder onCapture={handleFrameCaptured} />;
+        return (
+          <CameraViewfinder
+            onCapture={handleFrameCaptured}
+            remainingScans={remainingScans}
+            onQuotaClick={handleQuotaPrompt}
+            onToggleTheme={toggleTheme}
+            theme={theme}
+          />
+        );
 
       case "S2_DrawFocusArea":
         return (
@@ -245,6 +324,8 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             onAnalyse={handleStartAnalyse}
             onRetake={handleReset}
             errorMessage={state.errorMessage}
+            remainingScans={remainingScans}
+            onQuotaClick={handleQuotaPrompt}
           />
         );
 
@@ -255,6 +336,8 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             focusPolygon={state.focusPolygon}
             cropRect={state.cropRect}
             onCancel={handleReset}
+            remainingScans={remainingScans}
+            onQuotaClick={handleQuotaPrompt}
           />
         );
 
@@ -333,37 +416,67 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
 
       {/* Discrete tap target below top bar on left (DEV ONLY) */}
       {isDevMode && (
-        <button
-          type="button"
-          onClick={() => {
-            setIsMockMode((prev) => {
-              const next = !prev;
-              try {
-                localStorage.setItem("pomona-mock-mode", String(next));
-              } catch {}
-              return next;
-            });
-          }}
-          aria-label="Toggle Mock Mode"
+        <div
           style={{
             position: "fixed",
             top: "calc(max(16px, env(safe-area-inset-top)) + 50px)",
             left: "16px",
             zIndex: 80,
-            background: isMockMode ? "rgba(245, 213, 71, 0.2)" : "rgba(0,0,0,0.35)",
-            border: isMockMode ? "1px solid #F5D547" : "1px solid rgba(255,255,255,0.3)",
-            color: isMockMode ? "#F5D547" : "rgba(255,255,255,0.8)",
-            padding: "4px 9px",
-            borderRadius: "12px",
-            fontSize: "10.5px",
-            fontWeight: 600,
-            cursor: "pointer",
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
+            display: "flex",
+            gap: "6px",
+            alignItems: "center",
           }}
         >
-          {isMockMode ? "🧪 MOCK" : "🌐 LIVE"}
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsMockMode((prev) => {
+                const next = !prev;
+                try {
+                  localStorage.setItem("pomona-mock-mode", String(next));
+                } catch {}
+                return next;
+              });
+            }}
+            aria-label="Toggle Mock Mode"
+            style={{
+              background: isMockMode ? "rgba(245, 213, 71, 0.2)" : "rgba(0,0,0,0.35)",
+              border: isMockMode ? "1px solid #F5D547" : "1px solid rgba(255,255,255,0.3)",
+              color: isMockMode ? "#F5D547" : "rgba(255,255,255,0.8)",
+              padding: "4px 9px",
+              borderRadius: "12px",
+              fontSize: "10.5px",
+              fontWeight: 600,
+              cursor: "pointer",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+            }}
+          >
+            {isMockMode ? "🧪 MOCK" : "🌐 LIVE"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleQuotaPrompt}
+            aria-label="Set remaining scans"
+            data-testid="dev-set-scans-button"
+            title="Click to override scan quota"
+            style={{
+              background: "rgba(0,0,0,0.35)",
+              border: "1px solid rgba(255,255,255,0.3)",
+              color: "#F5D547",
+              padding: "4px 9px",
+              borderRadius: "12px",
+              fontSize: "10.5px",
+              fontWeight: 600,
+              cursor: "pointer",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+            }}
+          >
+            ⚡ {remainingScans} scans
+          </button>
+        </div>
       )}
     </div>
   );

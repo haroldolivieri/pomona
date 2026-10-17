@@ -8,6 +8,7 @@ export interface CameraViewfinderProps {
   onToggleTheme?: () => void;
   theme?: "light" | "dark";
   remainingScans?: number;
+  onQuotaClick?: () => void;
 }
 
 export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
@@ -16,6 +17,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   onToggleTheme,
   theme = "light",
   remainingScans = 10,
+  onQuotaClick,
 }) => {
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -197,6 +199,10 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         {/* Center: Quota chip pill */}
         <div
           data-testid="scan-quota-pill"
+          onClick={onQuotaClick}
+          role={onQuotaClick ? "button" : undefined}
+          tabIndex={onQuotaClick ? 0 : undefined}
+          title={onQuotaClick ? "Tap to override scan quota (testing)" : undefined}
           style={{
             background: "rgba(251,250,246,0.92)",
             color: "#142117",
@@ -211,6 +217,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
             display: "inline-flex",
             alignItems: "center",
             boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+            cursor: onQuotaClick ? "pointer" : "default",
           }}
         >
           {t("camera.scansLeftToday", { count: remainingScans ?? 10 })}

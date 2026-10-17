@@ -31,12 +31,12 @@ describe("FlipCameraStage (Mockup Parity)", () => {
     expect(screen.getByTestId("pip-reference-thumbnail")).toHaveTextContent("Runner-Up");
     expect(screen.getByTestId("back-button")).toBeInTheDocument();
     expect(screen.getByTestId("close-button")).toBeInTheDocument();
-    expect(screen.getByTestId("flip-top-chip")).toHaveTextContent("Runner-Up · Step 2");
+    expect(screen.getByTestId("flip-top-chip")).toHaveTextContent("Watermelon");
     expect(screen.getByTestId("flip-instruction-eyebrow")).toHaveTextContent("INSPECT RUNNER-UP");
     expect(screen.getByTestId("flip-score-pill")).toHaveTextContent("Winner to beat: 8.6 / 10");
   });
 
-  it("renders State 6 parity with 1st Pick chip, gold eyebrow, and reclaim score pill", () => {
+  it("renders State 6 parity with 1st Winner thumbnail, gold eyebrow, produce name chip, and reclaim score pill", () => {
     const state = {
       ...initialScanMachineState(),
       phase: "S6_FlipFirstPickCamera" as const,
@@ -57,7 +57,7 @@ describe("FlipCameraStage (Mockup Parity)", () => {
     render(<FlipCameraStage state={state} onCapture={vi.fn()} onBack={vi.fn()} onClose={vi.fn()} />);
     expect(screen.getByTestId("flip-reticle-brackets")).toBeInTheDocument();
     expect(screen.getByTestId("pip-reference-thumbnail")).toHaveTextContent("1st Winner");
-    expect(screen.getByTestId("flip-top-chip")).toHaveTextContent("1st Winner · Final Check");
+    expect(screen.getByTestId("flip-top-chip")).toHaveTextContent("Watermelon");
     expect(screen.getByTestId("flip-instruction-eyebrow")).toHaveTextContent("FINAL CHECK · BEAT 9.0 TO RECLAIM");
     expect(screen.getByTestId("flip-score-pill")).toHaveTextContent("Current leader: 9.0 · 1st Winner: 8.6 (top only)");
     expect(screen.getByTestId("flip-shutter-button")).toBeInTheDocument();

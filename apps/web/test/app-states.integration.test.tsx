@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
@@ -177,5 +178,71 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     // Clicking primary CTA resets back to camera
     fireEvent.click(screen.getByTestId("error-primary-cta"));
     expect(await screen.findByTestId("stage-S1_LiveCamera")).toBeTruthy();
+  });
+
+  it("unifies top middle chip (quota vs produce name) and decrements/overrides scan counter", async () => {
+    const mockScan = vi.fn().mockResolvedValue({
+      remainingScans: 9,
+      response: {
+        schemaVersion: "1.0",
+        promptVersion: "v1",
+        modelId: "gemini-2.5-flash",
+        round: 1,
+        status: "ok",
+        message: null,
+        produce: { type: "mango", displayName: "Alphonso Mango", variety: "Alphonso" },
+        candidates: [
+          { id: "c1", box: [385, 370, 625, 655], score: 8.9, ripeness: "ripe", traits: ["Golden amber"], flipSummary: null },
+        ],
+        verdict: { winnerId: "c1", runnerUpId: null, confidence: "high", headline: "Buy it." },
+        followUp: null,
+        afterPurchase: {
+          readyInDays: { min: 0, max: 0 },
+          eatWithinDays: { min: 2, max: 3 },
+          eatWithinLabel: "2–3 days",
+          storage: {
+            beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter", tip: "" },
+            afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge", tip: "" },
+          },
+        },
+      },
+    });
+
+    const apiClient = {
+      getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
+      submitScan: mockScan,
+    };
+
+    render(
+      <PomonaApp
+        apiClient={apiClient}
+        telemetry={createNoopTelemetry()}
+        initialRemainingScans={10}
+      />
+    );
+
+    // State 1: Top middle chip shows 10 scans left today
+    expect(screen.getByTestId("scan-quota-pill")).toHaveTextContent("10 scans left today");
+
+    // Snap photo -> State 2: Top middle chip STILL shows 10 scans left today
+    fireEvent.click(screen.getByTestId("shutter-button"));
+    expect(await screen.findByTestId("stage-S2_DrawFocusArea")).toBeTruthy();
+    expect(screen.getByTestId("scan-quota-pill")).toHaveTextContent("10 scans left today");
+
+    // Scan whole photo -> State 4: Top middle chip shows Alphonso Mango ONLY
+    fireEvent.click(screen.getByTestId("whole-photo-button"));
+    expect(await screen.findByTestId("stage-S4_InitialResult")).toBeTruthy();
+    expect(screen.getByTestId("produce-name-chip")).toHaveTextContent("Alphonso Mango");
+
+    // Retake / Reset to Camera -> Counter has decremented to 9
+    fireEvent.click(screen.getByTestId("retake-button"));
+    expect(await screen.findByTestId("stage-S1_LiveCamera")).toBeTruthy();
+    expect(screen.getByTestId("scan-quota-pill")).toHaveTextContent("9 scans left today");
+
+    // Test override mechanism by clicking the quota chip pill
+    const promptSpy = vi.spyOn(window, "prompt").mockReturnValueOnce("3");
+    fireEvent.click(screen.getByTestId("scan-quota-pill"));
+    expect(promptSpy).toHaveBeenCalled();
+    expect(await screen.findByText("3 scans left today")).toBeTruthy();
   });
 });
