@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { PomonaApp } from "./App";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { createFetchApiClient } from "./lib/api-client";
 import { createPostHogSentryTelemetry } from "./lib/telemetry";
 import "./i18n";
@@ -13,7 +14,9 @@ if (rootElement) {
 
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
-      <PomonaApp apiClient={apiClient} telemetry={telemetry} />
+      <ErrorBoundary>
+        <PomonaApp apiClient={apiClient} telemetry={telemetry} />
+      </ErrorBoundary>
     </React.StrictMode>
   );
 }

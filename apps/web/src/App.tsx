@@ -8,7 +8,20 @@ import {
   buildFollowUpRequestContext,
   type ScanMachineState,
 } from "./state/scan-state-machine";
-import type { CropRect } from "./lib/image-pipeline";
+import { downsampleDataUrl, type CropRect } from "./lib/image-pipeline";
+
+function generateUuid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) => {
+    const num = Number(c);
+    const rnd = typeof crypto !== "undefined" && crypto.getRandomValues
+      ? crypto.getRandomValues(new Uint8Array(1))[0]
+      : Math.floor(Math.random() * 256);
+    return (num ^ (rnd & (15 >> (num / 4)))).toString(16);
+  });
+}
 import { CameraViewfinder } from "./components/CameraViewfinder";
 import { FreehandDrawStage } from "./components/FreehandDrawStage";
 import { AnalysingStage } from "./components/AnalysingStage";
@@ -153,17 +166,18 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
   ) => {
     try {
       telemetry.capture("scan_started", { round });
-      // Strip base64 prefix
-      const base64Data = photoDataUrl.includes(",")
-        ? photoDataUrl.split(",")[1]
-        : photoDataUrl;
-      const mimeType = photoDataUrl.includes("image/jpeg") ? "image/jpeg" : "image/webp";
+
+      // Downsample and compress photo to <= 768px JPEG/WebP so it stays lightweight and within body limits
+      const { base64: base64Data, mimeType } = await downsampleDataUrl(photoDataUrl, 768, 0.8);
+      console.log(
+        `[scan] Prepared payload: round ${round}, ${mimeType}, base64 length: ${base64Data.length} chars`
+      );
 
       const request: ScanRequest = {
         schemaVersion: "1.0",
-        sessionId: "session-" + Date.now(),
+        sessionId: generateUuid(),
         round,
-        locale: "en",
+        locale: "en-GB",
         imageBase64: base64Data,
         imageMimeType: mimeType,
         focusPolygon: focusPolygon || null,
@@ -174,6 +188,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
       telemetry.capture("scan_completed", { round, status: result.response.status });
       dispatch({ type: "SCAN_SUCCEEDED", response: result.response });
     } catch (err: any) {
+      console.error("[scan:failed]", err);
       telemetry.captureException(err, { round });
       dispatch({ type: "SCAN_FAILED", error: err.message || "Network error" });
     }

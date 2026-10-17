@@ -22,14 +22,19 @@ export function createPostHogSentryTelemetry(options?: {
     capture(event, properties) {
       if (typeof window !== "undefined" && (window as any).posthog) {
         (window as any).posthog.capture(event, properties);
+      } else {
+        console.log(`[telemetry] ${event}`, properties ?? "");
       }
     },
     identify(distinctId, traits) {
       if (typeof window !== "undefined" && (window as any).posthog) {
         (window as any).posthog.identify(distinctId, traits);
+      } else {
+        console.log(`[telemetry] identify: ${distinctId}`, traits ?? "");
       }
     },
     captureException(error, context) {
+      console.error(`[telemetry:exception]`, error, context ?? "");
       if (typeof window !== "undefined" && (window as any).Sentry) {
         (window as any).Sentry.captureException(error, { extra: context });
       }

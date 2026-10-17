@@ -35,7 +35,24 @@ export function createFetchApiClient(baseUrl: string = ""): PomonaApiClient {
         body: JSON.stringify(request),
       });
       if (!res.ok) {
-        throw new Error(`Scan request failed: ${res.statusText}`);
+        let errorDetail = res.statusText || "";
+        try {
+          const errorJson = await res.json();
+          errorDetail =
+            errorJson.error ||
+            errorJson.message ||
+            (Array.isArray(errorJson.details) ? JSON.stringify(errorJson.details) : "") ||
+            JSON.stringify(errorJson);
+        } catch {
+          try {
+            const errorText = await res.text();
+            if (errorText) errorDetail = errorText;
+          } catch {
+            // ignore
+          }
+        }
+        console.error(`[api-client] Scan request failed (${res.status}): ${errorDetail}`);
+        throw new Error(`Scan request failed (${res.status}): ${errorDetail || "Unknown error"}`);
       }
       return res.json();
     },

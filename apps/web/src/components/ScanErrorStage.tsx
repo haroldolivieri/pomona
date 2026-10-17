@@ -82,14 +82,14 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
         position: "relative",
         width: "100%",
         height: "100dvh",
-        backgroundColor: "#000000",
+        background: "radial-gradient(circle at 50% 30%, #1C3524 0%, #080E09 100%)",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
       }}
     >
-      {/* Dimmed frozen background photo */}
+      {/* Frozen background photo with clear contrast */}
       {photoDataUrl && (
         <img
           src={photoDataUrl}
@@ -100,7 +100,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
             width: "100%",
             height: "100%",
             objectFit: "cover",
-            filter: "brightness(0.35) blur(3px)",
+            filter: "brightness(0.65) blur(2px)",
             transform: "scale(1.05)",
           }}
         />
@@ -233,8 +233,8 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: "var(--surface-sheet)",
-          color: "var(--text-primary)",
+          backgroundColor: "var(--surface-sheet, #FBFAF6)",
+          color: "var(--text-primary, #1A261D)",
           borderRadius: "26px 26px 0 0",
           paddingTop: "20px",
           paddingLeft: "20px",

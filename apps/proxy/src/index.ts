@@ -44,7 +44,7 @@ export interface CreateProxyAppOptions {
 const DEVICE_TOKEN_HEADER = "X-Pomona-Device-Token";
 const DEVICE_TOKEN_COOKIE = "pomona_device_token";
 const REMAINING_SCANS_HEADER = "X-Pomona-Remaining-Scans";
-const MAX_BODY_BYTES = 500 * 1024; // 500 KB limit
+const MAX_BODY_BYTES = 500 * 1024; // 500 KB limit per contract spec
 
 function defaultAdapterFactory(modelId: string, env: Env): VisionProviderAdapter {
   const provider = env.ACTIVE_PROVIDER ?? "gemini";
@@ -93,13 +93,14 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
     })
   );
 
-  // 500 KB request body limit
+  // 500 KB request body limit with JSON error
   app.use(
     "/api/v1/scan",
     bodyLimit({
       maxSize: MAX_BODY_BYTES,
       onError: (c) => {
-        return c.text("Request body too large. Maximum size is 500 KB.", 413);
+        console.warn("[proxy] Request body exceeded size limit:", c.req.header("content-length"));
+        return c.json({ error: "Request body too large. Maximum size is 500 KB." }, 413);
       },
     })
   );
@@ -177,12 +178,17 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
     let rawBody: unknown;
     try {
       rawBody = await c.req.json();
-    } catch {
+    } catch (err: any) {
+      console.warn("[proxy] Failed to parse JSON body:", err?.message);
       return c.json({ error: "Invalid JSON body" }, 400);
     }
 
     const parseResult = ScanRequestSchema.safeParse(rawBody);
     if (!parseResult.success) {
+      console.warn(
+        "[proxy] ScanRequestSchema validation failed:",
+        JSON.stringify(parseResult.error.errors)
+      );
       return c.json(
         {
           error: "Invalid scan request",
@@ -193,6 +199,9 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
     }
 
     const scanRequest: ScanRequest = parseResult.data;
+    console.log(
+      `[proxy] Scan request valid: round ${scanRequest.round}, mime: ${scanRequest.imageMimeType}, base64 length: ${scanRequest.imageBase64.length} chars`
+    );
     const store = resolveQuotaStore(c.env, deps.quotaStore);
     const ip = getClientIp(c.req.raw);
 

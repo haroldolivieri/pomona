@@ -111,7 +111,7 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
         position: "relative",
         width: "100%",
         height: "100dvh",
-        backgroundColor: "#000000",
+        background: "radial-gradient(circle at 50% 30%, #1C3524 0%, #080E09 100%)",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
