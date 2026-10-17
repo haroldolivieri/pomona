@@ -34,9 +34,9 @@
     ]
   },
   "result": {
-    "eatWithin": "Eat within",
-    "beforeCut": "Before cut",
-    "afterCut": "After cut",
+    "eatWithin": "🗓 Eat within",
+    "beforeCut": "🧺 Before cut",
+    "afterCut": "❄️ After cut",
     "winnerToBeat": "Winner to beat: {{score}} / 10",
     "compareWithRunnerUp": "Compare with Runner-Up",
     "flipFinalCheckFirstPick": "Flip 1st Pick for Final Check",
