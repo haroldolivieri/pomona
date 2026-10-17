@@ -652,9 +652,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           }}
           style={{
             width: "100%",
-            minHeight: "22px",
-            paddingTop: "6px",
-            paddingBottom: "4px",
+            minHeight: "44px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -666,8 +664,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           <div
             data-testid="drag-handle"
             style={{
-              width: "32px",
-              height: "4px",
+              width: "36px",
+              height: "4.5px",
               borderRadius: "4px",
               backgroundColor: "rgba(107, 106, 101, 0.45)",
               pointerEvents: "none",
@@ -683,11 +681,11 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             aria-label="Target ripeness window"
             style={{
               backgroundColor: "var(--surface-card)",
-              padding: "2.5px",
-              borderRadius: "11px",
+              padding: "3.5px",
+              borderRadius: "13px",
               display: "grid",
               gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "3px",
+              gap: "4px",
               border: "1px solid var(--surface-card-border)",
             }}
           >
@@ -711,26 +709,26 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                     border: "none",
                     backgroundColor: isActive ? "var(--surface-sheet)" : "transparent",
                     color: isActive ? "var(--text-primary)" : "var(--text-muted)",
-                    padding: "4px 3px",
-                    borderRadius: "8px",
+                    padding: "6px 4px",
+                    borderRadius: "10px",
                     cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     lineHeight: 1.15,
-                    boxShadow: isActive ? "0 1.5px 5px rgba(0, 0, 0, 0.12)" : "none",
+                    boxShadow: isActive ? "0 2px 6px rgba(0, 0, 0, 0.12)" : "none",
                     transition: "all 0.18s ease",
                   }}
                 >
-                  <span style={{ fontSize: "10.5px", fontWeight: 700, display: "flex", alignItems: "center" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center" }}>
                     {isActive && (
                       <span
                         style={{
-                          width: "5px",
-                          height: "5px",
+                          width: "6px",
+                          height: "6px",
                           borderRadius: "50%",
                           backgroundColor: tab.dot,
-                          marginRight: "3px",
+                          marginRight: "4px",
                           display: "inline-block",
                         }}
                       />
@@ -739,10 +737,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   </span>
                   <span
                     style={{
-                      fontSize: "9px",
+                      fontSize: "9.5px",
                       fontWeight: 600,
                       color: isActive ? "var(--text-primary)" : "var(--text-muted)",
-                      marginTop: "1px",
+                      marginTop: "2px",
                     }}
                   >
                     {tab.sub}
@@ -764,11 +762,11 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               backgroundColor: "var(--surface-card)",
               border: "1px solid var(--surface-card-border)",
               borderRadius: "11px",
-              padding: "5px 10px",
+              padding: "7px 12px",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              fontSize: "11px",
+              fontSize: "11.5px",
               fontWeight: 700,
               color: "var(--text-primary)",
             }}
@@ -788,7 +786,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 backgroundColor: "var(--surface-sheet)",
                 padding: "2px 8px",
                 borderRadius: "999px",
-                fontSize: "10px",
+                fontSize: "10.5px",
                 fontWeight: 800,
                 color: "var(--eyebrow-accent)",
                 border: "1px solid var(--surface-card-border)",
@@ -809,9 +807,9 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           style={{
             height: "1px",
             backgroundColor: "var(--surface-card-border)",
-            opacity: 0.5,
-            marginTop: "2px",
-            marginBottom: "2px",
+            opacity: 0.6,
+            marginTop: "6px",
+            marginBottom: "4px",
           }}
         />
 
@@ -820,13 +818,13 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           {phase !== "S4_InitialResult" && eyebrow && (
             <span
               style={{
-                fontSize: "10.5px",
+                fontSize: "11px",
                 fontWeight: 700,
                 letterSpacing: "0.12em",
                 color: "var(--eyebrow-accent)",
                 textTransform: "uppercase",
                 display: "block",
-                marginBottom: "2px",
+                marginBottom: "4px",
               }}
             >
               {eyebrow}
@@ -837,23 +835,23 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: "10px",
+              gap: "12px",
             }}
           >
             <div>
               <h1
                 className="font-serif"
                 style={{
-                  fontSize: "24px",
+                  fontSize: "30px",
                   fontWeight: 700,
-                  lineHeight: 1.1,
+                  lineHeight: 1.15,
                   color: "var(--text-primary)",
                   letterSpacing: "-0.015em",
                 }}
               >
                 {headline}
               </h1>
-              <p style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+              <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "2px" }}>
                 {subtitle}
               </p>
             </div>
@@ -864,8 +862,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 data-testid="circular-score-meter"
                 style={{
                   position: "relative",
-                  width: "40px",
-                  height: "40px",
+                  width: "48px",
+                  height: "48px",
                   flexShrink: 0,
                   display: "flex",
                   alignItems: "center",
@@ -873,31 +871,31 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 }}
               >
                 <svg
-                  width="40"
-                  height="40"
-                  viewBox="0 0 40 40"
+                  width="48"
+                  height="48"
+                  viewBox="0 0 48 48"
                   style={{ transform: "rotate(-90deg)", position: "absolute", inset: 0 }}
                 >
                   {/* Track circle */}
                   <circle
-                    cx="20"
-                    cy="20"
-                    r="16"
+                    cx="24"
+                    cy="24"
+                    r="19"
                     fill="none"
                     stroke="var(--surface-track)"
-                    strokeWidth="3"
+                    strokeWidth="3.5"
                   />
                   {/* Progress circle */}
                   <circle
-                    cx="20"
-                    cy="20"
-                    r="16"
+                    cx="24"
+                    cy="24"
+                    r="19"
                     fill="none"
                     stroke="#F2C935"
-                    strokeWidth="3"
-                    strokeDasharray={2 * Math.PI * 16}
+                    strokeWidth="3.5"
+                    strokeDasharray={2 * Math.PI * 19}
                     strokeDashoffset={
-                      2 * Math.PI * 16 * (1 - Math.min(10, Math.max(0, activeWinner.score)) / 10)
+                      2 * Math.PI * 19 * (1 - Math.min(10, Math.max(0, activeWinner.score)) / 10)
                     }
                     strokeLinecap="round"
                   />
@@ -905,15 +903,15 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   {prevMarkScore !== null && (
                     <circle
                       data-testid="score-prev-mark"
-                      cx="20"
-                      cy="20"
-                      r="16"
+                      cx="24"
+                      cy="24"
+                      r="19"
                       fill="none"
                       stroke="#142117"
-                      strokeWidth="3"
-                      strokeDasharray={`2 ${2 * Math.PI * 16 - 2}`}
+                      strokeWidth="3.5"
+                      strokeDasharray={`2 ${2 * Math.PI * 19 - 2}`}
                       strokeDashoffset={
-                        -1 * (2 * Math.PI * 16 * (Math.min(10, Math.max(0, prevMarkScore)) / 10) - 1)
+                        -1 * (2 * Math.PI * 19 * (Math.min(10, Math.max(0, prevMarkScore)) / 10) - 1)
                       }
                       opacity={0.7}
                     />
@@ -922,7 +920,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 <span
                   className="tabular-nums"
                   style={{
-                    fontSize: "12px",
+                    fontSize: "13px",
                     fontWeight: 800,
                     color: "var(--text-primary)",
                     lineHeight: 1,
