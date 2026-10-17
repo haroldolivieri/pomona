@@ -7,6 +7,8 @@
  * Never consumed by the LLM: it is attached server-side after a scan.
  */
 
+import type { OriginSeasonOption, SeasonalityInfo, SeasonalityStatus } from "./schemas";
+
 export type SeasonalityZone =
   | "BR"
   | "EU_NORTH_WEST"
@@ -30,30 +32,6 @@ export type OriginCode =
   | "IN"
   | "EG"
   | "CO";
-
-export type SeasonalityStatus = "peak" | "in_season" | "off_season" | "imported_year_round";
-
-export interface OriginSeasonOption {
-  code: string;
-  name: string;
-  flag: string;
-  status: SeasonalityStatus;
-  peakWindowLabel: string;
-  badgeText: string;
-  noteText: string;
-}
-
-export interface SeasonalityInfo {
-  produceSlug: string;
-  month: number;
-  shopperCountry: string;
-  shopperZone: string;
-  status: SeasonalityStatus;
-  peakWindowLabel: string;
-  badgeText: string;
-  noteText: string;
-  origins: OriginSeasonOption[];
-}
 
 export interface ShopperRegionInput {
   cfCountry?: string | null;

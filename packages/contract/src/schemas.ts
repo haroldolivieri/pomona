@@ -75,6 +75,32 @@ export const TargetRipenessWindowSchema = z.enum([
 ]);
 export type TargetRipenessWindow = z.infer<typeof TargetRipenessWindowSchema>;
 
+// Server-injected seasonality (never part of ScanResponseModelSchema / the LLM prompt)
+export const SeasonalityStatusSchema = z.enum(["peak", "in_season", "off_season", "imported_year_round"]);
+
+export const OriginSeasonOptionSchema = z.object({
+  code: z.string(), // e.g. "BR", "PE", "ES"
+  name: z.string(), // e.g. "Brazil"
+  flag: z.string(), // e.g. "🇧🇷"
+  status: SeasonalityStatusSchema,
+  peakWindowLabel: z.string(), // e.g. "Oct–Jan", "Year-round"
+  badgeText: z.string().max(48),
+  noteText: z.string().max(90),
+});
+
+export const SeasonalityInfoSchema = z.object({
+  produceSlug: z.string(),
+  month: z.number().int().min(1).max(12),
+  shopperCountry: z.string(),
+  shopperZone: z.string(),
+  status: SeasonalityStatusSchema,
+  peakWindowLabel: z.string(),
+  badgeText: z.string().max(48),
+  noteText: z.string().max(90),
+  origins: z.array(OriginSeasonOptionSchema).max(8),
+});
+
+
 export const ScanRequestSchema = z.object({
   schemaVersion: z.literal("1.0"),
   sessionId: z.string().uuid(),
@@ -138,6 +164,7 @@ export const ScanResponseSchema = z.object({
   verdict: VerdictSchema.nullable(),
   followUp: FollowUpSchema.nullable(),
   afterPurchase: AfterPurchaseSchema.nullable(),
+  seasonality: SeasonalityInfoSchema.nullable().optional(),
 });
 
 export type Point = z.infer<typeof PointSchema>;
@@ -149,6 +176,9 @@ export type Candidate = z.infer<typeof CandidateSchema>;
 export type Verdict = z.infer<typeof VerdictSchema>;
 export type FollowUp = z.infer<typeof FollowUpSchema>;
 export type AfterPurchase = z.infer<typeof AfterPurchaseSchema>;
+export type SeasonalityStatus = z.infer<typeof SeasonalityStatusSchema>;
+export type OriginSeasonOption = z.infer<typeof OriginSeasonOptionSchema>;
+export type SeasonalityInfo = z.infer<typeof SeasonalityInfoSchema>;
 export type ModelStatus = z.infer<typeof ModelStatusSchema>;
 export type ScanStatus = z.infer<typeof ScanStatusSchema>;
 export type ScanRequest = z.infer<typeof ScanRequestSchema>;

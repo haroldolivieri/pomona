@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ScanRequestSchema, ScanResponseSchema } from "../src/index";
+import {
+  ScanRequestSchema,
+  ScanResponseModelSchema,
+  ScanResponseSchema,
+  lookupProduceSeasonality,
+} from "../src/index";
 
 describe("ScanRequestSchema & ScanResponseSchema", () => {
   it("accepts a valid Round 1 ScanRequest with a freehand focusPolygon", () => {
@@ -80,5 +85,48 @@ describe("ScanRequestSchema & ScanResponseSchema", () => {
       },
     });
     expect(res.success).toBe(true);
+  });
+});
+
+describe("ScanResponseSchema seasonality", () => {
+  const baseOk = {
+    schemaVersion: "1.0" as const,
+    promptVersion: "v1",
+    modelId: "m",
+    round: 1 as const,
+    status: "ok" as const,
+    message: null,
+    produce: { type: "mango", displayName: "Mango", variety: null },
+    candidates: [
+      { id: "c1", box: [100, 100, 400, 400], score: 8.4, ripeness: "ripe", traits: ["Red blush"], flipSummary: null },
+    ],
+    verdict: { winnerId: "c1", runnerUpId: null, confidence: "high", headline: "Buy it." },
+    followUp: null,
+    afterPurchase: {
+      readyInDays: { min: 0, max: 0 },
+      eatWithinDays: { min: 3, max: 5 },
+      eatWithinLabel: "3–5 days",
+      storage: {
+        beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · whole", tip: "Room temp" },
+        afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · wrapped", tip: "Wrap" },
+      },
+    },
+  };
+
+  it("still accepts responses without seasonality or with seasonality: null", () => {
+    expect(ScanResponseSchema.safeParse(baseOk).success).toBe(true);
+    expect(ScanResponseSchema.safeParse({ ...baseOk, seasonality: null }).success).toBe(true);
+  });
+
+  it("accepts the engine's output and rejects an over-long badgeText", () => {
+    const info = lookupProduceSeasonality("mango", { cfCountry: "GB" }, 11)!;
+    expect(ScanResponseSchema.safeParse({ ...baseOk, seasonality: info }).success).toBe(true);
+    expect(
+      ScanResponseSchema.safeParse({ ...baseOk, seasonality: { ...info, badgeText: "x".repeat(49) } }).success
+    ).toBe(false);
+  });
+
+  it("keeps seasonality out of the model-facing schema", () => {
+    expect("seasonality" in ScanResponseModelSchema.shape).toBe(false);
   });
 });
