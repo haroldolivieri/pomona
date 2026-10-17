@@ -276,6 +276,12 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
         promptConfig
       );
 
+      console.log(
+        `[proxy] Scan outcome: status=${scanOutcome.response.status}, candidates=${JSON.stringify(
+          scanOutcome.response.candidates?.map((c) => ({ id: c.id, box: c.box, score: c.score }))
+        )}`
+      );
+
       const recordResult = await recordScanOutcome(store, {
         deviceId,
         ip,

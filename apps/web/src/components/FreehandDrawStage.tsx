@@ -3,7 +3,9 @@ import { useTranslation } from "react-i18next";
 import type { Point } from "@pomona/contract";
 import {
   normalizeFreehandPolygon,
+  computeObjectFitCoverRect,
   type CropRect,
+  type RenderedCoverRect,
 } from "../lib/image-pipeline";
 
 export interface FreehandDrawStageProps {
@@ -21,6 +23,8 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
 }) => {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [coverRect, setCoverRect] = useState<RenderedCoverRect | null>(null);
   const [points, setPoints] = useState<Point[]>([]);
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const [canAnalyseDrawn, setCanAnalyseDrawn] = useState<boolean>(false);
@@ -31,11 +35,37 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
     polygonInCrop: Point[];
   } | null>(null);
 
+  const updateCoverRect = () => {
+    const vp = containerRef.current;
+    const img = imgRef.current;
+    if (!vp || !img) return;
+
+    const cw = vp.clientWidth;
+    const ch = vp.clientHeight;
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+
+    if (cw > 0 && ch > 0 && iw > 0 && ih > 0) {
+      setCoverRect(computeObjectFitCoverRect(cw, ch, iw, ih));
+    }
+  };
+
+  useEffect(() => {
+    updateCoverRect();
+    window.addEventListener("resize", updateCoverRect);
+    return () => window.removeEventListener("resize", updateCoverRect);
+  }, [photoDataUrl]);
+
   const getRelativeCoords = (e: React.PointerEvent<HTMLDivElement>): Point | null => {
     if (!containerRef.current) return null;
     const rect = containerRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(1000, Math.round(((e.clientX - rect.left) / rect.width) * 1000)));
-    const y = Math.max(0, Math.min(1000, Math.round(((e.clientY - rect.top) / rect.height) * 1000)));
+    const cLeft = coverRect ? coverRect.left : 0;
+    const cTop = coverRect ? coverRect.top : 0;
+    const cWidth = coverRect ? coverRect.width : rect.width;
+    const cHeight = coverRect ? coverRect.height : rect.height;
+
+    const x = Math.max(0, Math.min(1000, Math.round(((e.clientX - rect.left - cLeft) / cWidth) * 1000)));
+    const y = Math.max(0, Math.min(1000, Math.round(((e.clientY - rect.top - cTop) / cHeight) * 1000)));
     return [x, y];
   };
 
@@ -228,8 +258,10 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
         }}
       >
         <img
+          ref={imgRef}
           src={photoDataUrl}
           alt="Captured produce"
+          onLoad={updateCoverRect}
           style={{
             width: "100%",
             height: "100%",
@@ -238,39 +270,48 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
           }}
         />
 
-        {/* SVG overlay with evenodd mask */}
-        <svg
-          viewBox="0 0 1000 1000"
-          preserveAspectRatio="none"
+        {/* SVG overlay with evenodd mask aligned to rendered image */}
+        <div
+          data-testid="draw-overlay-wrapper"
           style={{
             position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
+            left: coverRect ? `${coverRect.left}px` : 0,
+            top: coverRect ? `${coverRect.top}px` : 0,
+            width: coverRect ? `${coverRect.width}px` : "100%",
+            height: coverRect ? `${coverRect.height}px` : "100%",
             pointerEvents: "none",
           }}
         >
-          {points.length >= 3 && (
-            <path
-              d={`M 0 0 L 1000 0 L 1000 1000 L 0 1000 Z ${pathD}`}
-              fill="rgba(0,0,0,0.5)"
-              fillRule="evenodd"
-            />
-          )}
+          <svg
+            viewBox="0 0 1000 1000"
+            preserveAspectRatio="none"
+            style={{
+              width: "100%",
+              height: "100%",
+              pointerEvents: "none",
+            }}
+          >
+            {points.length >= 3 && (
+              <path
+                d={`M 0 0 L 1000 0 L 1000 1000 L 0 1000 Z ${pathD}`}
+                fill="rgba(0,0,0,0.5)"
+                fillRule="evenodd"
+              />
+            )}
 
-          {points.length > 0 && (
-            <path
-              d={pathD}
-              fill="rgba(245, 213, 71, 0.08)"
-              stroke="#F5D547"
-              strokeWidth="6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeDasharray={canAnalyseDrawn ? "none" : "8,8"}
-            />
-          )}
-        </svg>
+            {points.length > 0 && (
+              <path
+                d={pathD}
+                fill="rgba(245, 213, 71, 0.08)"
+                stroke="#F5D547"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray={canAnalyseDrawn ? "none" : "8,8"}
+              />
+            )}
+          </svg>
+        </div>
 
         {errorMessage && (
           <div

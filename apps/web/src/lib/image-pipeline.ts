@@ -503,3 +503,60 @@ export async function downsampleDataUrl(
     img.src = dataUrl;
   });
 }
+
+export interface RenderedCoverRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Computes the pixel geometry of an image rendered with CSS `object-fit: cover`
+ * (and centered `object-position: 50% 50%`) inside a container.
+ *
+ * This allows DOM overlays, bounding boxes, and SVG drawing masks to precisely match
+ * the underlying image pixels without any scaling or cropping distortion.
+ */
+export function computeObjectFitCoverRect(
+  containerWidth: number,
+  containerHeight: number,
+  imageWidth: number,
+  imageHeight: number
+): RenderedCoverRect {
+  if (!containerWidth || !containerHeight || !imageWidth || !imageHeight) {
+    return {
+      left: 0,
+      top: 0,
+      width: containerWidth || 0,
+      height: containerHeight || 0,
+    };
+  }
+
+  const containerAspect = containerWidth / containerHeight;
+  const imageAspect = imageWidth / imageHeight;
+
+  if (imageAspect > containerAspect) {
+    // Image is wider than container: height fills container, left/right are cropped
+    const renderedHeight = containerHeight;
+    const renderedWidth = containerHeight * imageAspect;
+    const left = (containerWidth - renderedWidth) / 2;
+    return {
+      left,
+      top: 0,
+      width: renderedWidth,
+      height: renderedHeight,
+    };
+  } else {
+    // Image is taller than container: width fills container, top/bottom are cropped
+    const renderedWidth = containerWidth;
+    const renderedHeight = containerWidth / imageAspect;
+    const top = (containerHeight - renderedHeight) / 2;
+    return {
+      left: 0,
+      top,
+      width: renderedWidth,
+      height: renderedHeight,
+    };
+  }
+}

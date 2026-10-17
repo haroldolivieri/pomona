@@ -1,8 +1,9 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { Candidate } from "@pomona/contract";
 import type { ScanMachineState } from "../state/scan-state-machine";
 import { describeBoxPosition } from "../lib/spatial-a11y";
+import { computeObjectFitCoverRect, type RenderedCoverRect } from "../lib/image-pipeline";
 
 export interface ResultStageProps {
   state: ScanMachineState;
@@ -23,7 +24,31 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const dragStartY = useRef<number | null>(null);
   const sheetRef = useRef<HTMLDivElement | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const [coverRect, setCoverRect] = useState<RenderedCoverRect | null>(null);
   const { phase, lastResponse, firstPick, runnerUp, round1PhotoDataUrl } = state;
+
+  const updateCoverRect = () => {
+    const vp = viewportRef.current;
+    const img = imgRef.current;
+    if (!vp || !img) return;
+
+    const cw = vp.clientWidth;
+    const ch = vp.clientHeight;
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+
+    if (cw > 0 && ch > 0 && iw > 0 && ih > 0) {
+      setCoverRect(computeObjectFitCoverRect(cw, ch, iw, ih));
+    }
+  };
+
+  useEffect(() => {
+    updateCoverRect();
+    window.addEventListener("resize", updateCoverRect);
+    return () => window.removeEventListener("resize", updateCoverRect);
+  }, [round1PhotoDataUrl]);
 
   if (!lastResponse || lastResponse.status !== "ok") {
     return (
@@ -305,6 +330,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
       {/* Fixed-Size Photo Viewport with Bounding Boxes (Parallax only, never shrinks!) */}
       <div
+        ref={viewportRef}
         data-testid="result-photo-viewport"
         style={{
           position: "relative",
@@ -320,8 +346,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
       >
         {round1PhotoDataUrl && (
           <img
+            ref={imgRef}
             src={round1PhotoDataUrl}
             alt="Produce crate"
+            onLoad={updateCoverRect}
             style={{
               width: "100%",
               height: "100%",
@@ -338,87 +366,99 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           }}
         />
 
-        {/* DOM Bounding Boxes for Winner and Runner-Up */}
-        {activeRunnerUp && (
-          <div
-            style={{
-              position: "absolute",
-              ...boxToStyle(activeRunnerUp.box),
-              borderRadius: "14px",
-              border: isLostStyle
-                ? "2px dashed rgba(255, 255, 255, 0.55)"
-                : phase === "S5B2_RunnerUpTookLead"
-                ? "2.5px dashed #F5D547"
-                : "2.5px dashed #2F6DB5",
-              opacity: isLostStyle ? 0.72 : 1,
-              boxSizing: "border-box",
-              pointerEvents: "none",
-            }}
-          >
-            <span
-              data-testid="runner-up-tag"
+        {/* DOM Bounding Boxes for Winner and Runner-Up mapped to rendered image */}
+        <div
+          data-testid="bounding-box-overlay"
+          style={{
+            position: "absolute",
+            left: coverRect ? `${coverRect.left}px` : 0,
+            top: coverRect ? `${coverRect.top}px` : 0,
+            width: coverRect ? `${coverRect.width}px` : "100%",
+            height: coverRect ? `${coverRect.height}px` : "100%",
+            pointerEvents: "none",
+          }}
+        >
+          {activeRunnerUp && (
+            <div
               style={{
                 position: "absolute",
-                top: "-12px",
-                left: "6px",
-                backgroundColor: isLostStyle
-                  ? "rgba(20, 24, 20, 0.78)"
+                ...boxToStyle(activeRunnerUp.box),
+                borderRadius: "14px",
+                border: isLostStyle
+                  ? "2px dashed rgba(255, 255, 255, 0.55)"
                   : phase === "S5B2_RunnerUpTookLead"
-                  ? "#142117"
-                  : "#2F6DB5",
-                color: phase === "S5B2_RunnerUpTookLead" ? "#F5D547" : "#FFFFFF",
-                fontSize: "10px",
-                fontWeight: 700,
-                padding: "3px 8px",
-                borderRadius: "8px",
-                whiteSpace: "nowrap",
-                fontFamily: "Inter, sans-serif",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+                  ? "2.5px dashed #F5D547"
+                  : "2.5px dashed #2F6DB5",
+                opacity: isLostStyle ? 0.72 : 1,
+                boxSizing: "border-box",
+                pointerEvents: "none",
               }}
             >
-              {runnerUpTagLabel}
-            </span>
-          </div>
-        )}
+              <span
+                data-testid="runner-up-tag"
+                style={{
+                  position: "absolute",
+                  top: "-12px",
+                  left: "6px",
+                  backgroundColor: isLostStyle
+                    ? "rgba(20, 24, 20, 0.78)"
+                    : phase === "S5B2_RunnerUpTookLead"
+                    ? "#142117"
+                    : "#2F6DB5",
+                  color: phase === "S5B2_RunnerUpTookLead" ? "#F5D547" : "#FFFFFF",
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  borderRadius: "8px",
+                  whiteSpace: "nowrap",
+                  fontFamily: "Inter, sans-serif",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+                }}
+              >
+                {runnerUpTagLabel}
+              </span>
+            </div>
+          )}
 
-        {activeWinner && (
-          <div
-            style={{
-              position: "absolute",
-              ...boxToStyle(activeWinner.box),
-              borderRadius: "14px",
-              border: "3px solid #F5D547",
-              boxShadow: "0 0 0 4px rgba(245, 213, 71, 0.32), 0 6px 18px rgba(0, 0, 0, 0.35)",
-              boxSizing: "border-box",
-              pointerEvents: "none",
-            }}
-          >
-            {/* Circular score badge anchored top-right */}
-            <span
-              data-testid="winner-score-badge"
+          {activeWinner && (
+            <div
               style={{
                 position: "absolute",
-                top: "-15px",
-                right: "-13px",
-                width: "34px",
-                height: "34px",
-                borderRadius: "50%",
-                backgroundColor: "#F5D547",
-                color: "#142117",
-                fontWeight: 800,
-                fontSize: "13px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                textAlign: "center",
-                boxShadow: "0 3px 10px rgba(0, 0, 0, 0.35)",
-                fontFamily: "Inter, sans-serif",
+                ...boxToStyle(activeWinner.box),
+                borderRadius: "14px",
+                border: "3px solid #F5D547",
+                boxShadow: "0 0 0 4px rgba(245, 213, 71, 0.32), 0 6px 18px rgba(0, 0, 0, 0.35)",
+                boxSizing: "border-box",
+                pointerEvents: "none",
               }}
             >
-              {winnerScoreStr(activeWinner.score)}
-            </span>
-          </div>
-        )}
+              {/* Circular score badge anchored top-right */}
+              <span
+                data-testid="winner-score-badge"
+                style={{
+                  position: "absolute",
+                  top: "-15px",
+                  right: "-13px",
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "50%",
+                  backgroundColor: "#F5D547",
+                  color: "#142117",
+                  fontWeight: 800,
+                  fontSize: "13px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textAlign: "center",
+                  boxShadow: "0 3px 10px rgba(0, 0, 0, 0.35)",
+                  fontFamily: "Inter, sans-serif",
+                }}
+              >
+                {winnerScoreStr(activeWinner.score)}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Interactive Bottom Sheet (draggable from any area on the sheet) */}
