@@ -6,6 +6,7 @@ export interface CameraViewfinderProps {
   onClose?: () => void;
   onToggleTheme?: () => void;
   theme?: "light" | "dark";
+  remainingScans?: number;
 }
 
 export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
@@ -13,12 +14,14 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   onClose,
   onToggleTheme,
   theme = "light",
+  remainingScans = 10,
 }) => {
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [streamActive, setStreamActive] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [flashActive, setFlashActive] = useState<boolean>(false);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -59,6 +62,26 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
       }
     };
   }, []);
+
+  const toggleFlash = async () => {
+    setFlashActive((prev) => !prev);
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      const track = stream.getVideoTracks()[0];
+      if (track) {
+        try {
+          const capabilities = (track.getCapabilities && track.getCapabilities()) as any;
+          if (capabilities && capabilities.torch) {
+            await (track as any).applyConstraints({
+              advanced: [{ torch: !flashActive }],
+            });
+          }
+        } catch {
+          // torch constraint not supported in browser / environment
+        }
+      }
+    }
+  };
 
   const handleCapture = () => {
     if (videoRef.current && streamActive) {
@@ -123,7 +146,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         justifyContent: "space-between",
       }}
     >
-      {/* Top bar */}
+      {/* Top bar with white chip pills */}
       <div
         style={{
           position: "absolute",
@@ -138,33 +161,103 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
           background: "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%)",
         }}
       >
-        <span
-          className="font-serif"
+        {/* Left: Pomona brand pill */}
+        <div
+          data-testid="brand-pill"
           style={{
-            fontSize: "22px",
-            fontWeight: 700,
-            color: "#FFFFFF",
-            letterSpacing: "-0.015em",
+            background: "rgba(251,250,246,0.92)",
+            color: "#142117",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            padding: "7px 14px",
+            borderRadius: "999px",
+            display: "inline-flex",
+            alignItems: "center",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
           }}
         >
-          Pomona
-        </span>
+          <span
+            className="font-serif"
+            style={{
+              fontFamily: "Fraunces, Georgia, serif",
+              fontSize: "15px",
+              fontWeight: 700,
+              letterSpacing: "0.02em",
+              color: "#142117",
+            }}
+          >
+            Pomona
+          </span>
+        </div>
 
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        {/* Center: Quota chip pill */}
+        <div
+          data-testid="scan-quota-pill"
+          style={{
+            background: "rgba(251,250,246,0.92)",
+            color: "#142117",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            fontFamily: "Inter, system-ui, sans-serif",
+            fontWeight: 600,
+            fontSize: "12px",
+            lineHeight: 1,
+            padding: "7px 12px",
+            borderRadius: "999px",
+            display: "inline-flex",
+            alignItems: "center",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+          }}
+        >
+          {t("camera.scansLeftToday", { count: remainingScans ?? 10 })}
+        </div>
+
+        {/* Right action buttons: Flash toggle, Theme toggle, Close button */}
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <button
+            onClick={toggleFlash}
+            aria-label={t("camera.flash")}
+            data-testid="flash-toggle-button"
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "50%",
+              backgroundColor: flashActive ? "#F5D547" : "rgba(251,250,246,0.92)",
+              color: "#142117",
+              border: "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "14px",
+              cursor: "pointer",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+            }}
+          >
+            ⚡
+          </button>
+
           {onToggleTheme && (
             <button
               onClick={onToggleTheme}
               aria-label="Toggle theme"
               data-testid="theme-toggle-button"
               style={{
-                background: "rgba(255,255,255,0.2)",
+                background: "rgba(251,250,246,0.92)",
                 border: "none",
                 borderRadius: "50%",
                 width: "36px",
                 height: "36px",
-                color: "#FFFFFF",
+                color: "#142117",
                 cursor: "pointer",
                 fontSize: "14px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
               }}
             >
               {theme === "dark" ? "☀️" : "🌙"}
@@ -177,14 +270,20 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
               aria-label="Close"
               data-testid="close-button"
               style={{
-                background: "rgba(255,255,255,0.2)",
+                background: "rgba(251,250,246,0.92)",
                 border: "none",
                 borderRadius: "50%",
                 width: "36px",
                 height: "36px",
-                color: "#FFFFFF",
+                color: "#142117",
                 cursor: "pointer",
-                fontSize: "18px",
+                fontSize: "16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
               }}
             >
               ✕
@@ -193,7 +292,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         </div>
       </div>
 
-      {/* Video Viewfinder */}
+      {/* Video Viewfinder & Framing Corners */}
       <div
         style={{
           flex: 1,
@@ -216,6 +315,85 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
           }}
         />
 
+        {/* Reticle with Golden-Yellow Corner Framing Brackets */}
+        <div
+          data-testid="camera-reticle-brackets"
+          style={{
+            position: "absolute",
+            top: "43%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "228px",
+            height: "240px",
+            pointerEvents: "none",
+          }}
+        >
+          {/* Top Left Bracket */}
+          <span
+            style={{
+              position: "absolute",
+              top: "-2px",
+              left: "-2px",
+              width: "24px",
+              height: "24px",
+              borderColor: "#F5D547",
+              borderStyle: "solid",
+              borderWidth: "0",
+              borderTopWidth: "3.5px",
+              borderLeftWidth: "3.5px",
+              borderTopLeftRadius: "16px",
+            }}
+          />
+          {/* Top Right Bracket */}
+          <span
+            style={{
+              position: "absolute",
+              top: "-2px",
+              right: "-2px",
+              width: "24px",
+              height: "24px",
+              borderColor: "#F5D547",
+              borderStyle: "solid",
+              borderWidth: "0",
+              borderTopWidth: "3.5px",
+              borderRightWidth: "3.5px",
+              borderTopRightRadius: "16px",
+            }}
+          />
+          {/* Bottom Left Bracket */}
+          <span
+            style={{
+              position: "absolute",
+              bottom: "-2px",
+              left: "-2px",
+              width: "24px",
+              height: "24px",
+              borderColor: "#F5D547",
+              borderStyle: "solid",
+              borderWidth: "0",
+              borderBottomWidth: "3.5px",
+              borderLeftWidth: "3.5px",
+              borderBottomLeftRadius: "16px",
+            }}
+          />
+          {/* Bottom Right Bracket */}
+          <span
+            style={{
+              position: "absolute",
+              bottom: "-2px",
+              right: "-2px",
+              width: "24px",
+              height: "24px",
+              borderColor: "#F5D547",
+              borderStyle: "solid",
+              borderWidth: "0",
+              borderBottomWidth: "3.5px",
+              borderRightWidth: "3.5px",
+              borderBottomRightRadius: "16px",
+            }}
+          />
+        </div>
+
         {cameraError && (
           <div
             style={{
@@ -226,6 +404,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
               borderRadius: "8px",
               textAlign: "center",
               margin: "20px",
+              zIndex: 2,
             }}
           >
             <p style={{ marginBottom: "12px", fontSize: "14px" }}>
@@ -249,6 +428,51 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         )}
       </div>
 
+      {/* Floating Prompt Card above shutter */}
+      <div
+        data-testid="floating-prompt-card"
+        style={{
+          position: "absolute",
+          left: "16px",
+          right: "16px",
+          bottom: "106px",
+          background: "rgba(251,250,246,0.95)",
+          color: "#142117",
+          borderRadius: "20px",
+          padding: "12px 16px",
+          textAlign: "center",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          zIndex: 10,
+        }}
+      >
+        <div
+          className="font-serif"
+          style={{
+            fontFamily: "Fraunces, Georgia, serif",
+            fontWeight: 600,
+            fontSize: "15px",
+            lineHeight: 1.25,
+            color: "#142117",
+            marginBottom: "3px",
+          }}
+        >
+          {t("camera.promptTitle")}
+        </div>
+        <div
+          style={{
+            fontFamily: "Inter, system-ui, sans-serif",
+            fontWeight: 500,
+            fontSize: "12px",
+            lineHeight: 1.35,
+            color: "#55544F",
+          }}
+        >
+          {t("camera.promptSubtitle")}
+        </div>
+      </div>
+
       {/* Shutter bar */}
       <div
         style={{
@@ -256,7 +480,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
           bottom: 0,
           left: 0,
           right: 0,
-          padding: "24px 20px 36px",
+          padding: "20px 20px 32px",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
@@ -279,25 +503,27 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
           data-testid="shutter-button"
           aria-label={t("camera.shutter")}
           style={{
-            width: "72px",
-            height: "72px",
+            width: "68px",
+            height: "68px",
             borderRadius: "50%",
-            backgroundColor: "#FFFFFF",
-            border: "4px solid rgba(255,255,255,0.4)",
+            backgroundColor: "transparent",
+            border: "4px solid #FFFFFF",
+            padding: "4px",
+            boxSizing: "border-box",
             cursor: "pointer",
-            boxShadow: "0 0 16px rgba(0,0,0,0.4)",
+            boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
           <div
+            data-testid="shutter-button-core"
             style={{
-              width: "56px",
-              height: "56px",
+              width: "100%",
+              height: "100%",
               borderRadius: "50%",
-              backgroundColor: "#FFFFFF",
-              border: "2px solid #000000",
+              backgroundColor: "#F5D547",
             }}
           />
         </button>

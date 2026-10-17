@@ -7,7 +7,11 @@
     "shutter": "Take Photo",
     "uploadFallback": "Upload photo",
     "permissionDenied": "Camera access denied. Please upload a photo instead.",
-    "switchCamera": "Switch Camera"
+    "switchCamera": "Switch Camera",
+    "flash": "Flash",
+    "scansLeftToday": "{{count}} scans left today",
+    "promptTitle": "Point at a pile or single fruit",
+    "promptSubtitle": "Works with any fruit, vegetable, or produce"
   },
   "draw": {
     "instruction": "Draw a loop around the produce to focus, or analyse whole photo",
