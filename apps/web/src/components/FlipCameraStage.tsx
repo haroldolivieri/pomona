@@ -28,9 +28,11 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
   // Parameterized produce name and instructions
   const headline = followUp?.flipHeadline || (isFinalCheck ? "Flip your 1st pick over" : "Flip the produce over");
   const instruction = followUp?.instruction || "Turn over to inspect the underside.";
-  const winnerToBeatScore = isFinalCheck
-    ? runnerUp?.score?.toFixed(1) ?? "9.0"
-    : firstPick?.score?.toFixed(1) ?? "8.6";
+  
+  // Scores for State 5A & State 6
+  const winnerToBeatScore = firstPick?.score?.toFixed(1) ?? "8.6";
+  const runnerUpScore = runnerUp?.score?.toFixed(1) ?? "9.0";
+  const firstPickScore = firstPick?.score?.toFixed(1) ?? "8.6";
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -107,6 +109,17 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
     onCapture("data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAQAcJaQAA3AA/v3AgAA=");
   };
 
+  // PiP candidate focus calculation if candidate box available
+  const pipTargetCandidate = isFinalCheck ? firstPick : runnerUp;
+  const pipBox = pipTargetCandidate?.box;
+  let pipBgPosition = "center";
+  if (pipBox) {
+    const [ymin, xmin, ymax, xmax] = pipBox;
+    const centerX = ((xmin + xmax) / 2) / 10; // 0-100%
+    const centerY = ((ymin + ymax) / 2) / 10;
+    pipBgPosition = `${centerX}% ${centerY}%`;
+  }
+
   return (
     <div
       data-testid={`stage-${phase}`}
@@ -121,6 +134,17 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
         justifyContent: "space-between",
       }}
     >
+      {/* Radial scrim overlay */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "radial-gradient(circle at 50% 45%, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.55) 80%)",
+          pointerEvents: "none",
+          zIndex: 5,
+        }}
+      />
+
       {/* Top Bar with Back, Tag, and Close */}
       <div
         style={{
@@ -128,57 +152,97 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
           top: 0,
           left: 0,
           right: 0,
-          padding: "16px 20px",
+          padding: "20px 16px 16px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           zIndex: 20,
-          background: "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)",
         }}
       >
         <button
           onClick={onBack}
+          data-testid="back-button"
           aria-label="Back"
           style={{
-            background: "rgba(255,255,255,0.2)",
+            background: "rgba(251, 250, 246, 0.88)",
             border: "none",
             borderRadius: "50%",
             width: "36px",
             height: "36px",
-            color: "#FFFFFF",
-            fontSize: "18px",
+            color: "#142117",
+            fontSize: "16px",
+            fontWeight: 700,
             cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backdropFilter: "blur(10px)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
           }}
         >
           ←
         </button>
 
-        <span
+        <div
+          data-testid="flip-top-chip"
           style={{
-            backgroundColor: "rgba(0,0,0,0.6)",
-            color: "#FFFFFF",
-            padding: "4px 12px",
-            borderRadius: "16px",
-            fontSize: "13px",
+            backgroundColor: "rgba(251, 250, 246, 0.88)",
+            color: "#142117",
+            padding: "7px 14px",
+            borderRadius: "999px",
+            fontSize: "12px",
             fontWeight: 600,
-            border: "1px solid rgba(255,255,255,0.2)",
+            display: "flex",
+            alignItems: "center",
+            gap: "7px",
+            backdropFilter: "blur(10px)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
           }}
         >
-          {isFinalCheck ? "1st Pick · Final Check" : "Runner-Up · Comparison"}
-        </span>
+          {isFinalCheck ? (
+            <span
+              style={{
+                width: "9px",
+                height: "9px",
+                borderRadius: "2px",
+                background: "#F5D547",
+                border: "1.5px solid #142117",
+                display: "inline-block",
+              }}
+            />
+          ) : (
+            <span
+              style={{
+                width: "9px",
+                height: "9px",
+                borderRadius: "2px",
+                border: "2px dashed #2f6db5",
+                display: "inline-block",
+              }}
+            />
+          )}
+          <span>{isFinalCheck ? "1st Pick · Final Check" : "Runner-Up · Step 2"}</span>
+        </div>
 
         <button
           onClick={onClose}
+          data-testid="close-button"
           aria-label="Close"
           style={{
-            background: "rgba(255,255,255,0.2)",
+            background: "rgba(251, 250, 246, 0.88)",
             border: "none",
             borderRadius: "50%",
             width: "36px",
             height: "36px",
-            color: "#FFFFFF",
-            fontSize: "18px",
+            color: "#142117",
+            fontSize: "14px",
+            fontWeight: 700,
             cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backdropFilter: "blur(10px)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
           }}
         >
           ✕
@@ -191,23 +255,40 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
           data-testid="pip-reference-thumbnail"
           style={{
             position: "absolute",
-            top: "70px",
-            right: "20px",
-            width: "68px",
-            height: "68px",
-            borderRadius: "12px",
-            border: "2px solid #F5D547",
+            top: "76px",
+            right: "16px",
+            width: "72px",
+            height: "72px",
+            borderRadius: "14px",
+            border: isFinalCheck ? "2.5px solid #F5D547" : "2.5px solid #2f6db5",
             overflow: "hidden",
             zIndex: 15,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+            boxShadow: "0 6px 16px rgba(0,0,0,0.35)",
             backgroundColor: "#000",
+            backgroundImage: `url(${round1PhotoDataUrl})`,
+            backgroundPosition: pipBgPosition,
+            backgroundSize: "320%",
+            backgroundRepeat: "no-repeat",
           }}
         >
-          <img
-            src={round1PhotoDataUrl}
-            alt="Reference pick"
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              fontFamily: "Inter, sans-serif",
+              fontWeight: 700,
+              fontSize: "9px",
+              lineHeight: 1.3,
+              textAlign: "center",
+              padding: "2px 0",
+              background: isFinalCheck ? "rgba(245, 213, 71, 0.95)" : "rgba(47, 109, 181, 0.92)",
+              color: isFinalCheck ? "#142117" : "#FFFFFF",
+            }}
+          >
+            {isFinalCheck ? "1st Pick" : "Runner-Up"}
+          </div>
         </div>
       )}
 
@@ -234,23 +315,102 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
           }}
         />
 
-        {/* 3D Flipping Animation Overlay / Reticle */}
+        {/* Rectangular Reticle with 4 Yellow Corner Brackets */}
         <div
+          data-testid="flip-reticle-brackets"
           style={{
             position: "absolute",
-            pointerEvents: "none",
+            left: "50%",
+            top: "43%",
+            width: "216px",
+            height: "216px",
+            transform: "translate(-50%, -50%)",
+            borderRadius: "28px",
+            border: "1.5px dashed rgba(255, 255, 255, 0.55)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: "none",
+            zIndex: 10,
           }}
         >
+          {/* Top-Left Corner */}
+          <span
+            style={{
+              position: "absolute",
+              top: "-2px",
+              left: "-2px",
+              width: "22px",
+              height: "22px",
+              borderColor: "#F5D547",
+              borderStyle: "solid",
+              borderTopWidth: "3.5px",
+              borderLeftWidth: "3.5px",
+              borderRightWidth: 0,
+              borderBottomWidth: 0,
+              borderTopLeftRadius: "16px",
+            }}
+          />
+          {/* Top-Right Corner */}
+          <span
+            style={{
+              position: "absolute",
+              top: "-2px",
+              right: "-2px",
+              width: "22px",
+              height: "22px",
+              borderColor: "#F5D547",
+              borderStyle: "solid",
+              borderTopWidth: "3.5px",
+              borderRightWidth: "3.5px",
+              borderLeftWidth: 0,
+              borderBottomWidth: 0,
+              borderTopRightRadius: "16px",
+            }}
+          />
+          {/* Bottom-Left Corner */}
+          <span
+            style={{
+              position: "absolute",
+              bottom: "-2px",
+              left: "-2px",
+              width: "22px",
+              height: "22px",
+              borderColor: "#F5D547",
+              borderStyle: "solid",
+              borderBottomWidth: "3.5px",
+              borderLeftWidth: "3.5px",
+              borderRightWidth: 0,
+              borderTopWidth: 0,
+              borderBottomLeftRadius: "16px",
+            }}
+          />
+          {/* Bottom-Right Corner */}
+          <span
+            style={{
+              position: "absolute",
+              bottom: "-2px",
+              right: "-2px",
+              width: "22px",
+              height: "22px",
+              borderColor: "#F5D547",
+              borderStyle: "solid",
+              borderBottomWidth: "3.5px",
+              borderRightWidth: "3.5px",
+              borderLeftWidth: 0,
+              borderTopWidth: 0,
+              borderBottomRightRadius: "16px",
+            }}
+          />
+
+          {/* 3D Flipping Animation Graphic */}
           <div
             style={{
               width: "130px",
               height: "130px",
               borderRadius: "50%",
               padding: "4px",
-              border: "2px dashed rgba(245, 213, 71, 0.75)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -302,61 +462,102 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
         </div>
       </div>
 
-      {/* Instruction Card & Flip Shutter Bar */}
+      {/* Floating Instruction Card & Shutter Bar */}
       <div
         style={{
           position: "absolute",
           bottom: 0,
           left: 0,
           right: 0,
-          padding: "20px 20px 36px",
+          padding: "16px 16px 28px",
           display: "flex",
           flexDirection: "column",
           gap: "16px",
           alignItems: "center",
           zIndex: 20,
-          background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%)",
         }}
       >
-        {/* Instruction Card */}
+        {/* Floating Ivory Instruction Card */}
         <div
+          data-testid="flip-instruction-card"
           style={{
             width: "100%",
-            backgroundColor: "rgba(0,0,0,0.75)",
-            border: "1px solid rgba(255,255,255,0.2)",
-            borderRadius: "16px",
-            padding: "16px",
+            maxWidth: "380px",
+            background: "rgba(251, 250, 246, 0.95)",
+            color: "#142117",
+            borderRadius: "20px",
+            padding: "14px 16px",
             textAlign: "center",
-            backdropFilter: "blur(8px)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+            backdropFilter: "blur(12px)",
           }}
         >
+          {/* Eyebrow */}
           <div
+            data-testid="flip-instruction-eyebrow"
             style={{
-              display: "inline-block",
-              padding: "4px 10px",
-              borderRadius: "12px",
-              backgroundColor: "var(--accent-winner)",
-              color: "#1A261D",
-              fontSize: "12px",
-              fontWeight: 800,
-              marginBottom: "8px",
+              fontFamily: "Inter, sans-serif",
+              fontWeight: 700,
+              fontSize: "10.5px",
+              letterSpacing: "0.11em",
+              textTransform: "uppercase",
+              color: isFinalCheck ? "#9a740a" : "#2f6db5",
+              marginBottom: "4px",
             }}
           >
-            Winner to beat: {winnerToBeatScore} / 10
+            {isFinalCheck
+              ? `FINAL CHECK · BEAT ${runnerUpScore} TO RECLAIM`
+              : "INSPECT RUNNER-UP"}
           </div>
+
+          {/* Title */}
           <h2
             className="font-serif"
             style={{
-              fontSize: "20px",
-              color: "#FFFFFF",
-              marginBottom: "4px",
+              fontFamily: "Fraunces, Georgia, serif",
+              fontSize: "19px",
+              fontWeight: 600,
+              lineHeight: 1.2,
+              color: "#142117",
+              margin: "2px 0 4px",
             }}
           >
             {headline}
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "13px" }}>
+
+          {/* Description */}
+          <p
+            style={{
+              fontFamily: "Inter, sans-serif",
+              fontSize: "12px",
+              fontWeight: 500,
+              lineHeight: 1.35,
+              color: "#55544f",
+              margin: 0,
+            }}
+          >
             {instruction}
           </p>
+
+          {/* Score Pill */}
+          <div
+            data-testid="flip-score-pill"
+            style={{
+              display: "inline-block",
+              marginTop: "8px",
+              backgroundColor: "#eee9dc",
+              color: "#142117",
+              fontFamily: "Inter, sans-serif",
+              fontSize: "11px",
+              fontWeight: 700,
+              padding: "5px 12px",
+              borderRadius: "999px",
+            }}
+          >
+            {isFinalCheck
+              ? `Current leader: ${runnerUpScore} · 1st Pick: ${firstPickScore} (top only)`
+              : `Winner to beat: ${winnerToBeatScore} / 10`}
+          </div>
         </div>
 
         {/* Shutter Button */}
@@ -365,13 +566,15 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
           data-testid="flip-shutter-button"
           aria-label="Capture flipped produce"
           style={{
-            width: "72px",
-            height: "72px",
+            width: "66px",
+            height: "66px",
             borderRadius: "50%",
             backgroundColor: "#FFFFFF",
-            border: "4px solid rgba(255,255,255,0.4)",
+            border: "4px solid #FFFFFF",
+            padding: "4px",
+            boxSizing: "border-box",
             cursor: "pointer",
-            boxShadow: "0 0 16px rgba(0,0,0,0.5)",
+            boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -379,11 +582,10 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
         >
           <div
             style={{
-              width: "56px",
-              height: "56px",
+              width: "100%",
+              height: "100%",
               borderRadius: "50%",
-              backgroundColor: "var(--accent-winner)",
-              border: "2px solid #000000",
+              backgroundColor: "#F5D547",
             }}
           />
         </button>
@@ -391,3 +593,4 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
     </div>
   );
 };
+
