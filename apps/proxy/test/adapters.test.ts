@@ -59,7 +59,7 @@ describe("Prompt registry & vision adapters", () => {
 
     const gemini = createGeminiVisionAdapter({ apiKey: "test-key", generateObjectFn: mockGenerate as any });
     const openai = createOpenAIVisionAdapter({ apiKey: "test-key", generateObjectFn: mockGenerate as any });
-    expect(gemini.modelId).toBe("gemini-2.5-flash");
+    expect(gemini.modelId).toBe("gemini-3.8-flash");
     expect(openai.modelId).toBe("gpt-4o-mini");
 
     const result = await runVerifiedVisionScan(sampleRequest, gemini, getPromptConfig("v1"));

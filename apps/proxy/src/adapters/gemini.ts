@@ -80,7 +80,7 @@ export interface GeminiVisionAdapterOptions {
 }
 
 export function createGeminiVisionAdapter(options: GeminiVisionAdapterOptions): VisionProviderAdapter {
-  const modelId = options.modelId ?? "gemini-2.5-flash";
+  const modelId = options.modelId ?? "gemini-3.8-flash";
   const generateFn = options.generateObjectFn ?? generateObject;
 
   const google = createGoogleGenerativeAI({

@@ -28,23 +28,12 @@ export const MICRO_CENTS_PER_USD = 100_000;
 export const MONTHLY_SOFT_CAP_MICRO_CENTS = 950_000; // $9.50
 export const MONTHLY_HARD_CAP_MICRO_CENTS = 1_000_000; // $10.00
 
-export const DEFAULT_MODEL_ID = "gemini-2.5-flash";
-export const DOWNGRADE_MODEL_ID = "gemini-2.5-flash-lite";
+export const DEFAULT_MODEL_ID = "gemini-3.8-flash";
+export const DOWNGRADE_MODEL_ID = "gemini-3.5-flash-lite";
 
 /**
  * Model token rates (in micro-cents per token):
  * 1 USD = 100,000 micro-cents.
- *
- * Rates derived from standard provider pricing:
- * - gemini-2.5-flash:
- *   Prompt: ~$0.075 / 1M tokens = $0.000000075 / token = 0.0075 micro-cents / token
- *   Completion: ~$0.30 / 1M tokens = $0.00000030 / token = 0.03 micro-cents / token
- * - gemini-2.5-flash-lite:
- *   Prompt: ~$0.0375 / 1M tokens = 0.00375 micro-cents / token
- *   Completion: ~$0.15 / 1M tokens = 0.015 micro-cents / token
- * - gpt-4o-mini:
- *   Prompt: ~$0.15 / 1M tokens = 0.015 micro-cents / token
- *   Completion: ~$0.60 / 1M tokens = 0.06 micro-cents / token
  */
 interface ModelPricing {
   promptMicroCentsPerToken: number;
@@ -52,6 +41,18 @@ interface ModelPricing {
 }
 
 const MODEL_PRICING: Record<string, ModelPricing> = {
+  "gemini-3.8-flash": {
+    promptMicroCentsPerToken: 0.0075,
+    completionMicroCentsPerToken: 0.03,
+  },
+  "gemini-3.5-flash-lite": {
+    promptMicroCentsPerToken: 0.00375,
+    completionMicroCentsPerToken: 0.015,
+  },
+  "gemini-3.1-flash-lite": {
+    promptMicroCentsPerToken: 0.003,
+    completionMicroCentsPerToken: 0.012,
+  },
   "gemini-2.5-flash": {
     promptMicroCentsPerToken: 0.0075,
     completionMicroCentsPerToken: 0.03,
@@ -71,7 +72,7 @@ const MODEL_PRICING: Record<string, ModelPricing> = {
  * Returns at least 1 micro-cent if tokens were consumed.
  */
 export function calculateTokenSpendMicroCents(modelId: string, usage: TokenUsage): number {
-  const pricing = MODEL_PRICING[modelId] ?? MODEL_PRICING["gemini-2.5-flash"];
+  const pricing = MODEL_PRICING[modelId] ?? MODEL_PRICING["gemini-3.8-flash"];
   const rawSpend =
     usage.promptTokens * pricing.promptMicroCentsPerToken +
     usage.completionTokens * pricing.completionMicroCentsPerToken;

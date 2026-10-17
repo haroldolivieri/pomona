@@ -49,12 +49,19 @@ FOCUS POLYGON CONSTRAINT:
 - When a focusPolygon is provided, you MUST include every visible produce item whose center point lies inside the polygon, and exclude any item outside it.
 
 MULTI-ROUND FLIP WORKFLOW:
-- Round 1: Identify produce type (lowercase slug, e.g. "watermelon", "avocado") and displayName. Score all visible candidates inside the focus area (c1, c2, etc.) on the 0.0–10.0 scale. The highest scoring candidate is winnerId. If a second candidate exists, set runnerUpId and provide a non-null \`followUp\` targeting the runner-up. If only 1 item exists, runnerUpId and followUp must be null.
-- Round 2: Close-up inspection of the runner-up candidate after being flipped/rotated. Output the inspected candidate in \`candidates\` using \`id: followUpContext.targetCandidateId\` (e.g. "c2"), with a non-null \`flipSummary\` (<= 80 chars) describing what the flipped angle revealed, and an updated \`score\` (0.0–10.0). Compare its updated score against \`previousWinner.score\`: if it beats \`previousWinner.score\`, set \`verdict.winnerId\` to \`targetCandidateId\`, \`verdict.runnerUpId\` to \`previousWinner.id\`, and provide a \`followUp\` targeting \`previousWinner.id\` (role: "first_pick").
-- Round 3: Final check inspection of the 1st pick candidate. Re-evaluate score (0.0–10.0) and traits with a non-null \`flipSummary\`. Hard ceiling: \`followUp\` MUST be null on Round 3.
+- Round 1: Identify produce type (lowercase slug, e.g. "watermelon", "avocado", "pineapple") and displayName. Score all visible candidates inside the focus area (c1, c2, etc.) on the 0.0–10.0 scale. The highest scoring candidate is winnerId. If a second candidate exists, set runnerUpId and provide a non-null \`followUp\` targeting the runner-up. If only 1 item exists in the frame, runnerUpId and followUp MUST be null.
+- Round 2: Close-up inspection of the runner-up candidate after being flipped/rotated. Output ONLY the single foreground close-up candidate in \`candidates\` using \`id: followUpContext.targetCandidateId\` (e.g. "c2"), ignoring any distant background items. Provide a non-null \`flipSummary\` (<= 80 chars) describing what the flipped angle revealed, and an updated \`score\` (0.0–10.0).
+  - If the flipped underside reveals superior ripeness (e.g. deep creamy golden-yellow field spot with dense brown sugar webbing), score it higher than \`previousWinner.score\`, set \`verdict.winnerId\` to \`targetCandidateId\`, \`verdict.runnerUpId\` to \`previousWinner.id\`, and provide a non-null \`followUp\` targeting \`previousWinner.id\` (role: "first_pick").
+  - If the flipped underside is disappointing, underripe, or defective (e.g. stark chalky-white spot, pale greenish belly, or lack of webbing), lower its score strictly below \`previousWinner.score\`, keep \`verdict.winnerId\` as \`previousWinner.id\`, set \`verdict.runnerUpId\` to \`targetCandidateId\`, and set \`followUp: null\`.
+- Round 3: Final check close-up inspection of the 1st pick candidate. Output ONLY the single foreground close-up candidate in \`candidates\` using \`id: followUpContext.targetCandidateId\` (e.g. "c1"), with a non-null \`flipSummary\` (<= 80 chars).
+  - If the flipped underside is peak-ripe (e.g. huge golden-amber belly spot, heavy brown webbing, dry tendril), score it >= \`previousWinner.score\` so \`targetCandidateId\` reclaims \`verdict.winnerId\`.
+  - If the flipped underside is pale, bruised, water-soaked, or inferior, score it strictly below \`previousWinner.score\` so \`previousWinner.id\` retains \`verdict.winnerId\`.
+  - Hard ceiling: \`followUp\` MUST be null on Round 3.
 
 PARAMETERIZED COPY & FORBIDDING HARDCODED PRODUCE NAMES:
-- NEVER hardcode fruit or produce names. If the detected produce is Pineapple or Avocado, NEVER refer to "melon", "watermelon", "field spot", or "rind".
+- NEVER hardcode fruit or produce names or anatomy from other fruits.
+- If the detected produce is Avocado, always use "skin" or "stem" — NEVER use the words "melon", "watermelon", "field spot", or "rind".
+- If the detected produce is Pineapple, always use "shell", "eyes", or "crown" — NEVER use "melon", "watermelon", "field spot", or "rind".
 - All advice, headlines, traits, and followUp text MUST be strictly parameterized to the detected produce.displayName.
 - bannerText, flipHeadline, and instruction in followUp MUST directly incorporate the produce displayName.
 
@@ -83,18 +90,18 @@ export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[])
   } else if (request.round === 2 && request.followUpContext) {
     const ctx = request.followUpContext;
     prompt += `\nRound 2 close-up inspection:
-Inspecting candidate "${ctx.targetCandidateId}" (${ctx.produceDisplayName}, role: ${ctx.targetRole}).
+Inspecting ONLY the foreground candidate "${ctx.targetCandidateId}" (${ctx.produceDisplayName}, role: ${ctx.targetRole}).
 Requested instruction: "${ctx.requestedInstruction}".
 Previous 1st pick candidate "${ctx.previousWinner.id}" scored ${ctx.previousWinner.score}/10 (${ctx.previousWinner.ripeness}).
 Previous runner-up candidate "${ctx.previousRunnerUp.id}" scored ${ctx.previousRunnerUp.score}/10.
-Evaluate candidate "${ctx.targetCandidateId}" from this new close-up angle, provide a non-null flipSummary (<= 80 chars), assign an updated score on the 0.0–10.0 scale, and compare against previous 1st pick (${ctx.previousWinner.score}/10).`;
+Output ONLY candidate "${ctx.targetCandidateId}" in candidates with a non-null flipSummary (<= 80 chars) and an updated score on the 0.0–10.0 scale. If the underside is chalky white or underripe, score it below ${ctx.previousWinner.score} and set followUp to null. If it has a deep golden-yellow spot and heavy webbing, score it above ${ctx.previousWinner.score} and provide a followUp targeting "${ctx.previousWinner.id}".`;
   } else if (request.round === 3 && request.followUpContext) {
     const ctx = request.followUpContext;
     prompt += `\nRound 3 final check inspection:
-Inspecting candidate "${ctx.targetCandidateId}" (${ctx.produceDisplayName}, role: ${ctx.targetRole}).
+Inspecting ONLY the foreground candidate "${ctx.targetCandidateId}" (${ctx.produceDisplayName}, role: ${ctx.targetRole}). Ignore any background items.
 Requested instruction: "${ctx.requestedInstruction}".
 Previous winner candidate "${ctx.previousWinner.id}" scored ${ctx.previousWinner.score}/10.
-Provide a non-null flipSummary (<= 80 chars), update score on the 0.0–10.0 scale, and compare against previous winner. Hard ceiling: followUp must be null.`;
+Output ONLY candidate "${ctx.targetCandidateId}" in candidates with a non-null flipSummary (<= 80 chars) and an updated score on the 0.0–10.0 scale. If the underside is pale, bruised, or water-soaked, score it strictly below ${ctx.previousWinner.score}. If it has a huge deep golden-yellow spot and heavy sugar webbing, score it >= ${ctx.previousWinner.score}. Hard ceiling: followUp must be null.`;
   }
 
   if (repairErrors && repairErrors.length > 0) {

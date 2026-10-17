@@ -147,7 +147,7 @@ export function verifyPromptfooOutput(
     };
   }
 
-  // 4. Expected Winner ID Check
+  // 4. Expected Winner ID & Runner-Up ID Check
   if (
     vars.expectedWinnerId &&
     response.verdict &&
@@ -160,7 +160,56 @@ export function verifyPromptfooOutput(
     };
   }
 
-  // 5. Spatial Ground-Truth Check for Winner Bounding Box
+  if (
+    "expectedRunnerUpId" in vars &&
+    vars.expectedRunnerUpId !== undefined &&
+    response.verdict &&
+    response.verdict.runnerUpId !== vars.expectedRunnerUpId
+  ) {
+    return {
+      pass: false,
+      score: 0.5,
+      reason: `Expected runnerUpId ${JSON.stringify(vars.expectedRunnerUpId)} but received ${JSON.stringify(response.verdict.runnerUpId)}`,
+    };
+  }
+
+  // 4b. Multi-Round Follow-Up Presence & Target Role Check
+  if (vars.expectedFollowUpNull === true && response.followUp !== null) {
+    return {
+      pass: false,
+      score: 0.4,
+      reason: `Expected followUp to be null on this branch/round, but received followUp targeting "${response.followUp.targetCandidateId}"`,
+    };
+  }
+  if (vars.expectedFollowUpNull === false && response.followUp === null) {
+    return {
+      pass: false,
+      score: 0.4,
+      reason: `Expected non-null followUp on this branch/round, but received null`,
+    };
+  }
+  if (
+    vars.expectedFollowUpTargetId &&
+    response.followUp?.targetCandidateId !== vars.expectedFollowUpTargetId
+  ) {
+    return {
+      pass: false,
+      score: 0.5,
+      reason: `Expected followUp.targetCandidateId "${vars.expectedFollowUpTargetId}" but received "${response.followUp?.targetCandidateId}"`,
+    };
+  }
+  if (
+    vars.expectedFollowUpTargetRole &&
+    response.followUp?.targetRole !== vars.expectedFollowUpTargetRole
+  ) {
+    return {
+      pass: false,
+      score: 0.5,
+      reason: `Expected followUp.targetRole "${vars.expectedFollowUpTargetRole}" but received "${response.followUp?.targetRole}"`,
+    };
+  }
+
+  // 5. Spatial Ground-Truth Check for Winner Bounding Box (or Inspected Candidate Box on Round 2/3)
   if (vars.expectedWinnerBox && response.verdict?.winnerId) {
     const winner = response.candidates.find((c) => c.id === response.verdict?.winnerId);
     if (!winner) {
@@ -180,6 +229,22 @@ export function verifyPromptfooOutput(
         pass: false,
         score: 0.4,
         reason: `Winner box [${winner.box.join(", ")}] did not match ground-truth winner region [${gtBox.join(", ")}] (IoU=${iou.toFixed(2)}, centerInside=${centerInside})`,
+      };
+    }
+  }
+
+  if (vars.expectedInspectedBox && response.candidates.length > 0) {
+    const inspected = response.candidates[0];
+    const gtBox = vars.expectedInspectedBox as BoundingBox;
+    const iou = computeBoxIoU(inspected.box, gtBox);
+    const centerInside = isBoxCenterInside(inspected.box, gtBox);
+    const minIoU = typeof vars.minWinnerIoU === "number" ? vars.minWinnerIoU : 0.35;
+
+    if (iou < minIoU && !centerInside) {
+      return {
+        pass: false,
+        score: 0.4,
+        reason: `Inspected candidate box [${inspected.box.join(", ")}] did not match ground-truth close-up region [${gtBox.join(", ")}] (IoU=${iou.toFixed(2)}, centerInside=${centerInside})`,
       };
     }
   }

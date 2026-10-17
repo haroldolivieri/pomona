@@ -16,8 +16,8 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     groundTruth: Record<string, any>;
   }> = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf-8"));
 
-  it("verifies all 6 generated ground-truth images exist on disk and are non-empty JPEGs", () => {
-    expect(manifest.length).toBe(6);
+  it("verifies all 10 generated ground-truth images exist on disk and are non-empty JPEGs", () => {
+    expect(manifest.length).toBe(10);
     for (const item of manifest) {
       const fullPath = path.resolve(__dirname, "..", item.imagePath);
       expect(fs.existsSync(fullPath)).toBe(true);
@@ -298,5 +298,166 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     const failFlip = verifyPromptfooOutput(JSON.stringify(missingFlipSummary), { vars: gtRound2 });
     expect(failFlip.pass).toBe(false);
     expect(failFlip.reason).toContain("Expected non-null flipSummary");
+  });
+
+  it("Scenario 07 (Round 2 Runner-Up Loses / State 5B-1): passes when Runner-Up scores below 1st Pick (7.2 < 8.6), keeping c1 as winner and setting followUp=null", () => {
+    const gtRound2Lose = manifest.find((m) => m.id === "07-round2-runner-up-loses")!.groundTruth;
+
+    const validLose = {
+      status: "ok",
+      message: null,
+      produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+      candidates: [
+        {
+          id: "c2",
+          box: [140, 120, 700, 900],
+          score: 7.2,
+          ripeness: "underripe",
+          traits: ["Stark white spot", "Zero webbing"],
+          flipSummary: "Stark chalky-white belly spot with zero pollination webbing",
+        },
+      ],
+      verdict: {
+        winnerId: "c1",
+        runnerUpId: "c2",
+        confidence: "high",
+        headline: "Buy your 1st pick.",
+      },
+      followUp: null,
+      afterPurchase: {
+        readyInDays: { min: 0, max: 0 },
+        eatWithinDays: { min: 4, max: 6 },
+        eatWithinLabel: "4–6 days",
+        storage: {
+          beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · whole", tip: "Keep at room temp" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · wrapped", tip: "Wrap tightly" },
+        },
+      },
+    };
+
+    expect(verifyPromptfooOutput(JSON.stringify(validLose), { vars: gtRound2Lose }).pass).toBe(true);
+
+    // Fails if model mistakenly gives the chalky-white underripe runner-up a higher score than 8.6
+    const wrongOvertake = {
+      ...validLose,
+      candidates: [{ ...validLose.candidates[0], score: 9.1 }],
+    };
+    const failOvertake = verifyPromptfooOutput(JSON.stringify(wrongOvertake), { vars: gtRound2Lose });
+    expect(failOvertake.pass).toBe(false);
+    expect(failOvertake.reason).toContain('Expected winnerId "c1"');
+  });
+
+  it("Scenario 08 (Round 3 1st Pick Reclaims Win / State 7A): passes when 1st Pick scores >= 9.0, reclaiming winnerId='c1' with hard ceiling followUp=null", () => {
+    const gtRound3Reclaim = manifest.find((m) => m.id === "08-round3-first-pick-reclaims")!.groundTruth;
+
+    const validReclaim = {
+      status: "ok",
+      message: null,
+      produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+      candidates: [
+        {
+          id: "c1",
+          box: [175, 150, 820, 840],
+          score: 9.4,
+          ripeness: "ripe",
+          traits: ["Deep golden spot", "Heavy sugar webbing", "Dry brown tendril"],
+          flipSummary: "Huge deep golden-amber field spot with dense brown sugar webbing",
+        },
+      ],
+      verdict: {
+        winnerId: "c1",
+        runnerUpId: "c2",
+        confidence: "high",
+        headline: "Buy your 1st pick.",
+      },
+      followUp: null,
+      afterPurchase: {
+        readyInDays: { min: 0, max: 0 },
+        eatWithinDays: { min: 4, max: 6 },
+        eatWithinLabel: "4–6 days",
+        storage: {
+          beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · whole", tip: "Keep at room temp" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · wrapped", tip: "Wrap tightly" },
+        },
+      },
+    };
+
+    expect(verifyPromptfooOutput(JSON.stringify(validReclaim), { vars: gtRound3Reclaim }).pass).toBe(true);
+  });
+
+  it("Scenario 09 (Round 3 1st Pick Loses / State 7B): passes when 1st Pick scores < 9.0 due to pale bruised belly, keeping winnerId='c2' with followUp=null", () => {
+    const gtRound3Lose = manifest.find((m) => m.id === "09-round3-first-pick-loses")!.groundTruth;
+
+    const validLose3 = {
+      status: "ok",
+      message: null,
+      produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+      candidates: [
+        {
+          id: "c1",
+          box: [175, 200, 775, 800],
+          score: 6.8,
+          ripeness: "underripe",
+          traits: ["Pale greenish spot", "Water-soaked bruise"],
+          flipSummary: "Pale greenish-white belly with a sunken brown water-soaked bruise patch",
+        },
+      ],
+      verdict: {
+        winnerId: "c2",
+        runnerUpId: "c1",
+        confidence: "high",
+        headline: "Buy the new winner.",
+      },
+      followUp: null,
+      afterPurchase: {
+        readyInDays: { min: 0, max: 0 },
+        eatWithinDays: { min: 4, max: 6 },
+        eatWithinLabel: "4–6 days",
+        storage: {
+          beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · whole", tip: "Keep at room temp" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · wrapped", tip: "Wrap tightly" },
+        },
+      },
+    };
+
+    expect(verifyPromptfooOutput(JSON.stringify(validLose3), { vars: gtRound3Lose }).pass).toBe(true);
+  });
+
+  it("Scenario 10 (Single Pineapple Solo): passes when 1 candidate is returned with runnerUpId=null and followUp=null", () => {
+    const gtSolo = manifest.find((m) => m.id === "10-single-pineapple-solo")!.groundTruth;
+
+    const validSolo = {
+      status: "ok",
+      message: null,
+      produce: { type: "pineapple", displayName: "Pineapple", variety: null },
+      candidates: [
+        {
+          id: "c1",
+          box: [75, 360, 825, 630],
+          score: 9.0,
+          ripeness: "ripe",
+          traits: ["Golden-yellow eyes", "Fresh green crown"],
+          flipSummary: null,
+        },
+      ],
+      verdict: {
+        winnerId: "c1",
+        runnerUpId: null,
+        confidence: "high",
+        headline: "Buy it.",
+      },
+      followUp: null,
+      afterPurchase: {
+        readyInDays: { min: 0, max: 1 },
+        eatWithinDays: { min: 3, max: 5 },
+        eatWithinLabel: "3–5 days",
+        storage: {
+          beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · whole", tip: "Keep at room temp" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · container", tip: "Store chunks in sealed container" },
+        },
+      },
+    };
+
+    expect(verifyPromptfooOutput(JSON.stringify(validSolo), { vars: gtSolo }).pass).toBe(true);
   });
 });

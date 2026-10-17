@@ -174,23 +174,37 @@ describe("geometry & semantic verifier", () => {
     }
   });
 
-  it("rejects followUp copy that mentions a conflicting produce name (e.g. 'melon' when produce is 'Avocado')", () => {
+  it("self-heals cosmetic model formatting quirks (0-100 scores, >4 box coordinates, long badge strings) and allows color descriptors like 'orange spot'", () => {
     const res = verifyAndResolveScanResponse(
       {
         status: "ok",
         message: null,
-        produce: { type: "avocado", displayName: "Avocado", variety: "Hass" },
+        produce: { type: "watermelon", displayName: "Watermelon", variety: "Seedless" },
         candidates: [
-          { id: "c1", box: [200, 200, 500, 500], score: 8.5, ripeness: "ripe", traits: ["Dark pebbled skin"], flipSummary: null },
-          { id: "c2", box: [500, 500, 800, 800], score: 8.0, ripeness: "almost_ripe", traits: ["Intact stem"], flipSummary: null },
+          {
+            id: "c1",
+            box: [200, 200, 500, 500, 5, 6],
+            score: 92,
+            ripeness: "ripe",
+            traits: ["Deep creamy yellow ground spot with rich sugar webbing"],
+            flipSummary: null,
+          },
+          {
+            id: "c2",
+            box: [500, 500, 800, 800],
+            score: 80,
+            ripeness: "almost_ripe",
+            traits: ["Pale spot"],
+            flipSummary: null,
+          },
         ],
-        verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "medium", headline: "Buy it." },
+        verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy it." },
         followUp: {
           targetCandidateId: "c2",
           targetRole: "runner_up",
-          bannerText: "Turn the blue-marked melon to check the field spot.",
-          flipHeadline: "Flip the melon over",
-          instruction: "Turn the blue-marked melon to show its underside.",
+          bannerText: "Turn the Runner-Up Watermelon to check for a deep orange field spot.",
+          flipHeadline: "Flip the Watermelon over",
+          instruction: "Turn the Runner-Up Watermelon to show its underside.",
         },
         afterPurchase: {
           readyInDays: { min: 0, max: 1 },
@@ -204,7 +218,7 @@ describe("geometry & semantic verifier", () => {
       },
       {
         promptVersion: "v1",
-        modelId: "gemini-2.5-flash",
+        modelId: "gemini-3.5-flash-lite",
         request: {
           schemaVersion: "1.0",
           sessionId: "550e8400-e29b-41d4-a716-446655440000",
@@ -217,9 +231,11 @@ describe("geometry & semantic verifier", () => {
         },
       }
     );
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.errors.join(" ")).toContain("produce");
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.response.candidates[0].score).toBe(9.2);
+      expect(res.response.candidates[0].box).toEqual([200, 200, 500, 500]);
+      expect(res.response.candidates[0].traits[0].length).toBeLessThanOrEqual(28);
     }
   });
 

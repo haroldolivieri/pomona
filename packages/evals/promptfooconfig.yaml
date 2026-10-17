@@ -8,12 +8,17 @@ prompts:
   - file://prompts/system-and-user.json
 
 providers:
-  - id: "google:gemini-2.5-flash"
+  - id: "google:gemini-3.8-flash"
     config:
       temperature: 0.1
       response_format:
         type: "json_object"
-  - id: "google:gemini-2.5-flash-lite"
+  - id: "google:gemini-3.5-flash-lite"
+    config:
+      temperature: 0.1
+      response_format:
+        type: "json_object"
+  - id: "google:gemini-3.1-flash-lite"
     config:
       temperature: 0.1
       response_format:
@@ -85,8 +90,8 @@ tests:
       expectedStatus: "multiple_types"
       imageDescription: "Wicker produce display containing Honeycrisp Apples, a Golden Pineapple, and Cavendish Bananas with no focus polygon."
 
-  # 6. Multi-Round Follow-Up Flip Overtake
-  - description: "06 - Round 2 Runner-Up Watermelon Flip Overtakes 1st Pick"
+  # 6. Multi-Round Follow-Up Flip Overtake (State 5B-2)
+  - description: "06 - Round 2 Runner-Up Watermelon Flip Overtakes 1st Pick (State 5B-2)"
     vars:
       round: 2
       imagePath: "dataset/images/06-round2-runner-up-flip-overtakes.jpg"
@@ -114,6 +119,136 @@ tests:
           traits: ["Even shape", "Dark stripes"]
           anglesInspected: 1
       expectedWinnerBox: [120, 125, 885, 885]
+      expectedWinnerId: "c2"
+      expectedRunnerUpId: "c1"
+      expectedFollowUpNull: false
+      expectedFollowUpTargetId: "c1"
+      expectedFollowUpTargetRole: "first_pick"
       requireFlipSummaryNonNull: true
       forbiddenWordsInCopy: ["avocado", "pineapple", "banana"]
       imageDescription: "Close-up of flipped watermelon #c2 showing a huge deep butter-yellow ground spot and dense pollination webbing."
+
+  # 7. Multi-Round Follow-Up Flip Loses (State 5B-1)
+  - description: "07 - Round 2 Runner-Up Watermelon Flip Loses to 1st Pick (State 5B-1)"
+    vars:
+      round: 2
+      imagePath: "dataset/images/07-round2-runner-up-loses.jpg"
+      expectedStatus: "ok"
+      expectedProduceType: "watermelon"
+      produceDisplayName: "Watermelon"
+      followUpContext:
+        produceType: "watermelon"
+        produceDisplayName: "Watermelon"
+        targetCandidateId: "c2"
+        targetRole: "runner_up"
+        requestedInstruction: "Flip the Runner-Up Watermelon over to inspect its underside ground spot."
+        previousWinner:
+          id: "c1"
+          role: "first_pick"
+          score: 8.6
+          ripeness: "ripe"
+          traits: ["Yellow field spot", "Matte rind"]
+          anglesInspected: 1
+        previousRunnerUp:
+          id: "c2"
+          role: "runner_up"
+          score: 8.1
+          ripeness: "almost_ripe"
+          traits: ["Even shape", "Dark stripes"]
+          anglesInspected: 1
+      expectedInspectedBox: [135, 115, 705, 905]
+      expectedWinnerId: "c1"
+      expectedRunnerUpId: "c2"
+      expectedFollowUpNull: true
+      requireFlipSummaryNonNull: true
+      forbiddenWordsInCopy: ["avocado", "pineapple", "banana"]
+      imageDescription: "Close-up of flipped watermelon #c2 revealing a stark chalky-white underripe spot with zero sugar webbing."
+
+  # 8. Multi-Round Round 3 Final Check — 1st Pick Reclaims Win (State 7A)
+  - description: "08 - Round 3 Final Check: 1st Pick Reclaims Win (State 7A, Hard Ceiling followUp=null)"
+    vars:
+      round: 3
+      imagePath: "dataset/images/08-round3-first-pick-reclaims.jpg"
+      expectedStatus: "ok"
+      expectedProduceType: "watermelon"
+      produceDisplayName: "Watermelon"
+      followUpContext:
+        produceType: "watermelon"
+        produceDisplayName: "Watermelon"
+        targetCandidateId: "c1"
+        targetRole: "first_pick"
+        requestedInstruction: "Flip your 1st pick Watermelon over for a fair final check of its underside."
+        previousWinner:
+          id: "c2"
+          role: "runner_up"
+          score: 9.0
+          ripeness: "ripe"
+          traits: ["Deep creamy spot", "Sugar webbing"]
+          anglesInspected: 2
+        previousRunnerUp:
+          id: "c1"
+          role: "first_pick"
+          score: 8.6
+          ripeness: "ripe"
+          traits: ["Yellow field spot", "Matte rind"]
+          anglesInspected: 1
+      expectedWinnerBox: [170, 145, 825, 845]
+      expectedWinnerId: "c1"
+      expectedRunnerUpId: "c2"
+      expectedFollowUpNull: true
+      requireFlipSummaryNonNull: true
+      forbiddenWordsInCopy: ["avocado", "pineapple", "banana"]
+      imageDescription: "Close-up of flipped 1st pick watermelon #c1 revealing a huge deep golden-amber spot, dense brown webbing, and dry tendril."
+
+  # 9. Multi-Round Round 3 Final Check — 1st Pick Loses (State 7B)
+  - description: "09 - Round 3 Final Check: 1st Pick Loses to Runner-Up (State 7B, Hard Ceiling followUp=null)"
+    vars:
+      round: 3
+      imagePath: "dataset/images/09-round3-first-pick-loses.jpg"
+      expectedStatus: "ok"
+      expectedProduceType: "watermelon"
+      produceDisplayName: "Watermelon"
+      followUpContext:
+        produceType: "watermelon"
+        produceDisplayName: "Watermelon"
+        targetCandidateId: "c1"
+        targetRole: "first_pick"
+        requestedInstruction: "Flip your 1st pick Watermelon over for a fair final check of its underside."
+        previousWinner:
+          id: "c2"
+          role: "runner_up"
+          score: 9.0
+          ripeness: "ripe"
+          traits: ["Deep creamy spot", "Sugar webbing"]
+          anglesInspected: 2
+        previousRunnerUp:
+          id: "c1"
+          role: "first_pick"
+          score: 8.6
+          ripeness: "ripe"
+          traits: ["Yellow field spot", "Matte rind"]
+          anglesInspected: 1
+      expectedInspectedBox: [170, 195, 780, 805]
+      expectedWinnerId: "c2"
+      expectedRunnerUpId: "c1"
+      expectedFollowUpNull: true
+      requireFlipSummaryNonNull: true
+      forbiddenWordsInCopy: ["avocado", "pineapple", "banana"]
+      imageDescription: "Close-up of flipped 1st pick watermelon #c1 revealing a pale greenish-white belly with a sunken brown water-soaked bruise."
+
+  # 10. Round 1 Single Produce Item (No Runner-Up)
+  - description: "10 - Single Pineapple Solo (Round 1 Single Candidate -> runnerUpId=null, followUp=null)"
+    vars:
+      round: 1
+      imagePath: "dataset/images/10-single-pineapple-solo.jpg"
+      expectedStatus: "ok"
+      expectedProduceType: "pineapple"
+      produceDisplayName: "Pineapple"
+      expectedCandidateCountMin: 1
+      expectedCandidateCountMax: 1
+      expectedWinnerBox: [70, 355, 830, 635]
+      expectedRunnerUpId: null
+      expectedFollowUpNull: true
+      forbiddenWordsInCopy: ["watermelon", "melon", "avocado", "field spot", "rind"]
+      imageDescription: "A single ripe golden-yellow pineapple standing alone on a wooden table."
+

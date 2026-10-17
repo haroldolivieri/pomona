@@ -9,73 +9,16 @@ import {
 } from "@pomona/contract";
 import { isPointInPolygon, isValidBoundingBox } from "./geometry";
 
-const KNOWN_PRODUCE_NAMES = [
-  "watermelon",
-  "cantaloupe",
-  "honeydew",
-  "melon",
-  "avocado",
-  "pineapple",
-  "banana",
-  "tomato",
-  "mango",
-  "papaya",
-  "peach",
-  "plum",
-  "apple",
-  "orange",
-  "pear",
-  "lemon",
-  "lime",
-  "grapefruit",
-  "strawberry",
-  "blueberry",
-  "raspberry",
-  "blackberry",
-  "kiwi",
-  "grape",
-  "cherry",
-  "apricot",
-  "fig",
-  "pomegranate",
-  "coconut",
-  "guava",
-  "persimmon",
-  "cucumber",
-  "eggplant",
-  "squash",
-  "pumpkin",
-  "zucchini",
-];
-
-function getAllowedProduceTokens(produce: {
-  type: string;
-  displayName: string;
-  variety: string | null;
-}): Set<string> {
-  const allowedTokens = new Set<string>();
-  const text = `${produce.displayName} ${produce.type} ${produce.variety ?? ""}`.toLowerCase();
-  const tokens = text.split(/[^a-z0-9]+/).filter(Boolean);
-  for (const token of tokens) {
-    allowedTokens.add(token);
-    if (token.endsWith("s") && token.length > 3) {
-      allowedTokens.add(token.slice(0, -1));
-    }
-  }
-  return allowedTokens;
-}
-
 /**
  * Deterministic 2-stage verifier and multi-round score resolution engine.
  *
- * Stage 1: Syntactic validation using ScanResponseModelSchema.
+ * Stage 1: Self-healing normalization + syntactic validation using ScanResponseModelSchema.
  * Stage 2: Semantic invariants:
  *   - produce, verdict, afterPurchase non-null when status === "ok"
  *   - bounding box validity & min dimensions
  *   - focusPolygon containment & candidate stripping on Round 1
  *   - winner & runner-up score ranking & multi-round promotion rules
  *   - shelf-life min/max sanity
- *   - parameterized copy verification (rejecting mismatched produce names)
  */
 function trimMax(val: unknown, maxLen: number): unknown {
   if (typeof val !== "string" || val.length <= maxLen) return val;
@@ -231,41 +174,6 @@ export function verifyAndResolveScanResponse(
     }
   }
 
-  // Parameterized Copy Check
-  if (data.followUp && data.produce) {
-    // Strip color-adjective compounds like "orange-toned", "orange-yellow", "lime-green" before checking fruit names
-    const combinedFollowUp = [
-      data.followUp.bannerText,
-      data.followUp.flipHeadline,
-      data.followUp.instruction,
-    ]
-      .join(" ")
-      .toLowerCase()
-      .replace(/\b(orange|lime|lemon|peach|plum)-(toned|yellow|green|colored|coloured|tinted|hued|spot)\b/g, "");
-
-    const allowedTokens = getAllowedProduceTokens(data.produce);
-    const detectedMismatches = new Set<string>();
-
-    for (const produceName of KNOWN_PRODUCE_NAMES) {
-      const regex = new RegExp(`\\b${produceName}(?:s|es)?\\b`, "i");
-      if (regex.test(combinedFollowUp)) {
-        const singular =
-          produceName.endsWith("s") && produceName.length > 3
-            ? produceName.slice(0, -1)
-            : produceName;
-        if (!allowedTokens.has(produceName) && !allowedTokens.has(singular)) {
-          detectedMismatches.add(produceName);
-        }
-      }
-    }
-
-    for (const mismatch of detectedMismatches) {
-      errors.push(
-        `followUp copy mentions conflicting produce name "${mismatch}" when produce is "${data.produce.displayName}"`
-      );
-    }
-  }
-
   // Candidate Bounding Box & Polygon Containment Filtering
   let candidates: Candidate[] = data.candidates.filter((c) =>
     isValidBoundingBox(c.box)
@@ -338,6 +246,9 @@ export function verifyAndResolveScanResponse(
       return { ok: false, errors };
     }
 
+    runnerUpCandidate.id = targetId;
+    candidates = [runnerUpCandidate];
+
     const prevWinner = followUpContext.previousWinner;
     if (runnerUpCandidate.score > prevWinner.score) {
       // Runner-Up beat previous winner: promote Runner-Up and offer Round 3 on 1st Pick
@@ -346,6 +257,23 @@ export function verifyAndResolveScanResponse(
       if (resolvedFollowUp) {
         resolvedFollowUp.targetCandidateId = prevWinner.id;
         resolvedFollowUp.targetRole = "first_pick";
+      } else {
+        resolvedFollowUp = {
+          targetCandidateId: prevWinner.id,
+          targetRole: "first_pick",
+          bannerText: trimMax(
+            `1st Pick (${prevWinner.score}) was only graded from the top. Flip the ${followUpContext.produceDisplayName} for a final check.`,
+            110
+          ),
+          flipHeadline: trimMax(
+            `Flip your 1st pick ${followUpContext.produceDisplayName} over`,
+            48
+          ),
+          instruction: trimMax(
+            `Turn your 1st pick ${followUpContext.produceDisplayName} over to show its underside.`,
+            120
+          ),
+        };
       }
     } else {
       // Runner-Up lost or tied: keep 1st Pick as winner and force followUp to null
@@ -369,6 +297,9 @@ export function verifyAndResolveScanResponse(
       errors.push(`First-pick candidate "${targetId}" not found in candidates`);
       return { ok: false, errors };
     }
+
+    firstPickCandidate.id = targetId;
+    candidates = [firstPickCandidate];
 
     const prevWinner = followUpContext.previousWinner;
     if (firstPickCandidate.score >= prevWinner.score) {
