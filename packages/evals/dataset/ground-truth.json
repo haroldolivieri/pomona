@@ -417,5 +417,53 @@
         "rind"
       ]
     }
+  },
+  {
+    "id": "12-tomato-basket-polygon-selection",
+    "filename": "12-tomato-basket-polygon-selection.jpg",
+    "imagePath": "dataset/images/12-tomato-basket-polygon-selection.jpg",
+    "imageBase64PreviewLength": 320000,
+    "description": "Round 1 Real-World User Focus Polygon on Tomato Basket: Multiple baskets/punnets of fresh red round tomatoes on a grocery display. User drew a focus loop around the top basket. The model must isolate the individual loose tomatoes inside that drawn polygon (c1, c2, etc.), picking the best individual tomato, and NOT grouping the basket into a single candidate box.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "ok",
+      "expectedProduceType": "tomato",
+      "focusPolygon": [
+        [488, 341],
+        [235, 215],
+        [285, 210],
+        [387, 210],
+        [438, 210],
+        [482, 210],
+        [545, 210],
+        [590, 210],
+        [647, 210],
+        [742, 210],
+        [767, 225],
+        [736, 341],
+        [818, 422],
+        [812, 497],
+        [780, 608],
+        [729, 689],
+        [717, 694],
+        [609, 699],
+        [425, 694],
+        [330, 674],
+        [304, 659],
+        [254, 603],
+        [298, 467],
+        [482, 351]
+      ],
+      "expectedCandidateCountMin": 2,
+      "expectedCandidateCountMax": 6,
+      "forbiddenWordsInCopy": [
+        "watermelon",
+        "melon",
+        "avocado",
+        "pineapple",
+        "field spot",
+        "rind"
+      ]
+    }
   }
 ]
