@@ -29,10 +29,19 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   // 'collapsed': minimum sheet size (peek mode) showing handle + target goal + verdict headline + score bar; picture maximized to ~68dvh
   // 'default': standard balance showing above + traits + storage cards
   // 'expanded': scrolled up to clearly show follow-up hint and action buttons
-  const [sheetMode, setSheetMode] = useState<"collapsed" | "default" | "expanded">("default");
+  // 'peek': sheet pushed down so only the grab pill + eyebrow/title peek at bottom (revealing 92% photo)
+  // 'collapsed': sheet showing title, target switch & score bar
+  // 'default': standard balance showing traits and storage
+  // 'expanded': scrolled up to clearly show follow-up hint and action buttons
+  const [sheetMode, setSheetMode] = useState<"peek" | "collapsed" | "default" | "expanded">("default");
   const [dragOffsetY, setDragOffsetY] = useState<number>(0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const dragStartY = useRef<number | null>(null);
+
+  // Photo pan offset (allows user to drag/scroll photo up and down to see items at the bottom or top)
+  const [photoPanY, setPhotoPanY] = useState<number>(0);
+  const photoPanStartY = useRef<number | null>(null);
+
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -206,14 +215,14 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
   const isLostStyle = phase === "S5B1_RunnerUpBeaten" || phase === "S7A_FirstPickWonFinal" || phase === "S7B_FirstPickLostFinal";
 
-  // Calculate sheet translation and parallax offset
-  // 'collapsed': sheet pushed down (+220px) to show only header & score bar, revealing the whole photo
-  // 'default': 0px offset (showing header, score bar, traits, and top of storage)
+  // Calculate sheet translation
+  // 'peek': sheet pushed all the way down (+calc(100% - 74px) or ~420px) revealing ~92% photo
+  // 'collapsed': sheet pushed down (+220px)
+  // 'default': 0px offset
   // 'expanded': sheet pulled up (-80px)
-  const baseTranslateY = sheetMode === "collapsed" ? 220 : sheetMode === "expanded" ? -80 : 0;
-  const activeTranslateY = Math.max(-120, Math.min(260, baseTranslateY + dragOffsetY));
-  // Subtle parallax: photo + bounding boxes shift at 15% of sheet movement
-  const parallaxY = activeTranslateY * 0.15;
+  const baseTranslateY =
+    sheetMode === "peek" ? 420 : sheetMode === "collapsed" ? 220 : sheetMode === "expanded" ? -80 : 0;
+  const activeTranslateY = Math.max(-120, Math.min(480, baseTranslateY + dragOffsetY));
 
   const handleDragStart = (clientY: number) => {
     dragStartY.current = clientY;
@@ -230,7 +239,9 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     if (dragStartY.current === null) return;
     if (dragOffsetY < -40) {
       // Dragging UP
-      if (sheetMode === "collapsed") {
+      if (sheetMode === "peek") {
+        setSheetMode("collapsed");
+      } else if (sheetMode === "collapsed") {
         setSheetMode("default");
       } else {
         setSheetMode("expanded");
@@ -239,13 +250,31 @@ export const ResultStage: React.FC<ResultStageProps> = ({
       // Dragging DOWN
       if (sheetMode === "expanded") {
         setSheetMode("default");
-      } else {
+      } else if (sheetMode === "default") {
         setSheetMode("collapsed");
+      } else {
+        setSheetMode("peek");
       }
     }
     dragStartY.current = null;
     setDragOffsetY(0);
     setIsDragging(false);
+  };
+
+  // Photo pan handlers: allow dragging the photo backdrop up/down
+  const handlePhotoPanStart = (clientY: number) => {
+    photoPanStartY.current = clientY;
+  };
+
+  const handlePhotoPanMove = (clientY: number) => {
+    if (photoPanStartY.current === null) return;
+    const deltaY = clientY - photoPanStartY.current;
+    setPhotoPanY((prev) => Math.max(-200, Math.min(200, prev + deltaY)));
+    photoPanStartY.current = clientY;
+  };
+
+  const handlePhotoPanEnd = () => {
+    photoPanStartY.current = null;
   };
 
   return (
@@ -365,10 +394,22 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         </button>
       </div>
 
-      {/* Full-bleed Photo Viewport with Bounding Boxes (fills whole screen behind sheet) */}
+      {/* Full-bleed Photo Viewport with Bounding Boxes (fills whole screen behind sheet, supports vertical panning) */}
       <div
         ref={viewportRef}
         data-testid="result-photo-viewport"
+        onTouchStart={(e) => handlePhotoPanStart(e.touches[0].clientY)}
+        onTouchMove={(e) => handlePhotoPanMove(e.touches[0].clientY)}
+        onTouchEnd={handlePhotoPanEnd}
+        onPointerDown={(e) => {
+          if (e.pointerType === "mouse") handlePhotoPanStart(e.clientY);
+        }}
+        onPointerMove={(e) => {
+          if (e.pointerType === "mouse") handlePhotoPanMove(e.clientY);
+        }}
+        onPointerUp={(e) => {
+          if (e.pointerType === "mouse") handlePhotoPanEnd();
+        }}
         style={{
           position: "absolute",
           inset: 0,
@@ -377,9 +418,11 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           backgroundColor: "#000000",
           overflow: "hidden",
           zIndex: 1,
-          transform: `translate3d(0, ${parallaxY}px, 0)`,
-          transition: isDragging ? "none" : "transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
+          transform: `translate3d(0, ${photoPanY}px, 0)`,
+          transition: photoPanStartY.current !== null ? "none" : "transform 0.24s cubic-bezier(0.2, 0.9, 0.3, 1)",
           willChange: "transform",
+          cursor: "grab",
+          touchAction: "none",
         }}
       >
         {round1PhotoDataUrl && (
@@ -392,6 +435,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               width: "100%",
               height: "100%",
               objectFit: "cover",
+              pointerEvents: "none",
+              userSelect: "none",
             }}
           />
         )}
@@ -556,7 +601,9 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             }
           }}
           onClick={() => {
-            setSheetMode((prev) => (prev === "collapsed" ? "default" : prev === "default" ? "expanded" : "collapsed"));
+            setSheetMode((prev) =>
+              prev === "peek" ? "collapsed" : prev === "collapsed" ? "default" : prev === "default" ? "expanded" : "peek"
+            );
           }}
           aria-label="Drag or tap to collapse or expand bottom sheet"
           role="button"

@@ -299,11 +299,11 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(sheet.style.transform).toBe("translate3d(0, -80px, 0)");
     expect(photoViewport.style.height).toBe("100%");
 
-    // Release snap expands sheet (-80px) and maintains full-bleed photo with parallax
+    // Release snap expands sheet (-80px) and maintains full-bleed photo
     fireEvent.touchEnd(dragArea);
     expect(sheet.style.transform).toBe("translate3d(0, -80px, 0)");
     expect(photoViewport.style.height).toBe("100%");
-    expect(photoViewport.style.transform).toBe("translate3d(0, -12px, 0)");
+    expect(photoViewport.style.transform).toBe("translate3d(0, 0px, 0)");
   });
 
   it("renders 3-way ripeness switch in S4_InitialResult and triggers onSetTargetRipeness", () => {
