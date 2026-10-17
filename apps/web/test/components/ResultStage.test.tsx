@@ -96,8 +96,11 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(screen.getByText("Buy it.")).toBeInTheDocument();
     expect(screen.getByText(/High confidence · 3 compared in view/i)).toBeInTheDocument();
 
-    // Score meter
+    // Score meter (visible at min-height)
     expect(screen.getByText("8.6 / 10")).toBeInTheDocument();
+
+    // Expand bottom sheet to see full details (traits, storage cards, hint, CTA)
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
 
     // Storage 2-row
     expect(screen.getByText(/🗓 Eat within/i)).toBeInTheDocument();
@@ -142,6 +145,9 @@ describe("ResultStage (Mockup Parity)", () => {
     const tick = screen.getByTestId("score-prev-mark");
     expect(tick).toBeInTheDocument();
     expect(tick).toHaveStyle({ left: "72%" });
+
+    // Expand bottom sheet to see confirmation banner and CTAs
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
 
     // Confirmation card
     const confirmCard = screen.getByTestId("confirmation-card");
@@ -189,6 +195,9 @@ describe("ResultStage (Mockup Parity)", () => {
     // Tick marker on meter at 86%
     const tick = screen.getByTestId("score-prev-mark");
     expect(tick).toHaveStyle({ left: "86%" });
+
+    // Expand bottom sheet to see hint and CTA
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
 
     // Hint and CTA
     expect(screen.getByTestId("follow-up-hint")).toHaveTextContent(/1st Pick \(8\.6\) was only graded from the top/i);
@@ -295,15 +304,16 @@ describe("ResultStage (Mockup Parity)", () => {
     fireEvent.touchStart(dragArea, { touches: [{ clientY: 500 }] });
     fireEvent.touchMove(dragArea, { touches: [{ clientY: 420 }] }); // -80px drag up
 
-    // Live drag moves sheet up by 80px and photo viewport by parallax (-80 * 0.2 = -16px)
+    // Live drag moves sheet up by 80px
     expect(sheet.style.transform).toBe("translate3d(0, -80px, 0)");
     expect(photoViewport.style.height).toBe("100%");
 
-    // Release snap expands sheet (-80px) and maintains full-bleed photo
+    // Release snap expands sheet to 'expanded' static state (transform resets to 0, height becomes 86dvh)
     fireEvent.touchEnd(dragArea);
-    expect(sheet.style.transform).toBe("translate3d(0, -80px, 0)");
+    expect(sheet.style.transform).toBe("translate3d(0, 0px, 0)");
+    expect(sheet.style.height).toBe("86dvh");
+    expect(screen.getByTestId("sheet-expanded-content")).toBeInTheDocument();
     expect(photoViewport.style.height).toBe("100%");
-    expect(photoViewport.style.transform).toBe("translate3d(0, 0px, 0)");
   });
 
   it("renders 3-way ripeness switch in S4_InitialResult and triggers onSetTargetRipeness", () => {

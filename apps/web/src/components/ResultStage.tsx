@@ -29,11 +29,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   // 'collapsed': minimum sheet size (peek mode) showing handle + target goal + verdict headline + score bar; picture maximized to ~68dvh
   // 'default': standard balance showing above + traits + storage cards
   // 'expanded': scrolled up to clearly show follow-up hint and action buttons
-  // 'peek': sheet pushed down so only the grab pill + eyebrow/title peek at bottom (revealing 92% photo)
-  // 'collapsed': sheet showing title, target switch & score bar
-  // 'default': standard balance showing traits and storage
-  // 'expanded': scrolled up to clearly show follow-up hint and action buttons
-  const [sheetMode, setSheetMode] = useState<"peek" | "collapsed" | "default" | "expanded">("default");
+  // Two clean sheet states:
+  // 'collapsed': min-height mode showing grab handle + target selector + headline + score meter (ripeness bar)
+  // 'expanded': fully opened static sheet showing all cards, traits, and action buttons
+  const [sheetMode, setSheetMode] = useState<"collapsed" | "expanded">("collapsed");
   const [dragOffsetY, setDragOffsetY] = useState<number>(0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const dragStartY = useRef<number | null>(null);
@@ -215,14 +214,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
   const isLostStyle = phase === "S5B1_RunnerUpBeaten" || phase === "S7A_FirstPickWonFinal" || phase === "S7B_FirstPickLostFinal";
 
-  // Calculate sheet translation
-  // 'peek': sheet pushed all the way down (+calc(100% - 74px) or ~420px) revealing ~92% photo
-  // 'collapsed': sheet pushed down (+220px)
-  // 'default': 0px offset
-  // 'expanded': sheet pulled up (-80px)
-  const baseTranslateY =
-    sheetMode === "peek" ? 420 : sheetMode === "collapsed" ? 220 : sheetMode === "expanded" ? -80 : 0;
-  const activeTranslateY = Math.max(-120, Math.min(480, baseTranslateY + dragOffsetY));
+  // Calculate live drag delta and snap translation:
+  // When 'collapsed': base is 0 (static at min-height showing up to the ripeness bar)
+  // When 'expanded': base is -100px (or dragged up)
+  const isFullyOpen = sheetMode === "expanded";
 
   const handleDragStart = (clientY: number) => {
     dragStartY.current = clientY;
@@ -237,24 +232,12 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
   const handleDragEnd = () => {
     if (dragStartY.current === null) return;
-    if (dragOffsetY < -40) {
-      // Dragging UP
-      if (sheetMode === "peek") {
-        setSheetMode("collapsed");
-      } else if (sheetMode === "collapsed") {
-        setSheetMode("default");
-      } else {
-        setSheetMode("expanded");
-      }
-    } else if (dragOffsetY > 40) {
-      // Dragging DOWN
-      if (sheetMode === "expanded") {
-        setSheetMode("default");
-      } else if (sheetMode === "default") {
-        setSheetMode("collapsed");
-      } else {
-        setSheetMode("peek");
-      }
+    if (dragOffsetY < -35) {
+      // Swiping UP -> fully open the sheet
+      setSheetMode("expanded");
+    } else if (dragOffsetY > 35) {
+      // Swiping DOWN -> collapse to min height
+      setSheetMode("collapsed");
     }
     dragStartY.current = null;
     setDragOffsetY(0);
@@ -553,7 +536,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           left: 0,
           right: 0,
           bottom: 0,
-          maxHeight: "88dvh",
+          height: isFullyOpen ? "86dvh" : "auto",
+          maxHeight: "86dvh",
           backgroundColor: "var(--surface-sheet)",
           color: "var(--text-primary)",
           borderTopLeftRadius: "26px",
@@ -561,21 +545,22 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           paddingTop: "4px",
           paddingLeft: "20px",
           paddingRight: "20px",
-          paddingBottom: "calc(max(28px, env(safe-area-inset-bottom)) + 28px)",
+          paddingBottom: isFullyOpen
+            ? "calc(max(24px, env(safe-area-inset-bottom)) + 24px)"
+            : "calc(max(18px, env(safe-area-inset-bottom)) + 8px)",
           zIndex: 15,
           display: "flex",
           flexDirection: "column",
-          gap: "14px",
+          gap: "10px",
           boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.28)",
-          transform: `translate3d(0, ${activeTranslateY}px, 0)`,
-          transition: isDragging ? "none" : "transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
-          overflowY: "auto",
+          transform: `translate3d(0, ${dragOffsetY}px, 0)`,
+          transition: isDragging ? "none" : "height 0.32s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
+          overflowY: isFullyOpen ? "auto" : "hidden",
           WebkitOverflowScrolling: "touch",
-          touchAction: "pan-y",
-          willChange: "transform",
+          touchAction: isFullyOpen ? "pan-y" : "none",
         }}
       >
-        {/* Interactive Grab Handle Pill Area (only this area initiates sheet collapse/expansion dragging) */}
+        {/* Interactive Grab Handle Pill Area */}
         <div
           data-testid="sheet-drag-area"
           onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
@@ -601,16 +586,14 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             }
           }}
           onClick={() => {
-            setSheetMode((prev) =>
-              prev === "peek" ? "collapsed" : prev === "collapsed" ? "default" : prev === "default" ? "expanded" : "peek"
-            );
+            setSheetMode((prev) => (prev === "collapsed" ? "expanded" : "collapsed"));
           }}
-          aria-label="Drag or tap to collapse or expand bottom sheet"
+          aria-label={isFullyOpen ? "Tap to minimize bottom sheet" : "Tap to open details"}
           role="button"
           tabIndex={0}
           style={{
             width: "100%",
-            padding: "10px 0 12px 0",
+            padding: "8px 0 6px 0",
             display: "flex",
             justifyContent: "center",
             cursor: "pointer",
@@ -841,9 +824,20 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           </div>
         )}
 
-        {/* Traits Chips */}
-        {activeWinner?.traits && activeWinner.traits.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+        {/* Expanded content visible when sheet is fully open */}
+        {isFullyOpen && (
+          <div
+            data-testid="sheet-expanded-content"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+              flex: 1,
+            }}
+          >
+            {/* Traits Chips */}
+            {activeWinner?.traits && activeWinner.traits.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
             {activeWinner.traits.map((trait, idx) => (
               <span
                 key={idx}
@@ -1102,6 +1096,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             </button>
           )}
         </div>
+          </div>
+        )}
       </div>
     </div>
   );

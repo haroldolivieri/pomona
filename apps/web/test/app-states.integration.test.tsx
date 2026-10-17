@@ -119,6 +119,8 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     fireEvent.click(screen.getByTestId("whole-photo-button"));
     expect(await screen.findByTestId("stage-S4_InitialResult")).toBeTruthy();
     expect(screen.getByText("Buy it.")).toBeTruthy();
+    // Expand bottom sheet to see full storage details and action button
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
     expect(screen.getByText("Counter · whole")).toBeTruthy();
     expect(screen.getByText("Fridge · wrapped")).toBeTruthy();
     expect(screen.getByTestId("cta-compare-runner-up").textContent).toBe("Compare with Runner-Up");
@@ -133,6 +135,8 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     fireEvent.click(screen.getByTestId("flip-shutter-button"));
     expect(await screen.findByTestId("stage-S5B2_RunnerUpTookLead")).toBeTruthy();
     expect(screen.getByText(/Beats 1st Pick \(9\.0 vs 8\.6\)/i)).toBeTruthy();
+    // Expand bottom sheet to access final check CTA
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
     expect(screen.getByTestId("cta-final-check-first-pick").textContent).toBe("Flip 1st Pick for Final Check");
 
     // State 5B-2 -> Flip 1st Pick -> State 6 -> Snap -> State 7A (1st Pick Reclaims Win)
