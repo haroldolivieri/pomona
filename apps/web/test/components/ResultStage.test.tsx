@@ -305,4 +305,68 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(photoViewport.style.height).toBe("46dvh");
     expect(photoViewport.style.transform).toBe("translate3d(0, -24.2px, 0)");
   });
+
+  it("renders 3-way ripeness switch in S4_InitialResult and triggers onSetTargetRipeness", () => {
+    const onSetTargetRipeness = vi.fn();
+    const state = {
+      ...initialScanMachineState(),
+      phase: "S4_InitialResult" as const,
+      firstPick: sampleFirstPick,
+      runnerUp: sampleRunnerUp,
+      lastResponse: baseResponse,
+      targetRipeness: "ready_now" as const,
+    };
+
+    render(
+      <ResultStage
+        state={state}
+        onCompareWithRunnerUp={vi.fn()}
+        onStartFinalCheck={vi.fn()}
+        onReset={vi.fn()}
+        onSetTargetRipeness={onSetTargetRipeness}
+      />
+    );
+
+    const switchWrap = screen.getByTestId("ripeness-target-switch");
+    expect(switchWrap).toBeInTheDocument();
+
+    const readyNowTab = screen.getByTestId("target-tab-ready_now");
+    const in23DaysTab = screen.getByTestId("target-tab-in_2_3_days");
+    const laterWeekTab = screen.getByTestId("target-tab-later_this_week");
+
+    expect(readyNowTab).toBeInTheDocument();
+    expect(in23DaysTab).toBeInTheDocument();
+    expect(laterWeekTab).toBeInTheDocument();
+
+    fireEvent.click(in23DaysTab);
+    expect(onSetTargetRipeness).toHaveBeenCalledWith("in_2_3_days");
+  });
+
+  it("renders locked ripeness goal banner in S5B1 and S5B2 instead of interactive switch", () => {
+    const stateS5B1 = {
+      ...initialScanMachineState(),
+      phase: "S5B1_RunnerUpBeaten" as const,
+      firstPick: sampleFirstPick,
+      runnerUp: sampleRunnerUp,
+      lastResponse: {
+        ...baseResponse,
+        round: 2 as const,
+      },
+      targetRipeness: "in_2_3_days" as const,
+    };
+
+    render(
+      <ResultStage
+        state={stateS5B1}
+        onCompareWithRunnerUp={vi.fn()}
+        onStartFinalCheck={vi.fn()}
+        onReset={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByTestId("ripeness-target-switch")).not.toBeInTheDocument();
+    const lockedGoal = screen.getByTestId("locked-ripeness-goal");
+    expect(lockedGoal).toBeInTheDocument();
+    expect(lockedGoal).toHaveTextContent("In 2–3 days");
+  });
 });

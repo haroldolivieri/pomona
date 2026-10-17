@@ -1,6 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import type { Candidate } from "@pomona/contract";
+import {
+  type Candidate,
+  type TargetRipenessWindow,
+  resolveCandidatesForTarget,
+} from "@pomona/contract";
 import type { ScanMachineState } from "../state/scan-state-machine";
 import { describeBoxPosition } from "../lib/spatial-a11y";
 import { computeObjectFitCoverRect, type RenderedCoverRect } from "../lib/image-pipeline";
@@ -10,6 +14,7 @@ export interface ResultStageProps {
   onCompareWithRunnerUp: () => void;
   onStartFinalCheck: () => void;
   onReset: () => void;
+  onSetTargetRipeness?: (target: TargetRipenessWindow) => void;
 }
 
 export const ResultStage: React.FC<ResultStageProps> = ({
@@ -17,6 +22,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   onCompareWithRunnerUp,
   onStartFinalCheck,
   onReset,
+  onSetTargetRipeness,
 }) => {
   const { t } = useTranslation();
   const [sheetExpanded, setSheetExpanded] = useState<boolean>(false);
@@ -101,16 +107,29 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   let prevMarkScore: number | null = null;
   let runnerUpTagLabel = "Runner-Up";
 
+  const targetRipeness = state.targetRipeness || "ready_now";
+  let targetResolution = null;
+  if (phase === "S4_InitialResult" && state.allCandidatesRound1 && state.allCandidatesRound1.length > 0) {
+    targetResolution = resolveCandidatesForTarget(state.allCandidatesRound1, targetRipeness);
+  }
+
   const winnerScoreStr = (score?: number) => (score !== undefined ? score.toFixed(1) : "8.6");
   const candidateCount = lastResponse.candidates?.length || 3;
 
   if (phase === "S4_InitialResult") {
     activeWinner = firstPick;
     activeRunnerUp = runnerUp;
-    eyebrow = "BEST IN VIEW";
-    headline = "Buy it.";
-    subtitle = `High confidence · ${candidateCount} compared in view`;
-    followUpHint = followUp?.bannerText || "The blue one could be sweeter. Flip it and snap.";
+    if (targetResolution) {
+      eyebrow = targetResolution.eyebrow;
+      headline = targetResolution.headline;
+      subtitle = targetResolution.subtitle;
+      followUpHint = targetResolution.followUpHintOverride || followUp?.bannerText || "The blue one could be sweeter. Flip it and snap.";
+    } else {
+      eyebrow = "BEST IN VIEW";
+      headline = "Buy it.";
+      subtitle = `High confidence · ${candidateCount} compared in view`;
+      followUpHint = followUp?.bannerText || "The blue one could be sweeter. Flip it and snap.";
+    }
     runnerUpTagLabel = "Runner-Up";
   } else if (phase === "S5B1_RunnerUpBeaten") {
     activeWinner = firstPick;
@@ -532,6 +551,132 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           />
         </div>
 
+        {/* 3-Way Segmented Control in S4_InitialResult */}
+        {phase === "S4_InitialResult" && (
+          <div
+            data-testid="ripeness-target-switch"
+            role="tablist"
+            aria-label="Target ripeness window"
+            style={{
+              backgroundColor: "var(--surface-card)",
+              padding: "3.5px",
+              borderRadius: "13px",
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "4px",
+              border: "1px solid var(--surface-card-border)",
+            }}
+          >
+            {(
+              [
+                { id: "ready_now", label: "Ready now", sub: "Peak ripe", dot: "#16A34A" },
+                { id: "in_2_3_days", label: "In 2–3 days", sub: "Almost ripe", dot: "#D97706" },
+                { id: "later_this_week", label: "Later this week", sub: "Firm / Unripe", dot: "#2563EB" },
+              ] as const
+            ).map((tab) => {
+              const isActive = targetRipeness === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  data-testid={`target-tab-${tab.id}`}
+                  onClick={() => onSetTargetRipeness && onSetTargetRipeness(tab.id)}
+                  style={{
+                    border: "none",
+                    backgroundColor: isActive ? "var(--surface-sheet)" : "transparent",
+                    color: isActive ? "var(--text-primary)" : "var(--text-muted)",
+                    padding: "6px 4px",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    lineHeight: 1.15,
+                    boxShadow: isActive ? "0 2px 6px rgba(0, 0, 0, 0.12)" : "none",
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  <span style={{ fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center" }}>
+                    {isActive && (
+                      <span
+                        style={{
+                          width: "6px",
+                          height: "6px",
+                          borderRadius: "50%",
+                          backgroundColor: tab.dot,
+                          marginRight: "4px",
+                          display: "inline-block",
+                        }}
+                      />
+                    )}
+                    {tab.label}
+                  </span>
+                  <span style={{ fontSize: "9.5px", fontWeight: 600, opacity: 0.78, marginTop: "2px" }}>
+                    {tab.sub}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Locked Goal Banner in States 5B, 7A, 7B */}
+        {(phase === "S5B1_RunnerUpBeaten" ||
+          phase === "S5B2_RunnerUpTookLead" ||
+          phase === "S7A_FirstPickWonFinal" ||
+          phase === "S7B_FirstPickLostFinal") && (
+          <div
+            data-testid="locked-ripeness-goal"
+            style={{
+              backgroundColor: "var(--surface-card)",
+              border: "1px solid var(--surface-card-border)",
+              borderRadius: "11px",
+              padding: "7px 12px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              fontSize: "11.5px",
+              fontWeight: 700,
+              color: "var(--text-primary)",
+            }}
+          >
+            <span>
+              🎯 Shopping for:{" "}
+              <strong>
+                {targetRipeness === "in_2_3_days"
+                  ? "In 2–3 days"
+                  : targetRipeness === "later_this_week"
+                  ? "Later this week"
+                  : "Ready now"}
+              </strong>
+            </span>
+            <span
+              style={{
+                backgroundColor: "var(--surface-sheet)",
+                padding: "2px 8px",
+                borderRadius: "999px",
+                fontSize: "10.5px",
+                fontWeight: 800,
+                color:
+                  targetRipeness === "in_2_3_days"
+                    ? "#D97706"
+                    : targetRipeness === "later_this_week"
+                    ? "#2563EB"
+                    : "#16A34A",
+                border: "1px solid var(--surface-card-border)",
+              }}
+            >
+              {targetRipeness === "in_2_3_days"
+                ? "Almost ripe"
+                : targetRipeness === "later_this_week"
+                ? "Firm & unripe"
+                : "Peak ripe"}
+            </span>
+          </div>
+        )}
+
         {/* Eyebrow & Headline */}
         <div>
           <span
@@ -665,7 +810,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 {t("result.eatWithin")}
               </span>
               <strong style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>
-                {afterPurchase.eatWithinLabel}
+                {targetResolution?.eatWithinOverride || afterPurchase.eatWithinLabel}
               </strong>
             </div>
 

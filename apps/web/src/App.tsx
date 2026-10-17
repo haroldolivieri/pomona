@@ -290,6 +290,10 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             onCompareWithRunnerUp={handleCompareWithRunnerUp}
             onStartFinalCheck={handleStartFinalCheck}
             onReset={handleReset}
+            onSetTargetRipeness={(targetRipeness) => {
+              telemetry.capture("target_ripeness_selected", { targetRipeness });
+              dispatch({ type: "SET_TARGET_RIPENESS", targetRipeness });
+            }}
           />
         );
 
