@@ -585,13 +585,26 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           flexDirection: "column",
           gap: "10px",
           boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.28)",
-          transform: `translate3d(0, ${dragOffsetY}px, 0)`,
+          transform: `translate3d(0, ${Math.min(0, dragOffsetY)}px, 0)`,
           transition: isDragging ? "none" : "height 0.32s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
           overflowY: isFullyOpen ? "auto" : "hidden",
           WebkitOverflowScrolling: "touch",
           touchAction: isFullyOpen ? "pan-y" : "none",
         }}
       >
+        {/* Solid background skirt extending below the sheet to prevent any gap during rubberband or drag */}
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            top: "98%",
+            left: 0,
+            right: 0,
+            height: "100vh",
+            backgroundColor: "var(--surface-sheet)",
+            pointerEvents: "none",
+          }}
+        />
         {/* Interactive Grab Handle Pill Area */}
         <div
           data-testid="sheet-drag-area"
