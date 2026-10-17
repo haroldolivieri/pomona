@@ -94,19 +94,21 @@ export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[])
     }
   } else if (request.round === 2 && request.followUpContext) {
     const ctx = request.followUpContext;
-    prompt += `\nRound 2 close-up inspection:
+    const targetGoal = ctx.targetRipeness ? ` (shopping target window: "${ctx.targetRipeness}")` : "";
+    prompt += `\nRound 2 close-up inspection${targetGoal}:
 Inspecting ONLY the foreground candidate "${ctx.targetCandidateId}" (${ctx.produceDisplayName}, role: ${ctx.targetRole}).
 Requested instruction: "${ctx.requestedInstruction}".
 Previous 1st pick candidate "${ctx.previousWinner.id}" scored ${ctx.previousWinner.score}/10 (${ctx.previousWinner.ripeness}).
 Previous runner-up candidate "${ctx.previousRunnerUp.id}" scored ${ctx.previousRunnerUp.score}/10.
-Output ONLY candidate "${ctx.targetCandidateId}" in candidates with a non-null flipSummary (<= 80 chars) and an updated score on the 0.0–10.0 scale. If the underside is chalky white or underripe, score it below ${ctx.previousWinner.score} and set followUp to null. If it has a deep golden-yellow spot and heavy webbing, score it above ${ctx.previousWinner.score} and provide a followUp targeting "${ctx.previousWinner.id}".`;
+Output ONLY candidate "${ctx.targetCandidateId}" in candidates with a non-null flipSummary (<= 80 chars) and an updated score on the 0.0–10.0 scale. If the underside is chalky white, bruised, or underripe for the target, score it below ${ctx.previousWinner.score} and set followUp to null. If it exhibits high quality and suitability for the target, score it above ${ctx.previousWinner.score} and provide a followUp targeting "${ctx.previousWinner.id}".`;
   } else if (request.round === 3 && request.followUpContext) {
     const ctx = request.followUpContext;
-    prompt += `\nRound 3 final check inspection:
+    const targetGoal = ctx.targetRipeness ? ` (shopping target window: "${ctx.targetRipeness}")` : "";
+    prompt += `\nRound 3 final check inspection${targetGoal}:
 Inspecting ONLY the foreground candidate "${ctx.targetCandidateId}" (${ctx.produceDisplayName}, role: ${ctx.targetRole}). Ignore any background items.
 Requested instruction: "${ctx.requestedInstruction}".
 Previous winner candidate "${ctx.previousWinner.id}" scored ${ctx.previousWinner.score}/10.
-Output ONLY candidate "${ctx.targetCandidateId}" in candidates with a non-null flipSummary (<= 80 chars) and an updated score on the 0.0–10.0 scale. If the underside is pale, bruised, or water-soaked, score it strictly below ${ctx.previousWinner.score}. If it has a huge deep golden-yellow spot and heavy sugar webbing, score it >= ${ctx.previousWinner.score}. Hard ceiling: followUp must be null.`;
+Output ONLY candidate "${ctx.targetCandidateId}" in candidates with a non-null flipSummary (<= 80 chars) and an updated score on the 0.0–10.0 scale. If the underside is pale, bruised, water-soaked, or inferior, score it strictly below ${ctx.previousWinner.score}. If it shows peak quality for the target, score it >= ${ctx.previousWinner.score}. Hard ceiling: followUp must be null.`;
   }
 
   if (repairErrors && repairErrors.length > 0) {
