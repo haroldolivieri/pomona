@@ -16,8 +16,8 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     groundTruth: Record<string, any>;
   }> = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf-8"));
 
-  it("verifies all 11 generated ground-truth images exist on disk and are non-empty JPEGs", () => {
-    expect(manifest.length).toBe(11);
+  it("verifies all 12 generated ground-truth images exist on disk and are non-empty JPEGs", () => {
+    expect(manifest.length).toBe(12);
     for (const item of manifest) {
       const fullPath = path.resolve(__dirname, "..", item.imagePath);
       expect(fs.existsSync(fullPath)).toBe(true);
@@ -530,5 +530,87 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     const resFailure = verifyPromptfooOutput(JSON.stringify(invalidPerBerryOutput), { vars: gtPack });
     expect(resFailure.pass).toBe(false);
     expect(resFailure.reason).toContain("Expected at most 2 candidates");
+  });
+
+  it("Scenario 12 (Tomato Basket Polygon Selection): requires all prominent individual produce items inside the selected polygon to return candidate data", () => {
+    const gt = manifest.find((m) => m.id === "12-tomato-basket-polygon-selection")!.groundTruth;
+
+    // 1. Valid model output: Returns multiple distinct individual tomatoes inside the polygon (3-5 candidates)
+    const validMultiCandidateOutput = {
+      status: "ok",
+      message: null,
+      produce: { type: "tomato", displayName: "Tomatoes", variety: "Round" },
+      candidates: [
+        {
+          id: "c1",
+          box: [370, 420, 470, 520], // Center ripe tomato
+          score: 9.2,
+          ripeness: "ripe",
+          traits: ["Vibrant red", "Plump form"],
+          flipSummary: null,
+        },
+        {
+          id: "c2",
+          box: [290, 280, 390, 460], // Top-left ripe tomato
+          score: 8.8,
+          ripeness: "ripe",
+          traits: ["Uniform color"],
+          flipSummary: null,
+        },
+        {
+          id: "c3",
+          box: [360, 620, 470, 780], // Center-right tomato
+          score: 8.5,
+          ripeness: "almost_ripe",
+          traits: ["Firm skin"],
+          flipSummary: null,
+        },
+        {
+          id: "c4",
+          box: [440, 490, 510, 640], // Lower tomato
+          score: 8.0,
+          ripeness: "underripe",
+          traits: ["Firm green shoulder"],
+          flipSummary: null,
+        },
+      ],
+      verdict: {
+        winnerId: "c1",
+        runnerUpId: "c2",
+        confidence: "high",
+        headline: "Buy this one.",
+      },
+      followUp: {
+        targetCandidateId: "c2",
+        targetRole: "runner_up",
+        bannerText: "The second tomato could be firmer. Inspect it.",
+        flipHeadline: "Flip the Tomato",
+        instruction: "Turn the tomato to inspect the stem end.",
+      },
+      afterPurchase: {
+        readyInDays: { min: 0, max: 0 },
+        eatWithinDays: { min: 3, max: 5 },
+        eatWithinLabel: "3–5 days",
+        storage: {
+          beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · whole", tip: "Room temp away from sunlight" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · container", tip: "Store cut side down" },
+        },
+      },
+    };
+
+    const passRes = verifyPromptfooOutput(JSON.stringify(validMultiCandidateOutput), { vars: gt });
+    expect(passRes.pass).toBe(true);
+
+    // 2. Adversarial failure: Model returns only 1 single candidate when multiple items exist in the selected area
+    const invalidSingleCandidateOutput = {
+      ...validMultiCandidateOutput,
+      candidates: [validMultiCandidateOutput.candidates[0]],
+      verdict: { winnerId: "c1", runnerUpId: null, confidence: "high", headline: "Buy it." },
+      followUp: null,
+    };
+
+    const failSingleRes = verifyPromptfooOutput(JSON.stringify(invalidSingleCandidateOutput), { vars: gt });
+    expect(failSingleRes.pass).toBe(false);
+    expect(failSingleRes.reason).toContain("Expected at least 2 candidates");
   });
 });
