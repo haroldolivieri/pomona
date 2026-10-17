@@ -475,6 +475,50 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             pointerEvents: "none",
           }}
         >
+          {/* Other evaluated contenders with clear score badges */}
+          {lastResponse.candidates &&
+            lastResponse.candidates
+              .filter(
+                (c) =>
+                  c.id !== activeWinner?.id &&
+                  c.id !== activeRunnerUp?.id
+              )
+              .map((otherCand) => (
+                <div
+                  key={otherCand.id}
+                  data-testid={`other-candidate-box-${otherCand.id}`}
+                  style={{
+                    position: "absolute",
+                    ...boxToStyle(otherCand.box),
+                    borderRadius: "14px",
+                    border: "2px dashed rgba(255, 255, 255, 0.7)",
+                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.25)",
+                    boxSizing: "border-box",
+                    pointerEvents: "none",
+                  }}
+                >
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "-12px",
+                      right: "6px",
+                      backgroundColor: "rgba(20, 24, 20, 0.88)",
+                      color: "#FFFFFF",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      padding: "2px 7px",
+                      borderRadius: "8px",
+                      whiteSpace: "nowrap",
+                      fontFamily: "Inter, sans-serif",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.35)",
+                      border: "1px solid rgba(255, 255, 255, 0.25)",
+                    }}
+                  >
+                    {otherCand.score.toFixed(1)}
+                  </span>
+                </div>
+              ))}
+
           {activeRunnerUp && (
             <div
               style={{
@@ -503,7 +547,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                     ? "#142117"
                     : "#2F6DB5",
                   color: phase === "S5B2_RunnerUpTookLead" ? "#F5D547" : "#FFFFFF",
-                  fontSize: "10px",
+                  fontSize: "10.5px",
                   fontWeight: 700,
                   padding: "3px 8px",
                   borderRadius: "8px",
@@ -512,7 +556,9 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
                 }}
               >
-                {runnerUpTagLabel}
+                {phase === "S4_InitialResult" && activeRunnerUp.score !== undefined
+                  ? `Runner-Up · ${activeRunnerUp.score.toFixed(1)}`
+                  : runnerUpTagLabel}
               </span>
             </div>
           )}
