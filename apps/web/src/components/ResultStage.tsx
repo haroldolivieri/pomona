@@ -605,7 +605,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             pointerEvents: "none",
           }}
         />
-        {/* Interactive Grab Handle Pill Area */}
+        {/* Interactive Top Drag Area (drag anywhere across grab handle, target selector, headlines, and score bar) */}
         <div
           data-testid="sheet-drag-area"
           onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
@@ -630,31 +630,41 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               handleDragEnd();
             }
           }}
-          onClick={() => {
+          onClick={(e) => {
+            // Prevent toggling if user was clicking a button inside like the target tabs
+            const target = e.target as HTMLElement;
+            if (target.closest("button") || target.closest("[role='tab']")) return;
             setSheetMode((prev) => (prev === "collapsed" ? "expanded" : "collapsed"));
           }}
-          aria-label={isFullyOpen ? "Tap to minimize bottom sheet" : "Tap to open details"}
-          role="button"
-          tabIndex={0}
           style={{
-            width: "100%",
-            padding: "8px 0 6px 0",
             display: "flex",
-            justifyContent: "center",
-            cursor: "pointer",
+            flexDirection: "column",
+            gap: "10px",
             touchAction: "none",
+            cursor: "pointer",
           }}
         >
+          {/* Grab Handle Pill */}
           <div
-            data-testid="drag-handle"
             style={{
-              width: "42px",
-              height: "5px",
-              borderRadius: "4px",
-              backgroundColor: "rgba(107, 106, 101, 0.4)",
+              width: "100%",
+              padding: "8px 0 6px 0",
+              display: "flex",
+              justifyContent: "center",
+              cursor: "pointer",
+              touchAction: "none",
             }}
-          />
-        </div>
+          >
+            <div
+              data-testid="drag-handle"
+              style={{
+                width: "42px",
+                height: "5px",
+                borderRadius: "4px",
+                backgroundColor: "rgba(107, 106, 101, 0.4)",
+              }}
+            />
+          </div>
 
         {/* 3-Way Segmented Control in S4_InitialResult */}
         {phase === "S4_InitialResult" && (
@@ -868,6 +878,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             </div>
           </div>
         )}
+        </div>
 
         {/* Expanded content visible when sheet is fully open */}
         {isFullyOpen && (
