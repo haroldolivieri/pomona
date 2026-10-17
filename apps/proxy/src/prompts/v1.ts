@@ -57,7 +57,8 @@ BOUNDING BOX & UNIT OF PURCHASE (CRITICAL):
 FOCUS POLYGON CONSTRAINT:
 - ${polygonInfo}
 - Note coordinate order: \`focusPolygon\` points are \`[x, y]\` (horizontal x first, vertical y second), whereas candidate \`box\` is \`[ymin, xmin, ymax, xmax]\` (vertical y first, horizontal x second).
-- When a focusPolygon is provided, you MUST include every visible produce item whose center point lies inside the polygon, and exclude any item outside it. Detect individual fruits/vegetables inside the polygon rather than grouping them together.
+- When a focusPolygon is provided, you MUST detect and grade EVERY prominent individual produce item whose center point lies inside the polygon (typically 2 to 6 individual fruits/vegetables if multiple are visible inside the loop).
+- CRITICAL: Never return only 1 single candidate if multiple distinct individual produce items are clearly visible inside the drawn polygon! Detect the top 2 to 5 distinct items inside the polygon so the user can see which one is the winner and which one is the runner-up. Exclude any items outside the polygon.
 
 MULTI-ROUND FLIP WORKFLOW:
 - Round 1: Identify produce type (lowercase slug, e.g. "watermelon", "avocado", "pineapple") and displayName. Score all visible candidates inside the focus area (c1, c2, etc.) on the 0.0–10.0 scale. The highest scoring candidate is winnerId. If a second candidate exists, set runnerUpId and provide a non-null \`followUp\` targeting the runner-up. If only 1 item exists in the frame, runnerUpId and followUp MUST be null.
@@ -95,7 +96,7 @@ export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[])
   if (request.round === 1) {
     if (request.focusPolygon && request.focusPolygon.length >= 3) {
       prompt += `\nUser drew a focusPolygon: ${describeFocusPolygonBounds(request.focusPolygon)}
-CRITICAL: Detect and grade the INDIVIDUAL produce items (e.g. distinct individual tomatoes, fruits, or vegetables) inside this drawn region. Do NOT group multiple loose fruits into a single candidate box or treat the container/crate as a single candidate. Exclude any produce outside the drawn region.`;
+CRITICAL: Detect and grade EVERY prominent individual produce item (e.g. 2 to 5 distinct individual tomatoes, fruits, or vegetables) inside this drawn region. Do NOT group multiple loose fruits into a single candidate box, do NOT return only 1 item if multiple are visible, and exclude any produce outside the drawn region.`;
     } else {
       prompt += `\nEvaluate all visible produce candidates in the image.`;
     }
