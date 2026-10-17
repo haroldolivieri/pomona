@@ -36,6 +36,9 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const [dragOffsetY, setDragOffsetY] = useState<number>(0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const dragStartY = useRef<number | null>(null);
+  const dragStartTime = useRef<number>(0);
+  const dragMovedDistance = useRef<number>(0);
+  const suppressClickUntil = useRef<number>(0);
 
   // Photo pan offset (automatically centers winner in the visible photo area above bottom sheet)
   const [photoPanY, setPhotoPanY] = useState<number>(0);
@@ -219,72 +222,55 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   // Calculate live drag delta and snap translation:
   const isFullyOpen = sheetMode === "expanded";
 
-  // Coordinates dragging for bottom sheet with native sheet mechanics:
-  // - When collapsed: dragging or tapping on drag area expands sheet
-  // - When expanded: dragging down on drag area collapses sheet;
-  //   or when scrolling inside content and at scrollTop === 0, dragging down collapses sheet.
+  // Coordinates dragging for bottom sheet with native Material Design 3 mechanics:
+  // - When collapsed: swiping or dragging up expands sheet; tapping toggles.
+  // - When expanded: swiping or dragging down collapses sheet; tapping toggles.
+  // - NO internal scroll inside the sheet: the entire sheet glides with zero scroll fighting.
   const handleDragStart = (clientY: number) => {
     dragStartY.current = clientY;
+    dragStartTime.current = Date.now();
+    dragMovedDistance.current = 0;
     setIsDragging(true);
   };
 
   const handleDragMove = (clientY: number) => {
     if (dragStartY.current === null) return;
     const deltaY = clientY - dragStartY.current;
+    dragMovedDistance.current = Math.abs(deltaY);
     if (sheetMode === "collapsed") {
-      // When collapsed, user drags upward: deltaY is negative, clamp so it doesn't drag downwards past 0
-      setDragOffsetY(Math.min(0, deltaY));
+      // When collapsed: dragging upward is negative delta, clamp so it moves up
+      setDragOffsetY(deltaY < 0 ? deltaY : Math.min(10, deltaY * 0.15));
     } else {
-      // When expanded, user drags downward: deltaY is positive, clamp so it doesn't pull sheet upwards past 0
-      setDragOffsetY(Math.max(0, deltaY));
+      // When expanded: dragging downward is positive delta, clamp so it moves down
+      setDragOffsetY(deltaY > 0 ? deltaY : Math.max(-10, deltaY * 0.15));
     }
   };
 
-  const handleDragEnd = () => {
+  const handleDragEnd = (clientY?: number) => {
     if (dragStartY.current === null) return;
-    if (sheetMode === "collapsed" && dragOffsetY < -35) {
-      // Swiping UP from collapsed -> expand
-      setSheetMode("expanded");
-    } else if (sheetMode === "expanded" && dragOffsetY > 40) {
-      // Swiping DOWN from expanded -> collapse
-      setSheetMode("collapsed");
+    const currentY = clientY ?? (dragStartY.current + dragOffsetY);
+    const deltaY = currentY - dragStartY.current;
+    const elapsed = Math.max(1, Date.now() - dragStartTime.current);
+    const velocity = deltaY / elapsed; // px/ms
+
+    if (dragMovedDistance.current > 8) {
+      // The user performed an actual drag gesture: suppress subsequent synthetic clicks
+      suppressClickUntil.current = Date.now() + 250;
+
+      if (sheetMode === "collapsed") {
+        if (deltaY < -30 || velocity < -0.25) {
+          setSheetMode("expanded");
+        }
+      } else {
+        if (deltaY > 30 || velocity > 0.25) {
+          setSheetMode("collapsed");
+        }
+      }
     }
+
     dragStartY.current = null;
     setDragOffsetY(0);
     setIsDragging(false);
-  };
-
-  // Internal content scroll container ref and pull-down-to-collapse tracking
-  const contentScrollRef = useRef<HTMLDivElement | null>(null);
-  const scrollDragStartY = useRef<number | null>(null);
-
-  const handleContentTouchStart = (e: React.TouchEvent) => {
-    // Only intercept when at the very top of scroll container
-    if (contentScrollRef.current && contentScrollRef.current.scrollTop <= 0) {
-      scrollDragStartY.current = e.touches[0].clientY;
-    } else {
-      scrollDragStartY.current = null;
-    }
-  };
-
-  const handleContentTouchMove = (e: React.TouchEvent) => {
-    if (scrollDragStartY.current !== null && contentScrollRef.current && contentScrollRef.current.scrollTop <= 0) {
-      const deltaY = e.touches[0].clientY - scrollDragStartY.current;
-      if (deltaY > 10) {
-        // User is pulling down at top of scroll view: translate sheet down like native sheet
-        handleDragStart(scrollDragStartY.current);
-        handleDragMove(e.touches[0].clientY);
-      }
-    }
-  };
-
-  const handleContentTouchEnd = () => {
-    if (scrollDragStartY.current !== null) {
-      scrollDragStartY.current = null;
-      if (isDragging) {
-        handleDragEnd();
-      }
-    }
   };
 
   // Auto-scroll image so winner is centered in visible photo area above bottom sheet
@@ -572,7 +558,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         </div>
       </div>
 
-      {/* Interactive Bottom Sheet (overlay sliding on top of full-bleed photo) */}
+      {/* Interactive Bottom Sheet (Material Design 3 standard bottom sheet, ZERO internal scroll) */}
       <div
         ref={sheetRef}
         data-testid="result-bottom-sheet"
@@ -587,7 +573,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           color: "var(--text-primary)",
           borderTopLeftRadius: "26px",
           borderTopRightRadius: "26px",
-          paddingTop: "2px",
+          paddingTop: "0px",
           paddingLeft: "18px",
           paddingRight: "18px",
           paddingBottom: isFullyOpen
@@ -597,17 +583,19 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           display: "flex",
           flexDirection: "column",
           gap: "8px",
-          boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.28)",
+          boxShadow: "0 -8px 32px rgba(0, 0, 0, 0.22)",
           transform: isFullyOpen
             ? `translate3d(0, ${Math.max(0, dragOffsetY)}px, 0)`
             : `translate3d(0, ${Math.min(0, dragOffsetY)}px, 0)`,
-          transition: isDragging ? "none" : "height 0.32s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
-          overflowY: isFullyOpen ? "auto" : "hidden",
-          WebkitOverflowScrolling: "touch",
-          touchAction: isFullyOpen ? "pan-y" : "none",
+          transition: isDragging
+            ? "none"
+            : "transform 0.32s cubic-bezier(0.2, 0.0, 0, 1.0)",
+          overflow: "hidden", // MATERIAL DESIGN 3: ABSOLUTELY ZERO INTERNAL SCROLLING
+          touchAction: "none", // NO BROWSER SCROLL / PULL-TO-REFRESH CONFLICTS
+          userSelect: "none",
         }}
       >
-        {/* Solid background skirt extending below the sheet to prevent any gap during rubberband or drag */}
+        {/* Solid background skirt extending below the sheet to prevent any gap during drag */}
         <div
           aria-hidden="true"
           style={{
@@ -620,66 +608,70 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             pointerEvents: "none",
           }}
         />
-        {/* Interactive Top Drag Area (drag anywhere across grab handle, target selector, headlines, and score bar) */}
+        {/* Material 3 Drag Handle Affordance: dedicated touch target with accessible single-pointer/keyboard alternative */}
         <div
           data-testid="sheet-drag-area"
+          role="button"
+          tabIndex={0}
+          aria-label={isFullyOpen ? "Collapse results sheet" : "Expand results sheet"}
+          aria-expanded={isFullyOpen}
           onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
           onTouchMove={(e) => {
-            if (isDragging) {
+            if (dragStartY.current !== null) {
               handleDragMove(e.touches[0].clientY);
             }
           }}
-          onTouchEnd={handleDragEnd}
+          onTouchEnd={(e) => {
+            const clientY = e.changedTouches?.[0]?.clientY;
+            handleDragEnd(clientY);
+          }}
           onPointerDown={(e) => {
             if (e.pointerType === "mouse") {
               handleDragStart(e.clientY);
             }
           }}
           onPointerMove={(e) => {
-            if (e.pointerType === "mouse" && isDragging) {
+            if (e.pointerType === "mouse" && dragStartY.current !== null) {
               handleDragMove(e.clientY);
             }
           }}
           onPointerUp={(e) => {
             if (e.pointerType === "mouse") {
-              handleDragEnd();
+              handleDragEnd(e.clientY);
             }
           }}
-          onClick={(e) => {
-            // Prevent toggling if user was clicking a button inside like the target tabs
-            const target = e.target as HTMLElement;
-            if (target.closest("button") || target.closest("[role='tab']")) return;
+          onClick={() => {
+            if (Date.now() < suppressClickUntil.current) return;
             setSheetMode((prev) => (prev === "collapsed" ? "expanded" : "collapsed"));
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setSheetMode((prev) => (prev === "collapsed" ? "expanded" : "collapsed"));
+            }
+          }}
           style={{
+            width: "100%",
+            minHeight: "44px",
             display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-            touchAction: "none",
+            alignItems: "center",
+            justifyContent: "center",
             cursor: "pointer",
+            touchAction: "none",
+            outline: "none",
           }}
         >
-          {/* Grab Handle Pill */}
           <div
+            data-testid="drag-handle"
             style={{
-              width: "100%",
-              padding: "6px 0 3px 0",
-              display: "flex",
-              justifyContent: "center",
-              cursor: "pointer",
-              touchAction: "none",
+              width: "36px",
+              height: "4.5px",
+              borderRadius: "4px",
+              backgroundColor: "rgba(107, 106, 101, 0.45)",
+              pointerEvents: "none",
             }}
-          >
-            <div
-              data-testid="drag-handle"
-              style={{
-                width: "42px",
-                height: "5px",
-                borderRadius: "4px",
-                backgroundColor: "rgba(107, 106, 101, 0.4)",
-              }}
-            />
-          </div>
+          />
+        </div>
 
         {/* 3-Way Segmented Control in S4_InitialResult */}
         {phase === "S4_InitialResult" && (
@@ -940,21 +932,49 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             )}
           </div>
         </div>
-        </div>
 
-        {/* Expanded content visible when sheet is fully open */}
+        {/* Expanded content visible when sheet is fully open (ZERO SCROLL, fits entire view) */}
         {isFullyOpen && (
           <div
-            ref={contentScrollRef}
             data-testid="sheet-expanded-content"
-            onTouchStart={handleContentTouchStart}
-            onTouchMove={handleContentTouchMove}
-            onTouchEnd={handleContentTouchEnd}
+            onTouchStart={(e) => {
+              const target = e.target as HTMLElement;
+              if (target.closest("button") || target.closest("[role='tab']")) return;
+              handleDragStart(e.touches[0].clientY);
+            }}
+            onTouchMove={(e) => {
+              if (dragStartY.current !== null) {
+                handleDragMove(e.touches[0].clientY);
+              }
+            }}
+            onTouchEnd={(e) => {
+              const clientY = e.changedTouches?.[0]?.clientY;
+              handleDragEnd(clientY);
+            }}
+            onPointerDown={(e) => {
+              if (e.pointerType === "mouse") {
+                const target = e.target as HTMLElement;
+                if (target.closest("button") || target.closest("[role='tab']")) return;
+                handleDragStart(e.clientY);
+              }
+            }}
+            onPointerMove={(e) => {
+              if (e.pointerType === "mouse" && dragStartY.current !== null) {
+                handleDragMove(e.clientY);
+              }
+            }}
+            onPointerUp={(e) => {
+              if (e.pointerType === "mouse") {
+                handleDragEnd(e.clientY);
+              }
+            }}
             style={{
               display: "flex",
               flexDirection: "column",
               gap: "8px",
               flex: 1,
+              overflow: "hidden", // ZERO SCROLLING
+              touchAction: "none",
             }}
           >
             {/* Traits Chips */}
