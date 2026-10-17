@@ -159,10 +159,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     activeRunnerUp = runnerUp;
     const score1 = winnerScoreStr(firstPick?.score);
     const score2 = winnerScoreStr(runnerUp?.score);
-    eyebrow = `✓ 1ST PICK WINS · BEATS RUNNER-UP (${score1} VS ${score2})`;
-    headline = "Buy your 1st pick.";
-    subtitle = "Your initial pick in the yellow box remains the best produce.";
-    confirmationBanner = `Runner-Up scored ${score2} after flip (${runnerUp?.flipSummary || "inspected"}). Stick with your initial 1st pick in the yellow box.`;
+    eyebrow = `✓ 1ST WINNER WINS · BEATS RUNNER-UP (${score1} VS ${score2})`;
+    headline = "Buy your 1st winner.";
+    subtitle = "Your initial winner in the yellow box remains the best produce.";
+    confirmationBanner = `Runner-Up scored ${score2} after flip (${runnerUp?.flipSummary || "inspected"}). Stick with your initial 1st winner in the yellow box.`;
     prevMarkScore = runnerUp?.score ?? null;
     runnerUpTagLabel = `Runner-Up · ${score2}`;
   } else if (phase === "S5B2_RunnerUpTookLead") {
@@ -170,21 +170,21 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     activeRunnerUp = firstPick;
     const score1 = winnerScoreStr(firstPick?.score);
     const score2 = winnerScoreStr(runnerUp?.score);
-    eyebrow = `★ NEW WINNER · BEATS 1ST PICK (${score2} VS ${score1})`;
+    eyebrow = `★ NEW WINNER · BEATS 1ST WINNER (${score2} VS ${score1})`;
     headline = "Buy this Runner-Up.";
-    subtitle = `The flipped fruit scored ${score2} and took the lead over your 1st pick (${score1}).`;
-    followUpHint = followUp?.bannerText || `Your 1st Pick (${score1}) was only inspected from the top. Flip it too for a fair final check, or take this new winner now.`;
+    subtitle = `The flipped fruit scored ${score2} and took the lead over your 1st winner (${score1}).`;
+    followUpHint = followUp?.bannerText || `Your 1st Winner (${score1}) was only inspected from the top. Flip it too for a fair final check, or take this new winner now.`;
     prevMarkScore = firstPick?.score ?? null;
-    runnerUpTagLabel = `1st Pick · ${score1}`;
+    runnerUpTagLabel = `1st Winner · ${score1}`;
   } else if (phase === "S7A_FirstPickWonFinal") {
     activeWinner = firstPick;
     activeRunnerUp = runnerUp;
     const score1 = winnerScoreStr(firstPick?.score);
     const score2 = winnerScoreStr(runnerUp?.score);
-    eyebrow = `★ FINAL VERDICT · 1ST PICK RECLAIMS THE WIN (${score1} VS ${score2})`;
-    headline = "Buy your 1st pick.";
-    subtitle = `After checking both sides, your original 1st pick won overall (${score1} vs ${score2}).`;
-    confirmationBanner = `After flipping your 1st pick, its final score reached ${score1}, beating the Runner-Up (${score2}). Take your original pick!`;
+    eyebrow = `★ FINAL VERDICT · 1ST WINNER RECLAIMS THE WIN (${score1} VS ${score2})`;
+    headline = "Buy your 1st winner.";
+    subtitle = `After checking both sides, your original 1st winner won overall (${score1} vs ${score2}).`;
+    confirmationBanner = `After flipping your 1st winner, its final score reached ${score1}, beating the Runner-Up (${score2}). Take your original winner!`;
     prevMarkScore = runnerUp?.score ?? null;
     runnerUpTagLabel = `Runner-Up · ${score2}`;
   } else if (phase === "S7B_FirstPickLostFinal") {
@@ -195,9 +195,9 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     eyebrow = `★ FINAL VERDICT · RUNNER-UP WINS (${score2} VS ${score1})`;
     headline = "Buy the Runner-Up.";
     subtitle = `Both checked from both sides · The fruit flipped in Round 2 won (${score2} vs ${score1}).`;
-    confirmationBanner = `Your 1st Pick scored ${score1} after flip. The Runner-Up you flipped in Round 2 (${score2}) is confirmed as the best pick.`;
+    confirmationBanner = `Your 1st Winner scored ${score1} after flip. The Runner-Up you flipped in Round 2 (${score2}) is confirmed as the best pick.`;
     prevMarkScore = firstPick?.score ?? null;
-    runnerUpTagLabel = `1st Pick · ${score1}`;
+    runnerUpTagLabel = `1st Winner · ${score1}`;
   }
 
   // Accessibility spatial speech

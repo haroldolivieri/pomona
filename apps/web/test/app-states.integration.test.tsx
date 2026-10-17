@@ -134,17 +134,17 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     // State 5A -> Snap -> State 5B-2 (Runner-Up Took Lead)
     fireEvent.click(screen.getByTestId("flip-shutter-button"));
     expect(await screen.findByTestId("stage-S5B2_RunnerUpTookLead")).toBeTruthy();
-    expect(screen.getByText(/Beats 1st Pick \(9\.0 vs 8\.6\)/i)).toBeTruthy();
+    expect(screen.getByText(/Beats 1st Winner \(9\.0 vs 8\.6\)/i)).toBeTruthy();
     // Expand bottom sheet to access final check CTA
     fireEvent.click(screen.getByTestId("sheet-drag-area"));
-    expect(screen.getByTestId("cta-final-check-first-pick").textContent).toBe("Flip 1st Pick for Final Check");
+    expect(screen.getByTestId("cta-final-check-first-pick").textContent).toBe("Flip 1st Winner for Final Check");
 
-    // State 5B-2 -> Flip 1st Pick -> State 6 -> Snap -> State 7A (1st Pick Reclaims Win)
+    // State 5B-2 -> Flip 1st Winner -> State 6 -> Snap -> State 7A (1st Winner Reclaims Win)
     fireEvent.click(screen.getByTestId("cta-final-check-first-pick"));
     expect(await screen.findByTestId("stage-S6_FlipFirstPickCamera")).toBeTruthy();
     fireEvent.click(screen.getByTestId("flip-shutter-button"));
     expect(await screen.findByTestId("stage-S7A_FirstPickWonFinal")).toBeTruthy();
-    expect(screen.getByText(/1st Pick Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeTruthy();
+    expect(screen.getByText(/1st Winner Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeTruthy();
   }, 25000);
 
   it("transitions into S_ScanError and displays detailed error message when scan fails", async () => {

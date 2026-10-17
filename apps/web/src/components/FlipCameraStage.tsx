@@ -28,7 +28,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
   const targetRipeness = state.targetRipeness || "ready_now";
 
   // Parameterized produce name and instructions
-  const headline = followUp?.flipHeadline || (isFinalCheck ? "Flip your 1st pick over" : "Flip the produce over");
+  const headline = followUp?.flipHeadline || (isFinalCheck ? "Flip your 1st winner over" : "Flip the produce over");
   let instruction = followUp?.instruction || "Turn over to inspect the underside.";
   if (targetRipeness !== "ready_now") {
     instruction = `Show the hidden underside so Pomona can check the underside for hidden bruises or uneven ripening before storing for ${
@@ -231,7 +231,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
               }}
             />
           )}
-          <span>{isFinalCheck ? "1st Pick · Final Check" : "Runner-Up · Step 2"}</span>
+          <span>{isFinalCheck ? "1st Winner · Final Check" : "Runner-Up · Step 2"}</span>
         </div>
 
         {/* Goal Pill in Top Bar */}
@@ -324,7 +324,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
               color: isFinalCheck ? "#142117" : "#FFFFFF",
             }}
           >
-            {isFinalCheck ? "1st Pick" : "Runner-Up"}
+            {isFinalCheck ? "1st Winner" : "Runner-Up"}
           </div>
         </div>
       )}
@@ -596,7 +596,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
             }}
           >
             {isFinalCheck
-              ? `Current leader: ${runnerUpScore} · 1st Pick: ${firstPickScore} (top only)`
+              ? `Current leader: ${runnerUpScore} · 1st Winner: ${firstPickScore} (top only)`
               : `Winner to beat: ${winnerToBeatScore} / 10`}
           </div>
         </div>

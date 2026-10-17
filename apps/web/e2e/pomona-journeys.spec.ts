@@ -247,7 +247,7 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     // Snap flipped produce -> S5B1_RunnerUpBeaten
     await page.getByTestId("flip-shutter-button").click();
     await expect(page.getByTestId("stage-S5B1_RunnerUpBeaten")).toBeVisible();
-    await expect(page.getByText("Buy your 1st pick.")).toBeVisible();
+    await expect(page.getByText("Buy your 1st winner.")).toBeVisible();
 
     // Expand sheet to view confirmation banner and scan-another CTA
     await page.getByTestId("sheet-drag-area").click();
@@ -300,23 +300,23 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     // S5A -> Snap flipped runner-up -> S5B2_RunnerUpTookLead (9.0 beats 8.6)
     await page.getByTestId("flip-shutter-button").click();
     await expect(page.getByTestId("stage-S5B2_RunnerUpTookLead")).toBeVisible();
-    await expect(page.getByText(/Beats 1st Pick \(9\.0 vs 8\.6\)/i)).toBeVisible();
+    await expect(page.getByText(/Beats 1st Winner \(9\.0 vs 8\.6\)/i)).toBeVisible();
 
     // Expand bottom sheet to access final check CTA
     await page.getByTestId("sheet-drag-area").click();
     const finalCheckBtn = page.getByTestId("cta-final-check-first-pick");
-    await expect(finalCheckBtn).toHaveText("Flip 1st Pick for Final Check");
+    await expect(finalCheckBtn).toHaveText("Flip 1st Winner for Final Check");
 
-    // S5B2 -> Flip 1st pick -> S6_FlipFirstPickCamera
+    // S5B2 -> Flip 1st winner -> S6_FlipFirstPickCamera
     await finalCheckBtn.click();
     await expect(page.getByTestId("stage-S6_FlipFirstPickCamera")).toBeVisible();
-    await expect(page.getByText(/Current leader: 9\.0 · 1st Pick: 8\.6/)).toBeVisible();
+    await expect(page.getByText(/Current leader: 9\.0 · 1st Winner: 8\.6/)).toBeVisible();
 
-    // S6 -> Snap flipped 1st pick -> S7A_FirstPickWonFinal (9.3 beats 9.0)
+    // S6 -> Snap flipped 1st winner -> S7A_FirstPickWonFinal (9.3 beats 9.0)
     await page.getByTestId("flip-shutter-button").click();
     await expect(page.getByTestId("stage-S7A_FirstPickWonFinal")).toBeVisible();
-    await expect(page.getByText(/1st Pick Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeVisible();
-    await expect(page.getByText("Buy your 1st pick.")).toBeVisible();
+    await expect(page.getByText(/1st Winner Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeVisible();
+    await expect(page.getByText("Buy your 1st winner.")).toBeVisible();
 
     // Expand bottom sheet to access scan-another CTA
     await page.getByTestId("sheet-drag-area").click();

@@ -56,10 +56,10 @@ describe("FlipCameraStage (Mockup Parity)", () => {
 
     render(<FlipCameraStage state={state} onCapture={vi.fn()} onBack={vi.fn()} onClose={vi.fn()} />);
     expect(screen.getByTestId("flip-reticle-brackets")).toBeInTheDocument();
-    expect(screen.getByTestId("pip-reference-thumbnail")).toHaveTextContent("1st Pick");
-    expect(screen.getByTestId("flip-top-chip")).toHaveTextContent("1st Pick · Final Check");
+    expect(screen.getByTestId("pip-reference-thumbnail")).toHaveTextContent("1st Winner");
+    expect(screen.getByTestId("flip-top-chip")).toHaveTextContent("1st Winner · Final Check");
     expect(screen.getByTestId("flip-instruction-eyebrow")).toHaveTextContent("FINAL CHECK · BEAT 9.0 TO RECLAIM");
-    expect(screen.getByTestId("flip-score-pill")).toHaveTextContent("Current leader: 9.0 · 1st Pick: 8.6 (top only)");
+    expect(screen.getByTestId("flip-score-pill")).toHaveTextContent("Current leader: 9.0 · 1st Winner: 8.6 (top only)");
     expect(screen.getByTestId("flip-shutter-button")).toBeInTheDocument();
   });
 
