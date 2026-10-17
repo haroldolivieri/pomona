@@ -18,6 +18,9 @@ dist/
 playwright-report/
 test-results/
 
+# Worktrees
+.worktrees/
+
 # OS / Editor
 .DS_Store
 *.log
