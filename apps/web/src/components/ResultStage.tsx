@@ -613,7 +613,14 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                     )}
                     {tab.label}
                   </span>
-                  <span style={{ fontSize: "9.5px", fontWeight: 600, opacity: 0.78, marginTop: "2px" }}>
+                  <span
+                    style={{
+                      fontSize: "9.5px",
+                      fontWeight: 600,
+                      color: isActive ? "var(--text-primary)" : "var(--text-muted)",
+                      marginTop: "2px",
+                    }}
+                  >
                     {tab.sub}
                   </span>
                 </button>
@@ -659,12 +666,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 borderRadius: "999px",
                 fontSize: "10.5px",
                 fontWeight: 800,
-                color:
-                  targetRipeness === "in_2_3_days"
-                    ? "#D97706"
-                    : targetRipeness === "later_this_week"
-                    ? "#2563EB"
-                    : "#16A34A",
+                color: "var(--eyebrow-accent)",
                 border: "1px solid var(--surface-card-border)",
               }}
             >

@@ -463,4 +463,67 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     );
     expect(criticalOrSerious).toEqual([]);
   });
+
+  test("Journey 6: Parameterized Ripeness Target 3-Way Toggle & Goal Locking (S4 toggle -> S5A goal pill -> S5B1 locked banner)", async ({ page }) => {
+    let scanCount = 0;
+    await page.route("**/api/v1/scan", async (route) => {
+      scanCount++;
+      if (scanCount === 1) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ remainingScans: 9, response: mockRound1Response }),
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ remainingScans: 8, response: mockRound2RunnerUpBeaten }),
+        });
+      }
+    });
+
+    await page.goto("/");
+    await page.getByTestId("shutter-button").click();
+    await page.getByTestId("whole-photo-button").click();
+
+    // S4: Initial Result
+    const s4Stage = page.getByTestId("stage-S4_InitialResult");
+    await expect(s4Stage).toBeVisible();
+
+    // Verify 3-way switch
+    const switchControl = page.getByTestId("ripeness-target-switch");
+    await expect(switchControl).toBeVisible();
+    const readyTab = page.getByTestId("target-tab-ready_now");
+    const in23DaysTab = page.getByTestId("target-tab-in_2_3_days");
+    const laterWeekTab = page.getByTestId("target-tab-later_this_week");
+    await expect(readyTab).toBeVisible();
+    await expect(in23DaysTab).toBeVisible();
+    await expect(laterWeekTab).toBeVisible();
+
+    // Click "In 2–3 days" tab
+    await in23DaysTab.click();
+    await expect(in23DaysTab).toHaveAttribute("aria-selected", "true");
+
+    // Compare with Runner-Up -> S5A
+    await page.getByTestId("cta-compare-runner-up").click();
+    const s5AStage = page.getByTestId("stage-S5A_FlipRunnerUpCamera");
+    await expect(s5AStage).toBeVisible();
+
+    // Verify Goal Pill in Top Bar
+    const goalPill = page.getByTestId("flip-goal-pill");
+    await expect(goalPill).toBeVisible();
+    await expect(goalPill).toHaveText(/In 2–3 days/);
+
+    // Snap flipped photo -> S5B1
+    await page.getByTestId("flip-shutter-button").click();
+    const s5B1Stage = page.getByTestId("stage-S5B1_RunnerUpBeaten");
+    await expect(s5B1Stage).toBeVisible();
+
+    // Verify 3-way switch is gone and locked goal banner is displayed
+    await expect(page.getByTestId("ripeness-target-switch")).not.toBeVisible();
+    const lockedGoal = page.getByTestId("locked-ripeness-goal");
+    await expect(lockedGoal).toBeVisible();
+    await expect(lockedGoal).toHaveText(/In 2–3 days/);
+  });
 });
