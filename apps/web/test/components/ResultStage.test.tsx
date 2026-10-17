@@ -286,23 +286,23 @@ describe("ResultStage (Mockup Parity)", () => {
     const sheet = screen.getByTestId("result-bottom-sheet");
     const photoViewport = screen.getByTestId("result-photo-viewport");
 
-    // Initial state: photo height is spacious 54dvh, transform is 0px
-    expect(photoViewport.style.height).toBe("54dvh");
+    // Initial state: photo viewport is full-bleed 100%, sheet transform is 0px
+    expect(photoViewport.style.height).toBe("100%");
     expect(sheet.style.transform).toBe("translate3d(0, 0px, 0)");
 
-    // Drag up from the middle of the sheet (e.g. on headline text)
-    const headlineEl = screen.getByText("Buy it.");
-    fireEvent.touchStart(headlineEl, { touches: [{ clientY: 500 }] });
-    fireEvent.touchMove(headlineEl, { touches: [{ clientY: 420 }] }); // -80px drag up
+    // Drag up from the grab handle / drag area
+    const dragArea = screen.getByTestId("sheet-drag-area");
+    fireEvent.touchStart(dragArea, { touches: [{ clientY: 500 }] });
+    fireEvent.touchMove(dragArea, { touches: [{ clientY: 420 }] }); // -80px drag up
 
     // Live drag moves sheet up by 80px and photo viewport by parallax (-80 * 0.2 = -16px)
     expect(sheet.style.transform).toBe("translate3d(0, -80px, 0)");
-    expect(photoViewport.style.height).toBe("54dvh");
+    expect(photoViewport.style.height).toBe("100%");
 
-    // Release snap expands sheet (-120px) and adjusts photo height to 42dvh
-    fireEvent.touchEnd(headlineEl);
+    // Release snap expands sheet (-120px) and maintains full-bleed photo with parallax
+    fireEvent.touchEnd(dragArea);
     expect(sheet.style.transform).toBe("translate3d(0, -120px, 0)");
-    expect(photoViewport.style.height).toBe("42dvh");
+    expect(photoViewport.style.height).toBe("100%");
     expect(photoViewport.style.transform).toBe("translate3d(0, -24px, 0)");
   });
 

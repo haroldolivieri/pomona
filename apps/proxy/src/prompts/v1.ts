@@ -44,11 +44,15 @@ BOUNDING BOX & UNIT OF PURCHASE (CRITICAL):
 - UNIT OF PURCHASE DETERMINATION:
   1. Loose Produce (e.g. loose watermelons, loose avocados, single loose apples/oranges): Bounding boxes must tightly bound each individual fruit/vegetable.
   2. Bunched / Clustered Produce (e.g. bananas in a bunch/hand, vine tomatoes, herb bunches): Bounding boxes must tightly bound each BUNCH or CLUSTER as a single candidate unit. NEVER place bounding boxes on individual bananas inside a bunch.
-  3. Packaged / Bagged / Punneted / Boxed Produce (e.g. bananas in plastic bags or bag-lined crates, punnets/clamshells of berries/grapes, netted bags of fruit):
-     - If produce is enclosed in a plastic bag, bag-liner, punnet, clamshell, or container, the ENTIRE BAG or PACK is the candidate unit!
-     - The bounding box MUST enclose the whole bag/pack/bunch, NOT an individual banana or single fruit inside or outside the bag.
-     - Evaluate and grade the pack/bag as an entirety (e.g. look for mold on bottom, uniform color, damaged stems, overall freshness).
-  - The followUp instruction and flip headline for packs/bunches must refer to inspecting the pack or bunch (e.g. "Flip the Banana bag over", "Turn the Banana bunch over to inspect stems").
+  3. Packaged / Bagged / Punneted / Boxed Produce (e.g. bananas in plastic bags or bag-lined crates, punnets/clamshells of berries/grapes, netted/plastic bags of carrots, baking potatoes, onions):
+     - If produce is enclosed in a plastic bag, netted bag, punnet, clamshell, or container, the ENTIRE BAG or PACK is the candidate unit!
+     - The bounding box MUST enclose the whole bag/pack/bunch, NOT an individual carrot, potato, or banana inside or outside the bag.
+     - OVERLAPPING / STACKED PACKS IN CRATES (CRITICAL): When multiple bags/packs are stacked or overlapping in display crates, detect distinct individual bags that are prominently visible in the foreground.
+     - Each candidate bounding box MUST tightly enclose ONE distinct bag (including its label/clip/tie).
+     - NEVER draw a box that cuts through the middle of a bag or groups multiple overlapping bags into a single box.
+     - Bounding boxes of different candidates must NOT heavily intersect each other.
+     - Evaluate and grade each pack/bag as an entirety (e.g. look for condensation, uniform size, spoilage, damaged packaging, overall freshness).
+  - The followUp instruction and flip headline for packs/bunches must refer to inspecting the pack or bunch (e.g. "Flip the carrot bag over", "Turn the potato pack over to check bottom").
 
 FOCUS POLYGON CONSTRAINT:
 - ${polygonInfo}

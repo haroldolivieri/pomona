@@ -373,20 +373,21 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         </button>
       </div>
 
-      {/* Photo Viewport with Bounding Boxes (expands when bottom sheet is collapsed) */}
+      {/* Full-bleed Photo Viewport with Bounding Boxes (fills whole screen behind sheet) */}
       <div
         ref={viewportRef}
         data-testid="result-photo-viewport"
         style={{
-          position: "relative",
+          position: "absolute",
+          inset: 0,
           width: "100%",
-          height: sheetMode === "collapsed" ? "72dvh" : sheetMode === "expanded" ? "42dvh" : "54dvh",
+          height: "100%",
           backgroundColor: "#000000",
           overflow: "hidden",
-          flexShrink: 0,
+          zIndex: 1,
           transform: `translate3d(0, ${parallaxY}px, 0)`,
-          transition: isDragging ? "none" : "height 0.32s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
-          willChange: "height, transform",
+          transition: isDragging ? "none" : "transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
+          willChange: "transform",
         }}
       >
         {round1PhotoDataUrl && (
@@ -506,16 +507,31 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         </div>
       </div>
 
-      {/* Interactive Bottom Sheet (draggable from any area on the sheet) */}
+      {/* Interactive Bottom Sheet (overlay sliding on top of full-bleed photo) */}
       <div
         ref={sheetRef}
         data-testid="result-bottom-sheet"
-        onTouchStart={(e) => handleDragStart(e.touches[0].clientY, e.target)}
-        onTouchMove={(e) => handleDragMove(e.touches[0].clientY)}
+        onTouchStart={(e) => {
+          // If touching handle or header, or if scrolled to top and dragging down, start sheet drag
+          const target = e.target as HTMLElement | null;
+          if (target && target.closest("[data-testid='sheet-drag-area']")) {
+            handleDragStart(e.touches[0].clientY, target);
+          } else if (sheetRef.current && sheetRef.current.scrollTop === 0) {
+            handleDragStart(e.touches[0].clientY, target);
+          }
+        }}
+        onTouchMove={(e) => {
+          if (isDragging) {
+            handleDragMove(e.touches[0].clientY);
+          }
+        }}
         onTouchEnd={handleDragEnd}
         onPointerDown={(e) => {
           if (e.pointerType === "mouse") {
-            handleDragStart(e.clientY, e.target);
+            const target = e.target as HTMLElement | null;
+            if (target && target.closest("[data-testid='sheet-drag-area']")) {
+              handleDragStart(e.clientY, target);
+            }
           }
         }}
         onPointerMove={(e) => {
@@ -529,17 +545,19 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           }
         }}
         style={{
-          flex: 1,
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: "64dvh",
           backgroundColor: "var(--surface-sheet)",
           color: "var(--text-primary)",
           borderTopLeftRadius: "26px",
           borderTopRightRadius: "26px",
-          marginTop: "-24px",
-          marginBottom: "-120px",
-          paddingTop: "12px",
+          paddingTop: "8px",
           paddingLeft: "20px",
           paddingRight: "20px",
-          paddingBottom: "calc(max(28px, env(safe-area-inset-bottom)) + 140px)",
+          paddingBottom: "calc(max(28px, env(safe-area-inset-bottom)) + 24px)",
           zIndex: 15,
           display: "flex",
           flexDirection: "column",
@@ -547,13 +565,15 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.28)",
           transform: `translate3d(0, ${activeTranslateY}px, 0)`,
           transition: isDragging ? "none" : "transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
-          overflow: "hidden",
-          touchAction: "none",
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+          touchAction: "pan-y",
           willChange: "transform",
         }}
       >
-        {/* Interactive Grab Handle Pill */}
+        {/* Interactive Grab Handle Pill Area */}
         <div
+          data-testid="sheet-drag-area"
           onClick={() => {
             setSheetMode((prev) => (prev === "collapsed" ? "default" : prev === "default" ? "expanded" : "collapsed"));
           }}
@@ -562,15 +582,17 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           tabIndex={0}
           style={{
             width: "100%",
-            padding: "6px 0 10px 0",
+            padding: "8px 0 12px 0",
             display: "flex",
             justifyContent: "center",
             cursor: "pointer",
+            touchAction: "none",
           }}
         >
           <div
+            data-testid="drag-handle"
             style={{
-              width: "40px",
+              width: "42px",
               height: "5px",
               borderRadius: "4px",
               backgroundColor: "rgba(107, 106, 101, 0.4)",
