@@ -417,5 +417,73 @@
         "rind"
       ]
     }
+  },
+  {
+    "id": "12-carrot-packs-crate",
+    "filename": "12-carrot-packs-crate.jpg",
+    "imagePath": "dataset/images/12-carrot-packs-crate.jpg",
+    "imageBase64PreviewLength": 450000,
+    "description": "Round 1 Overlapping Packs: Real-world user supermarket photo of multiple overlapping plastic bags of British Carrots in a green crate. Verifies overlapping pack rules: model must identify distinct foreground carrot bags as candidate units, must NOT box individual loose carrots inside a bag, and boxes must NOT heavily collide or cut halfway through a bag.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "ok",
+      "expectedProduceType": "carrots",
+      "focusPolygon": null,
+      "expectedCandidateCountMin": 2,
+      "expectedCandidateCountMax": 4,
+      "forbiddenWordsInCopy": [
+        "watermelon",
+        "melon",
+        "avocado",
+        "pineapple",
+        "field spot",
+        "rind"
+      ]
+    }
+  },
+  {
+    "id": "13-potato-packs-crate",
+    "filename": "13-potato-packs-crate.jpg",
+    "imagePath": "dataset/images/13-potato-packs-crate.jpg",
+    "imageBase64PreviewLength": 450000,
+    "description": "Round 1 Overlapping Packs: Real-world user supermarket photo of bagged British Baking Potatoes in a green crate. Verifies that individual distinct potato bags in the foreground are detected with non-colliding bounding boxes enclosing each whole bag.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "ok",
+      "expectedProduceType": "potatoes",
+      "focusPolygon": null,
+      "expectedCandidateCountMin": 2,
+      "expectedCandidateCountMax": 4,
+      "forbiddenWordsInCopy": [
+        "watermelon",
+        "melon",
+        "avocado",
+        "pineapple",
+        "field spot",
+        "rind"
+      ]
+    }
+  },
+  {
+    "id": "14-banana-pack-bagged",
+    "filename": "14-banana-pack-bagged.jpg",
+    "imagePath": "dataset/images/14-banana-pack-bagged.jpg",
+    "imageBase64PreviewLength": 450000,
+    "description": "Round 1 Bagged/Bunched Bananas: Real-world user supermarket photo of bananas in plastic bag-lined crate. Verifies that the model selects the whole bunch/pack unit rather than placing bounding boxes around a single isolated banana.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "ok",
+      "expectedProduceType": "banana",
+      "focusPolygon": null,
+      "expectedCandidateCountMin": 1,
+      "expectedCandidateCountMax": 4,
+      "forbiddenWordsInCopy": [
+        "watermelon",
+        "melon",
+        "avocado",
+        "field spot",
+        "rind"
+      ]
+    }
   }
 ]
