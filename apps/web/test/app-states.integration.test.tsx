@@ -119,6 +119,7 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     fireEvent.click(screen.getByTestId("whole-photo-button"));
     expect(await screen.findByTestId("stage-S4_InitialResult")).toBeTruthy();
     expect(screen.getByText("Best available.")).toBeTruthy();
+    expect(screen.getByTestId("circular-score-meter")).toBeTruthy();
     // Expand bottom sheet to see full storage details and action button
     fireEvent.click(screen.getByTestId("sheet-drag-area"));
     expect(screen.getByText("Counter · whole")).toBeTruthy();
