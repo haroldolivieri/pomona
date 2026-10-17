@@ -103,7 +103,9 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
 
   const handleAnalyseDrawn = () => {
     if (normalizedResult && normalizedResult.valid) {
-      onAnalyse(normalizedResult.polygon, normalizedResult.cropRect);
+      // Pass null for cropRect: the full image is sent with focusPolygon in [0..1000] image space.
+      // Candidate bounding boxes returned by the model are already in [0..1000] image space!
+      onAnalyse(normalizedResult.polygon, null);
     }
   };
 
