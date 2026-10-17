@@ -205,7 +205,9 @@ export function createKvQuotaStore(kv: KVNamespaceLike): QuotaStore {
     },
     async getDeviceDailyLimit(deviceId: string): Promise<number | null> {
       const val = await kv.get(`limit:${deviceId}`);
-      return val ? parseInt(val, 10) || null : null;
+      if (val === null || val === undefined || val === "") return null;
+      const parsed = parseInt(val, 10);
+      return Number.isFinite(parsed) ? parsed : null;
     },
     async setDeviceDailyLimit(deviceId: string, limit: number | null): Promise<void> {
       const key = `limit:${deviceId}`;

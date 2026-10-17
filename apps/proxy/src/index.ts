@@ -169,14 +169,8 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
     } else if (typeof scansParam !== "undefined" && scansParam !== null) {
       const parsedScans = typeof scansParam === "number" ? scansParam : parseInt(String(scansParam), 10);
       if (!isNaN(parsedScans) && parsedScans >= 0) {
-        if (parsedScans > 10) {
-          await store.setDeviceDailyLimit(deviceId, parsedScans);
-          await store.setDailyDeviceCount(deviceId, dateStr, 0);
-        } else {
-          const customLimit = await store.getDeviceDailyLimit(deviceId);
-          const limit = customLimit ?? 10;
-          await store.setDailyDeviceCount(deviceId, dateStr, Math.max(0, limit - parsedScans));
-        }
+        await store.setDeviceDailyLimit(deviceId, parsedScans);
+        await store.setDailyDeviceCount(deviceId, dateStr, 0);
       }
     } else if (typeof limitParam !== "undefined" && limitParam !== null) {
       const parsedLimit = typeof limitParam === "number" ? limitParam : parseInt(String(limitParam), 10);
@@ -186,7 +180,8 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
     }
 
     const customLimit = await store.getDeviceDailyLimit(deviceId);
-    const activeLimit = customLimit ?? (c.env.DEVICE_DAILY_LIMIT ? parseInt(c.env.DEVICE_DAILY_LIMIT, 10) : 10);
+    const defaultLimit = c.env.DEVICE_DAILY_LIMIT ? parseInt(c.env.DEVICE_DAILY_LIMIT, 10) : 10;
+    const activeLimit = customLimit ?? defaultLimit;
     const deviceCount = await store.getDailyDeviceCount(deviceId, dateStr);
     const remainingDeviceScans = Math.max(0, activeLimit - deviceCount);
 
@@ -214,18 +209,12 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
     // Support query param ?scans=N or header for test override
     const overrideHeader = c.req.header("X-Pomona-Quota-Override");
     const queryScans = c.req.query("scans") ?? overrideHeader;
-    if (queryScans) {
-      const parsed = parseInt(queryScans, 10);
+    if (typeof queryScans !== "undefined" && queryScans !== null) {
+      const parsed = parseInt(String(queryScans), 10);
       if (!isNaN(parsed) && parsed >= 0) {
         const dateStr = formatDateKey(new Date());
-        if (parsed > 10) {
-          await store.setDeviceDailyLimit(deviceId, parsed);
-          await store.setDailyDeviceCount(deviceId, dateStr, 0);
-        } else {
-          const customLimit = await store.getDeviceDailyLimit(deviceId);
-          const limit = customLimit ?? 10;
-          await store.setDailyDeviceCount(deviceId, dateStr, Math.max(0, limit - parsed));
-        }
+        await store.setDeviceDailyLimit(deviceId, parsed);
+        await store.setDailyDeviceCount(deviceId, dateStr, 0);
       }
     }
 
