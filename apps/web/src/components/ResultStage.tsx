@@ -609,7 +609,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           left: 0,
           right: 0,
           bottom: 0,
-          height: isFullyOpen ? "86dvh" : "auto",
+          height: "auto",
           maxHeight: "86dvh",
           backgroundColor: "var(--surface-sheet)",
           color: "var(--text-primary)",
@@ -619,7 +619,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           paddingLeft: "18px",
           paddingRight: "18px",
           paddingBottom: isFullyOpen
-            ? "calc(max(20px, env(safe-area-inset-bottom)) + 12px)"
+            ? "calc(max(16px, env(safe-area-inset-bottom)) + 12px)"
             : "calc(max(14px, env(safe-area-inset-bottom)) + 4px)",
           zIndex: 15,
           display: "flex",
