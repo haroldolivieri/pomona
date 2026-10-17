@@ -84,7 +84,7 @@ STORAGE & SHELF-LIFE GUIDANCE:
 
 STATUS HANDLING:
 - If no fresh produce is visible (e.g. packaged cereal boxes, tins, barcodes): status = "no_produce" (with descriptive message, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null).
-- If the image is too blurry, dark, or motion-blurred to grade ripeness: status = "unclear_photo" (with descriptive message, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null).
+- If the image is too blurry, dark, motion-blurred, OR there are too many overlapping bags/packs heavily obscuring each other such that you cannot clearly inspect or distinguish a confident winner: status = "unclear_photo" with a helpful descriptive message (e.g. "Too many overlapping packs to grade reliably. Move closer to 1–2 bags or draw a loop around a clear pack.").
 - If multiple distinct types of produce are mixed together (e.g. apples, bananas, pineapples) with no focusPolygon isolating one type: status = "multiple_types" (with descriptive message, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null).
 - Otherwise: status = "ok" (with message=null).`;
 }

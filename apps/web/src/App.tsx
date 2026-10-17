@@ -266,7 +266,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             photoDataUrl={state.currentPhotoDataUrl || state.round1PhotoDataUrl}
             onRetake={() => dispatch({ type: "DISMISS_ERROR" })}
             onDrawFocus={
-              state.status === "multiple_types"
+              state.status === "multiple_types" || state.status === "unclear_photo"
                 ? () => dispatch({ type: "DRAW_FOCUS_AFTER_ERROR" })
                 : undefined
             }
