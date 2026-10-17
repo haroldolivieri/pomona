@@ -31,7 +31,11 @@ const GeminiProviderSchema = z.object({
   candidates: z.array(
     z.object({
       id: z.string().describe("Candidate ID, e.g. 'c1', 'c2'"),
-      box: z.array(z.number().int()).describe("[ymin, xmin, ymax, xmax] normalized 0-1000 integers"),
+      box: z
+        .array(z.number().int())
+        .min(4)
+        .max(4)
+        .describe("Exactly 4 integers: [ymin, xmin, ymax, xmax] normalized 0-1000"),
       score: z.number().describe("Ripeness score on 0.0 to 10.0 scale (never 0-100)"),
       ripeness: z.enum(["underripe", "almost_ripe", "ripe", "overripe"]),
       traits: z.array(z.string()).describe("1 to 4 short trait tags, each max 28 chars"),
@@ -109,13 +113,17 @@ export function createGeminiVisionAdapter(options: GeminiVisionAdapterOptions): 
             ],
           },
         ],
-        providerOptions: {
-          google: {
-            thinkingConfig: {
-              thinkingBudget: 0,
-            },
-          },
-        },
+        ...(modelId.includes("lite")
+          ? {}
+          : {
+              providerOptions: {
+                google: {
+                  thinkingConfig: {
+                    thinkingBudget: 0,
+                  },
+                },
+              },
+            }),
         abortSignal: signal,
       });
 

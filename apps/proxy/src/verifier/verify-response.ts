@@ -77,6 +77,84 @@ function getAllowedProduceTokens(produce: {
  *   - shelf-life min/max sanity
  *   - parameterized copy verification (rejecting mismatched produce names)
  */
+function trimMax(val: unknown, maxLen: number): unknown {
+  if (typeof val !== "string" || val.length <= maxLen) return val;
+  return val.slice(0, Math.max(1, maxLen - 1)).trimEnd() + "…";
+}
+
+function normalizeRawModelOutput(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object") return raw;
+  const obj: Record<string, any> = { ...(raw as Record<string, any>) };
+
+  if (typeof obj.message === "string") {
+    obj.message = trimMax(obj.message, 160);
+  }
+
+  if (Array.isArray(obj.candidates)) {
+    obj.candidates = obj.candidates.map((c: any) => {
+      if (!c || typeof c !== "object") return c;
+      const cand = { ...c };
+      if (Array.isArray(cand.box) && cand.box.length > 4) {
+        cand.box = cand.box.slice(0, 4);
+      }
+      if (typeof cand.score === "number" && cand.score > 10 && cand.score <= 100) {
+        cand.score = Number((cand.score / 10).toFixed(1));
+      }
+      if (Array.isArray(cand.traits)) {
+        cand.traits = cand.traits.slice(0, 4).map((t: any) => trimMax(t, 28));
+      }
+      if (typeof cand.flipSummary === "string") {
+        cand.flipSummary = trimMax(cand.flipSummary, 80);
+      }
+      return cand;
+    });
+  }
+
+  if (obj.verdict && typeof obj.verdict === "object") {
+    obj.verdict = {
+      ...obj.verdict,
+      headline: trimMax(obj.verdict.headline, 32),
+    };
+  }
+
+  if (obj.followUp && typeof obj.followUp === "object") {
+    obj.followUp = {
+      ...obj.followUp,
+      bannerText: trimMax(obj.followUp.bannerText, 110),
+      flipHeadline: trimMax(obj.followUp.flipHeadline, 48),
+      instruction: trimMax(obj.followUp.instruction, 120),
+    };
+  }
+
+  if (obj.afterPurchase && typeof obj.afterPurchase === "object") {
+    const ap = { ...obj.afterPurchase };
+    ap.eatWithinLabel = trimMax(ap.eatWithinLabel, 28);
+    if (ap.storage && typeof ap.storage === "object") {
+      const st = { ...ap.storage };
+      if (st.beforeCut && typeof st.beforeCut === "object") {
+        st.beforeCut = {
+          ...st.beforeCut,
+          whereLabel: trimMax(st.beforeCut.whereLabel, 24),
+          summary: trimMax(st.beforeCut.summary, 32),
+          tip: trimMax(st.beforeCut.tip, 90),
+        };
+      }
+      if (st.afterCut && typeof st.afterCut === "object") {
+        st.afterCut = {
+          ...st.afterCut,
+          whereLabel: trimMax(st.afterCut.whereLabel, 24),
+          summary: trimMax(st.afterCut.summary, 32),
+          tip: trimMax(st.afterCut.tip, 90),
+        };
+      }
+      ap.storage = st;
+    }
+    obj.afterPurchase = ap;
+  }
+
+  return obj;
+}
+
 export function verifyAndResolveScanResponse(
   rawModelOutput: unknown,
   ctx: {
@@ -85,8 +163,9 @@ export function verifyAndResolveScanResponse(
     modelId: string;
   }
 ): { ok: true; response: ScanResponse } | { ok: false; errors: string[] } {
-  // Stage 1: Syntactic Check
-  const parseResult = ScanResponseModelSchema.safeParse(rawModelOutput);
+  // Stage 1: Deterministic Self-Healing Normalization + Syntactic Check
+  const normalizedOutput = normalizeRawModelOutput(rawModelOutput);
+  const parseResult = ScanResponseModelSchema.safeParse(normalizedOutput);
   if (!parseResult.success) {
     return {
       ok: false,
@@ -154,13 +233,15 @@ export function verifyAndResolveScanResponse(
 
   // Parameterized Copy Check
   if (data.followUp && data.produce) {
+    // Strip color-adjective compounds like "orange-toned", "orange-yellow", "lime-green" before checking fruit names
     const combinedFollowUp = [
       data.followUp.bannerText,
       data.followUp.flipHeadline,
       data.followUp.instruction,
     ]
       .join(" ")
-      .toLowerCase();
+      .toLowerCase()
+      .replace(/\b(orange|lime|lemon|peach|plum)-(toned|yellow|green|colored|coloured|tinted|hued|spot)\b/g, "");
 
     const allowedTokens = getAllowedProduceTokens(data.produce);
     const detectedMismatches = new Set<string>();
