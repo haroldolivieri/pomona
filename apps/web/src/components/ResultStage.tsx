@@ -216,10 +216,12 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const isLostStyle = phase === "S5B1_RunnerUpBeaten" || phase === "S7A_FirstPickWonFinal" || phase === "S7B_FirstPickLostFinal";
 
   // Calculate live drag delta and snap translation:
-  // When 'collapsed': base is 0 (static at min-height showing up to the ripeness bar)
-  // When 'expanded': base is -100px (or dragged up)
   const isFullyOpen = sheetMode === "expanded";
 
+  // Coordinates dragging for bottom sheet with native sheet mechanics:
+  // - When collapsed: dragging or tapping on drag area expands sheet
+  // - When expanded: dragging down on drag area collapses sheet;
+  //   or when scrolling inside content and at scrollTop === 0, dragging down collapses sheet.
   const handleDragStart = (clientY: number) => {
     dragStartY.current = clientY;
     setIsDragging(true);
@@ -228,21 +230,60 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const handleDragMove = (clientY: number) => {
     if (dragStartY.current === null) return;
     const deltaY = clientY - dragStartY.current;
-    setDragOffsetY(deltaY);
+    if (sheetMode === "collapsed") {
+      // When collapsed, user drags upward: deltaY is negative, clamp so it doesn't drag downwards past 0
+      setDragOffsetY(Math.min(0, deltaY));
+    } else {
+      // When expanded, user drags downward: deltaY is positive, clamp so it doesn't pull sheet upwards past 0
+      setDragOffsetY(Math.max(0, deltaY));
+    }
   };
 
   const handleDragEnd = () => {
     if (dragStartY.current === null) return;
-    if (dragOffsetY < -35) {
-      // Swiping UP -> fully open the sheet
+    if (sheetMode === "collapsed" && dragOffsetY < -35) {
+      // Swiping UP from collapsed -> expand
       setSheetMode("expanded");
-    } else if (dragOffsetY > 35) {
-      // Swiping DOWN -> collapse to min height
+    } else if (sheetMode === "expanded" && dragOffsetY > 40) {
+      // Swiping DOWN from expanded -> collapse
       setSheetMode("collapsed");
     }
     dragStartY.current = null;
     setDragOffsetY(0);
     setIsDragging(false);
+  };
+
+  // Internal content scroll container ref and pull-down-to-collapse tracking
+  const contentScrollRef = useRef<HTMLDivElement | null>(null);
+  const scrollDragStartY = useRef<number | null>(null);
+
+  const handleContentTouchStart = (e: React.TouchEvent) => {
+    // Only intercept when at the very top of scroll container
+    if (contentScrollRef.current && contentScrollRef.current.scrollTop <= 0) {
+      scrollDragStartY.current = e.touches[0].clientY;
+    } else {
+      scrollDragStartY.current = null;
+    }
+  };
+
+  const handleContentTouchMove = (e: React.TouchEvent) => {
+    if (scrollDragStartY.current !== null && contentScrollRef.current && contentScrollRef.current.scrollTop <= 0) {
+      const deltaY = e.touches[0].clientY - scrollDragStartY.current;
+      if (deltaY > 10) {
+        // User is pulling down at top of scroll view: translate sheet down like native sheet
+        handleDragStart(scrollDragStartY.current);
+        handleDragMove(e.touches[0].clientY);
+      }
+    }
+  };
+
+  const handleContentTouchEnd = () => {
+    if (scrollDragStartY.current !== null) {
+      scrollDragStartY.current = null;
+      if (isDragging) {
+        handleDragEnd();
+      }
+    }
   };
 
   // Photo pan handlers: allow dragging the photo backdrop up/down
@@ -585,7 +626,9 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           flexDirection: "column",
           gap: "10px",
           boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.28)",
-          transform: `translate3d(0, ${Math.min(0, dragOffsetY)}px, 0)`,
+          transform: isFullyOpen
+            ? `translate3d(0, ${Math.max(0, dragOffsetY)}px, 0)`
+            : `translate3d(0, ${Math.min(0, dragOffsetY)}px, 0)`,
           transition: isDragging ? "none" : "height 0.32s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
           overflowY: isFullyOpen ? "auto" : "hidden",
           WebkitOverflowScrolling: "touch",
@@ -883,7 +926,11 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         {/* Expanded content visible when sheet is fully open */}
         {isFullyOpen && (
           <div
+            ref={contentScrollRef}
             data-testid="sheet-expanded-content"
+            onTouchStart={handleContentTouchStart}
+            onTouchMove={handleContentTouchMove}
+            onTouchEnd={handleContentTouchEnd}
             style={{
               display: "flex",
               flexDirection: "column",
