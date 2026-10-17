@@ -207,23 +207,15 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const isLostStyle = phase === "S5B1_RunnerUpBeaten" || phase === "S7A_FirstPickWonFinal" || phase === "S7B_FirstPickLostFinal";
 
   // Calculate sheet translation and parallax offset
-  // 'collapsed': sheet pushed down (+140px) so image expands to ~68% screen, keeping header & score bar visible
-  // 'default': 0px offset
-  // 'expanded': sheet pulled up (-120px) so CTA button and all details are visible
-  const baseTranslateY = sheetMode === "collapsed" ? 140 : sheetMode === "expanded" ? -120 : 0;
-  const activeTranslateY = Math.max(-180, Math.min(180, baseTranslateY + dragOffsetY));
-  // Subtle parallax: photo + bounding boxes shift at 20% of sheet movement
-  const parallaxY = activeTranslateY * 0.2;
+  // 'collapsed': sheet pushed down (+220px) to show only header & score bar, revealing the whole photo
+  // 'default': 0px offset (showing header, score bar, traits, and top of storage)
+  // 'expanded': sheet pulled up (-80px)
+  const baseTranslateY = sheetMode === "collapsed" ? 220 : sheetMode === "expanded" ? -80 : 0;
+  const activeTranslateY = Math.max(-120, Math.min(260, baseTranslateY + dragOffsetY));
+  // Subtle parallax: photo + bounding boxes shift at 15% of sheet movement
+  const parallaxY = activeTranslateY * 0.15;
 
-  const handleDragStart = (clientY: number, target: EventTarget | null) => {
-    // Do not hijack taps on buttons or tabs
-    if (target instanceof HTMLElement && (target.closest("button") || target.closest("[role='tab']"))) {
-      return;
-    }
-    // If sheet is scrolled down internally, allow normal internal scroll first
-    if (sheetRef.current && sheetRef.current.scrollTop > 0) {
-      return;
-    }
+  const handleDragStart = (clientY: number) => {
     dragStartY.current = clientY;
     setIsDragging(true);
   };
@@ -236,14 +228,14 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
   const handleDragEnd = () => {
     if (dragStartY.current === null) return;
-    if (dragOffsetY < -45) {
+    if (dragOffsetY < -40) {
       // Dragging UP
       if (sheetMode === "collapsed") {
         setSheetMode("default");
       } else {
         setSheetMode("expanded");
       }
-    } else if (dragOffsetY > 45) {
+    } else if (dragOffsetY > 40) {
       // Dragging DOWN
       if (sheetMode === "expanded") {
         setSheetMode("default");
@@ -511,53 +503,20 @@ export const ResultStage: React.FC<ResultStageProps> = ({
       <div
         ref={sheetRef}
         data-testid="result-bottom-sheet"
-        onTouchStart={(e) => {
-          // If touching handle or header, or if scrolled to top and dragging down, start sheet drag
-          const target = e.target as HTMLElement | null;
-          if (target && target.closest("[data-testid='sheet-drag-area']")) {
-            handleDragStart(e.touches[0].clientY, target);
-          } else if (sheetRef.current && sheetRef.current.scrollTop === 0) {
-            handleDragStart(e.touches[0].clientY, target);
-          }
-        }}
-        onTouchMove={(e) => {
-          if (isDragging) {
-            handleDragMove(e.touches[0].clientY);
-          }
-        }}
-        onTouchEnd={handleDragEnd}
-        onPointerDown={(e) => {
-          if (e.pointerType === "mouse") {
-            const target = e.target as HTMLElement | null;
-            if (target && target.closest("[data-testid='sheet-drag-area']")) {
-              handleDragStart(e.clientY, target);
-            }
-          }
-        }}
-        onPointerMove={(e) => {
-          if (e.pointerType === "mouse" && isDragging) {
-            handleDragMove(e.clientY);
-          }
-        }}
-        onPointerUp={(e) => {
-          if (e.pointerType === "mouse") {
-            handleDragEnd();
-          }
-        }}
         style={{
           position: "absolute",
           left: 0,
           right: 0,
           bottom: 0,
-          height: "64dvh",
+          maxHeight: "88dvh",
           backgroundColor: "var(--surface-sheet)",
           color: "var(--text-primary)",
           borderTopLeftRadius: "26px",
           borderTopRightRadius: "26px",
-          paddingTop: "8px",
+          paddingTop: "4px",
           paddingLeft: "20px",
           paddingRight: "20px",
-          paddingBottom: "calc(max(28px, env(safe-area-inset-bottom)) + 24px)",
+          paddingBottom: "calc(max(28px, env(safe-area-inset-bottom)) + 28px)",
           zIndex: 15,
           display: "flex",
           flexDirection: "column",
@@ -571,9 +530,31 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           willChange: "transform",
         }}
       >
-        {/* Interactive Grab Handle Pill Area */}
+        {/* Interactive Grab Handle Pill Area (only this area initiates sheet collapse/expansion dragging) */}
         <div
           data-testid="sheet-drag-area"
+          onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+          onTouchMove={(e) => {
+            if (isDragging) {
+              handleDragMove(e.touches[0].clientY);
+            }
+          }}
+          onTouchEnd={handleDragEnd}
+          onPointerDown={(e) => {
+            if (e.pointerType === "mouse") {
+              handleDragStart(e.clientY);
+            }
+          }}
+          onPointerMove={(e) => {
+            if (e.pointerType === "mouse" && isDragging) {
+              handleDragMove(e.clientY);
+            }
+          }}
+          onPointerUp={(e) => {
+            if (e.pointerType === "mouse") {
+              handleDragEnd();
+            }
+          }}
           onClick={() => {
             setSheetMode((prev) => (prev === "collapsed" ? "default" : prev === "default" ? "expanded" : "collapsed"));
           }}
@@ -582,7 +563,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           tabIndex={0}
           style={{
             width: "100%",
-            padding: "8px 0 12px 0",
+            padding: "10px 0 12px 0",
             display: "flex",
             justifyContent: "center",
             cursor: "pointer",
