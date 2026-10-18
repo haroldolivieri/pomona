@@ -1065,6 +1065,39 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   </div>
                 )}
               </div>
+              {/* Traits Chips (e.g. Creamy-yellow ground spot, Matte rind) above Seasonality */}
+              {activeWinner?.traits && activeWinner.traits.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "6px" }}>
+                  {activeWinner.traits.map((trait, idx) => (
+                    <span
+                      key={idx}
+                      style={{
+                        padding: "4px 9px",
+                        borderRadius: "6px",
+                        backgroundColor: "var(--surface-chip)",
+                        color: "var(--surface-chip-text)",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {trait}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {/* Divider underneath traits */}
+              {activeWinner?.traits && activeWinner.traits.length > 0 && (
+                <div
+                  data-testid="sheet-divider-traits"
+                  style={{
+                    height: "1px",
+                    backgroundColor: "var(--surface-card-border)",
+                    opacity: 0.6,
+                    marginTop: "6px",
+                    marginBottom: "2px",
+                  }}
+                />
+              )}
               {lastResponse.seasonality && (
                 <SeasonalityStrip
                   seasonality={lastResponse.seasonality}
@@ -1115,28 +1148,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               touchAction: "none",
             }}
           >
-            {/* Traits Chips */}
-            {activeWinner?.traits && activeWinner.traits.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                {activeWinner.traits.map((trait, idx) => (
-                  <span
-                    key={idx}
-                    style={{
-                      padding: "4px 9px",
-                      borderRadius: "6px",
-                      backgroundColor: "var(--surface-chip)",
-                      color: "var(--surface-chip-text)",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {trait}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Divider 2: Between Traits and Storage Cards */}
+            {/* Divider 2: Between Seasonality and Storage Cards */}
             <div
               data-testid="sheet-divider-middle"
               style={{
