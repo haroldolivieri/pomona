@@ -304,20 +304,20 @@ describe("ResultStage (Mockup Parity)", () => {
     const sheet = screen.getByTestId("result-bottom-sheet");
     const photoViewport = screen.getByTestId("result-photo-viewport");
 
-    // Initial state: photo viewport is full-bleed 100%, sheet transform is 0px
+    // Initial state: photo viewport is full-bleed 100%, sheet is translated down into collapsed peek position
     expect(photoViewport.style.height).toBe("100%");
-    expect(sheet.style.transform).toBe("translate3d(0, 0px, 0)");
+    expect(sheet.style.transform).toBe("translate3d(0, 320px, 0)");
 
     // Drag up from the grab handle / drag area
     const dragArea = screen.getByTestId("sheet-drag-area");
     fireEvent.touchStart(dragArea, { touches: [{ clientY: 500 }] });
-    fireEvent.touchMove(dragArea, { touches: [{ clientY: 420 }] }); // -80px drag up
+    fireEvent.touchMove(dragArea, { touches: [{ clientY: 420 }] }); // -80px drag up: 320px - 80px = 240px
 
-    // Live drag moves sheet up by 80px
-    expect(sheet.style.transform).toBe("translate3d(0, -80px, 0)");
+    // Live drag glides sheet up by exactly 80px
+    expect(sheet.style.transform).toBe("translate3d(0, 240px, 0)");
     expect(photoViewport.style.height).toBe("100%");
 
-    // Release snap expands sheet to 'expanded' static state (transform resets to 0, height is auto, maxHeight 92dvh)
+    // Release snap expands sheet to 'expanded' static state (transform reaches 0, height is auto, maxHeight 92dvh)
     fireEvent.touchEnd(dragArea);
     expect(sheet.style.transform).toBe("translate3d(0, 0px, 0)");
     expect(sheet.style.maxHeight).toBe("92dvh");

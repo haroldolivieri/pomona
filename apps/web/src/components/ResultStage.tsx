@@ -32,7 +32,6 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   // 'expanded': scrolled up to clearly show follow-up hint and action buttons
   // Two clean sheet states:
   // 'collapsed': min-height mode showing grab handle + target selector + headline + score meter (ripeness bar)
-  // 'expanded': fully opened static sheet showing all cards, traits, and action buttons
   const [sheetMode, setSheetMode] = useState<"collapsed" | "expanded">("collapsed");
   const [dragOffsetY, setDragOffsetY] = useState<number>(0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -45,6 +44,9 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const [photoPanY, setPhotoPanY] = useState<number>(0);
 
   const sheetRef = useRef<HTMLDivElement | null>(null);
+  const peekRef = useRef<HTMLDivElement | null>(null);
+  const [sheetHeight, setSheetHeight] = useState<number>(0);
+  const [peekHeight, setPeekHeight] = useState<number>(80);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [coverRect, setCoverRect] = useState<RenderedCoverRect | null>(null);
@@ -81,6 +83,36 @@ export const ResultStage: React.FC<ResultStageProps> = ({
       if (ro) ro.disconnect();
     };
   }, [round1PhotoDataUrl, sheetMode]);
+
+  const targetRipeness = state.targetRipeness || "ready_now";
+
+  const updateSheetDimensions = () => {
+    if (sheetRef.current) {
+      setSheetHeight(sheetRef.current.offsetHeight);
+    }
+    if (peekRef.current) {
+      setPeekHeight(peekRef.current.offsetHeight);
+    }
+  };
+
+  useEffect(() => {
+    updateSheetDimensions();
+    window.addEventListener("resize", updateSheetDimensions);
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && sheetRef.current) {
+      ro = new ResizeObserver(() => {
+        updateSheetDimensions();
+      });
+      ro.observe(sheetRef.current);
+      if (peekRef.current) {
+        ro.observe(peekRef.current);
+      }
+    }
+    return () => {
+      window.removeEventListener("resize", updateSheetDimensions);
+      if (ro) ro.disconnect();
+    };
+  }, [phase, targetRipeness, lastResponse]);
 
   const [selectedOriginCode, setSelectedOriginCode] = useState<string | null>(null);
   const producePhaseType = lastResponse?.produce?.type;
@@ -139,7 +171,6 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   let prevMarkScore: number | null = null;
   let runnerUpTagLabel = "Runner-Up";
 
-  const targetRipeness = state.targetRipeness || "ready_now";
   let targetResolution = null;
   if (phase === "S4_InitialResult" && state.allCandidatesRound1 && state.allCandidatesRound1.length > 0) {
     targetResolution = resolveCandidatesForTarget(state.allCandidatesRound1, targetRipeness);
@@ -233,6 +264,22 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   // Calculate live drag delta and snap translation:
   const isFullyOpen = sheetMode === "expanded";
 
+  // Calculate translation distance needed to tuck the full sheet below bottom, leaving only peekHeight visible:
+  // Peek bar is grab handle + segmented control / goal banner (~75-80px)
+  // In real browser DOM, sheetHeight is 400-600px and peekHeight is ~75px. In JSDOM where offsetHeight is 0,
+  // we fallback to 320px for maxTranslate so tests and synthetic DOM environments can simulate dragging.
+  const measuredTranslate = sheetHeight > 0 ? Math.max(0, sheetHeight - peekHeight) : 320;
+  const maxTranslate = measuredTranslate;
+  // Base translateY: 0 when expanded, maxTranslate when collapsed
+  const baseTranslate = isFullyOpen ? 0 : maxTranslate;
+  // Apply drag offset directly with rubber banding past extremes
+  let currentTranslate = baseTranslate + dragOffsetY;
+  if (currentTranslate < 0) {
+    currentTranslate = currentTranslate * 0.2; // Rubberband upward past fully expanded
+  } else if (currentTranslate > maxTranslate) {
+    currentTranslate = maxTranslate + (currentTranslate - maxTranslate) * 0.2; // Rubberband downward past collapsed
+  }
+
   // Coordinates dragging for bottom sheet with native Material Design 3 mechanics:
   // - When collapsed: swiping or dragging up expands sheet; tapping toggles.
   // - When expanded: swiping or dragging down collapses sheet; tapping toggles.
@@ -248,13 +295,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     if (dragStartY.current === null) return;
     const deltaY = clientY - dragStartY.current;
     dragMovedDistance.current = Math.abs(deltaY);
-    if (sheetMode === "collapsed") {
-      // When collapsed: dragging upward is negative delta, clamp so it moves up
-      setDragOffsetY(deltaY < 0 ? deltaY : Math.min(10, deltaY * 0.15));
-    } else {
-      // When expanded: dragging downward is positive delta, clamp so it moves down
-      setDragOffsetY(deltaY > 0 ? deltaY : Math.max(-10, deltaY * 0.15));
-    }
+    setDragOffsetY(deltaY);
   };
 
   const handleDragEnd = (clientY?: number) => {
@@ -641,9 +682,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           flexDirection: "column",
           gap: "4px",
           boxShadow: "0 -8px 32px rgba(0, 0, 0, 0.22)",
-          transform: isFullyOpen
-            ? `translate3d(0, ${Math.max(0, dragOffsetY)}px, 0)`
-            : `translate3d(0, ${Math.min(0, dragOffsetY)}px, 0)`,
+          transform: `translate3d(0, ${currentTranslate}px, 0)`,
           transition: isDragging
             ? "none"
             : "transform 0.32s cubic-bezier(0.2, 0.0, 0, 1.0)",
@@ -667,6 +706,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           }}
         />
         {/* Material 3 Drag Handle Affordance: dedicated touch target with accessible single-pointer/keyboard alternative */}
+        <div ref={peekRef} data-testid="sheet-peek-bar" style={{ width: "100%", display: "flex", flexDirection: "column" }}>
         <div
           data-testid="sheet-drag-area"
           role="button"
@@ -889,11 +929,11 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             </span>
           </div>
         )}
+        </div>
 
-        {/* Expanded content visible when sheet is fully open */}
-        {isFullyOpen && (
-          <>
-            {/* Divider 1: Between Target Selector / Goal Banner and Headline area */}
+        {/* Bottom Sheet Body: always mounted in DOM, revealed smoothly as sheet translates up */}
+        <div data-testid="sheet-body-content" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          {/* Divider 1: Between Target Selector / Goal Banner and Headline area */}
             <div
               data-testid="sheet-divider-top"
               style={{
@@ -1418,8 +1458,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           )}
         </div>
           </div>
-          </>
-        )}
+        </div>
       </div>
     </div>
   );
