@@ -1089,25 +1089,23 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   ))}
                 </div>
               )}
-              {/* Divider underneath traits */}
-              {activeWinner?.traits && activeWinner.traits.length > 0 && (
-                <div
-                  data-testid="sheet-divider-traits"
-                  style={{
-                    height: "1px",
-                    backgroundColor: "var(--surface-card-border)",
-                    opacity: 0.6,
-                    marginTop: "6px",
-                    marginBottom: "2px",
-                  }}
-                />
-              )}
               {lastResponse.seasonality && (
-                <SeasonalityStrip
-                  seasonality={lastResponse.seasonality}
-                  selectedOriginCode={selectedOriginCode}
-                  onSelectOrigin={setSelectedOriginCode}
-                />
+                <div
+                  data-testid="seasonality-panel"
+                  style={{
+                    backgroundColor: "var(--surface-card)",
+                    border: "1px solid var(--surface-card-border)",
+                    borderRadius: "13px",
+                    padding: "8px 10px",
+                    marginTop: "6px",
+                  }}
+                >
+                  <SeasonalityStrip
+                    seasonality={lastResponse.seasonality}
+                    selectedOriginCode={selectedOriginCode}
+                    onSelectOrigin={setSelectedOriginCode}
+                  />
+                </div>
               )}
             </div>
           <div
@@ -1152,17 +1150,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               touchAction: "none",
             }}
           >
-            {/* Divider 2: Between Seasonality and Storage Cards */}
-            <div
-              data-testid="sheet-divider-middle"
-              style={{
-                height: "1px",
-                backgroundColor: "var(--surface-card-border)",
-                opacity: 0.6,
-                marginTop: "3px",
-                marginBottom: "2px",
-              }}
-            />
+            {/* Storage Cards Layout (2 Rows) */}
 
         {/* Storage Cards Layout (2 Rows) */}
         {afterPurchase && (

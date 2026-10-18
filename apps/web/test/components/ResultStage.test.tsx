@@ -103,11 +103,10 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(screen.getByTestId("circular-score-meter")).toBeInTheDocument();
     expect(screen.getByTestId("circular-score-meter")).toHaveTextContent("8.6");
 
-    // Divider 1
+    // Divider 1 (Top) & Divider (Bottom before CTA)
     expect(screen.getByTestId("sheet-divider-top")).toBeInTheDocument();
-
-    // Dividers 2 & 3
-    expect(screen.getByTestId("sheet-divider-middle")).toBeInTheDocument();
+    expect(screen.queryByTestId("sheet-divider-traits")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("sheet-divider-middle")).not.toBeInTheDocument();
     expect(screen.getByTestId("sheet-divider-bottom")).toBeInTheDocument();
 
     // Storage 2-row

@@ -42,7 +42,6 @@ export const SeasonalityStrip: React.FC<SeasonalityStripProps> = ({
     <div
       data-testid="seasonality-strip"
       onClick={stop}
-      style={{ marginTop: "4px" }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
         <span
