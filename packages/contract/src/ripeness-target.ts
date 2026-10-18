@@ -145,6 +145,7 @@ export function resolveCandidatesForTarget(
 
   if (targetWindow === "ready_now") {
     isExactMatch = winner?.ripeness === "ripe";
+    followUpHintOverride = "Check underside for sweetness before buying";
     if (!isExactMatch && winner) {
       eyebrow = "CLOSEST MATCH · NOT FULLY RIPE";
       headline = winner.ripeness === "almost_ripe" ? "Ripens in 1–2 days." : "Firm & underripe.";

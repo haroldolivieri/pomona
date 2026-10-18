@@ -255,7 +255,22 @@ describe("10-state ScanStateMachine", () => {
     // Under in_2_3_days, c2 (almost_ripe) is ranked first
     expect(s.firstPick?.id).toBe("c2");
     expect(s.runnerUp?.id).toBe("c1");
-    expect(s.firstPick?.score).toBeGreaterThanOrEqual(8.4);
+    // Verify followUp bannerText updated to in_2_3_days override
+    expect(s.lastResponse?.followUp?.bannerText).toBe("Check underside before storing for 2–3 days");
+
+    // Switch to "later_this_week"
+    s = scanMachineReducer(s, { type: "SET_TARGET_RIPENESS", targetRipeness: "later_this_week" });
+    expect(s.targetRipeness).toBe("later_this_week");
+    expect(s.lastResponse?.followUp?.bannerText).toBe("Check underside for bruises before long storage");
+
+    // Switch back to "ready_now" - restores original bannerText
+    s = scanMachineReducer(s, { type: "SET_TARGET_RIPENESS", targetRipeness: "ready_now" });
+    expect(s.targetRipeness).toBe("ready_now");
+    expect(s.lastResponse?.followUp?.bannerText).toBe(makeRound1Response().followUp?.bannerText);
+
+    // Switch again to "in_2_3_days" for subsequent steps
+    s = scanMachineReducer(s, { type: "SET_TARGET_RIPENESS", targetRipeness: "in_2_3_days" });
+
     // Verify ALL candidates in lastResponse have updated contextual suitability scores
     const c1InLastResp = s.lastResponse?.candidates.find((c) => c.id === "c1");
     const c2InLastResp = s.lastResponse?.candidates.find((c) => c.id === "c2");

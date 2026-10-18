@@ -14,6 +14,7 @@ describe("resolveCandidatesForTarget", () => {
     expect(res.runnerUp?.id).toBe("c2");
     expect(res.isExactMatch).toBe(true);
     expect(res.winner?.score).toBe(9.2);
+    expect(res.followUpHintOverride).toBe("Check underside for sweetness before buying");
   });
 
   it("ranks almost_ripe candidate first for in_2_3_days and calculates suitability score", () => {
@@ -21,6 +22,7 @@ describe("resolveCandidatesForTarget", () => {
     expect(res.winner?.id).toBe("c2");
     expect(res.isExactMatch).toBe(true);
     expect(res.winner?.score).toBeGreaterThanOrEqual(8.4);
+    expect(res.followUpHintOverride).toBe("Check underside before storing for 2–3 days");
   });
 
   it("ranks underripe candidate first for later_this_week and calculates suitability score", () => {

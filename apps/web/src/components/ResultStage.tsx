@@ -155,12 +155,16 @@ export const ResultStage: React.FC<ResultStageProps> = ({
       eyebrow = targetResolution.eyebrow;
       headline = targetResolution.headline === "Buy it." ? "Best available." : targetResolution.headline;
       subtitle = targetResolution.subtitle;
-      followUpHint = targetResolution.followUpHintOverride || followUp?.bannerText || "The blue one could be sweeter. Flip it and snap.";
+      if (targetRipeness === "ready_now") {
+        followUpHint = state.round1FollowUp?.bannerText || followUp?.bannerText || targetResolution.followUpHintOverride || "The blue one could be sweeter. Flip it and snap.";
+      } else {
+        followUpHint = targetResolution.followUpHintOverride || followUp?.bannerText || "Check underside before storing.";
+      }
     } else {
       eyebrow = "BEST IN VIEW";
       headline = "Best available.";
       subtitle = `High confidence · ${candidateCount} compared in view`;
-      followUpHint = followUp?.bannerText || "The blue one could be sweeter. Flip it and snap.";
+      followUpHint = state.round1FollowUp?.bannerText || followUp?.bannerText || "The blue one could be sweeter. Flip it and snap.";
     }
     runnerUpTagLabel = "Runner-Up";
   } else if (phase === "S5B1_RunnerUpBeaten") {

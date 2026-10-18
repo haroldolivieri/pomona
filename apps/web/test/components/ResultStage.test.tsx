@@ -362,6 +362,103 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(onSetTargetRipeness).toHaveBeenCalledWith("in_2_3_days");
   });
 
+  it("updates followUpHint and eatWithin dynamically in bottom sheet for each target tab", () => {
+    const candidates = [
+      { id: "c1", box: [360, 240, 680, 560] as [number, number, number, number], score: 8.6, ripeness: "ripe" as const, traits: ["Yellow field spot", "Matte rind"], flipSummary: null },
+      { id: "c2", box: [320, 580, 660, 900] as [number, number, number, number], score: 8.1, ripeness: "almost_ripe" as const, traits: ["Even form"], flipSummary: null },
+      { id: "c3", box: [200, 200, 400, 400] as [number, number, number, number], score: 7.0, ripeness: "underripe" as const, traits: ["Green stem"], flipSummary: null },
+    ];
+
+    const baseResp = {
+      ...baseResponse,
+      candidates,
+    };
+
+    // Test 1: ready_now
+    const stateReadyNow = {
+      ...initialScanMachineState(),
+      phase: "S4_InitialResult" as const,
+      firstPick: { ...candidates[0], initialScore: 8.6, anglesInspected: 1, role: "first_pick" as const },
+      runnerUp: { ...candidates[1], initialScore: 8.1, anglesInspected: 1, role: "runner_up" as const },
+      allCandidatesRound1: candidates,
+      lastResponse: baseResp,
+      targetRipeness: "ready_now" as const,
+      round1FollowUp: baseResp.followUp,
+    };
+
+    const { rerender } = render(
+      <ResultStage
+        state={stateReadyNow}
+        onCompareWithRunnerUp={vi.fn()}
+        onStartFinalCheck={vi.fn()}
+        onReset={vi.fn()}
+      />
+    );
+
+    // Expand sheet
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
+
+    expect(screen.getByTestId("follow-up-hint")).toHaveTextContent("The blue one could be sweeter. Flip it and snap.");
+    expect(screen.getByText("3–5 days")).toBeInTheDocument();
+    expect(screen.getByText("Yellow field spot")).toBeInTheDocument();
+
+    // Test 2: in_2_3_days
+    const state23Days = {
+      ...stateReadyNow,
+      firstPick: { ...candidates[1], initialScore: 8.1, anglesInspected: 1, role: "first_pick" as const },
+      runnerUp: { ...candidates[0], initialScore: 8.6, anglesInspected: 1, role: "runner_up" as const },
+      targetRipeness: "in_2_3_days" as const,
+    };
+
+    rerender(
+      <ResultStage
+        state={state23Days}
+        onCompareWithRunnerUp={vi.fn()}
+        onStartFinalCheck={vi.fn()}
+        onReset={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("follow-up-hint")).toHaveTextContent("Check underside before storing for 2–3 days");
+    expect(screen.getByText("Ready in 2–3d · Keeps 5–7 days")).toBeInTheDocument();
+    expect(screen.getByText("Even form")).toBeInTheDocument();
+
+    // Test 3: later_this_week
+    const stateLater = {
+      ...stateReadyNow,
+      firstPick: { ...candidates[2], initialScore: 7.0, anglesInspected: 1, role: "first_pick" as const },
+      runnerUp: { ...candidates[1], initialScore: 8.1, anglesInspected: 1, role: "runner_up" as const },
+      targetRipeness: "later_this_week" as const,
+    };
+
+    rerender(
+      <ResultStage
+        state={stateLater}
+        onCompareWithRunnerUp={vi.fn()}
+        onStartFinalCheck={vi.fn()}
+        onReset={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("follow-up-hint")).toHaveTextContent("Check underside for bruises before long storage");
+    expect(screen.getByText("Ripens in 4–6d · Keeps 7–10 days")).toBeInTheDocument();
+    expect(screen.getByText("Green stem")).toBeInTheDocument();
+
+    // Test 4: back to ready_now - restores initial text
+    rerender(
+      <ResultStage
+        state={stateReadyNow}
+        onCompareWithRunnerUp={vi.fn()}
+        onStartFinalCheck={vi.fn()}
+        onReset={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("follow-up-hint")).toHaveTextContent("The blue one could be sweeter. Flip it and snap.");
+    expect(screen.getByText("3–5 days")).toBeInTheDocument();
+    expect(screen.getByText("Yellow field spot")).toBeInTheDocument();
+  });
+
   it("renders locked ripeness goal banner in S5B1 and S5B2 instead of interactive switch", () => {
     const stateS5B1 = {
       ...initialScanMachineState(),

@@ -42,6 +42,7 @@ export interface ScanMachineState {
   runnerUp: PreservedCandidate | null;
   allCandidatesRound1: Candidate[];
   targetRipeness: TargetRipenessWindow;
+  round1FollowUp: ScanResponse["followUp"] | null;
 }
 
 export type ScanMachineAction =
@@ -76,6 +77,7 @@ export function initialScanMachineState(): ScanMachineState {
     runnerUp: null,
     allCandidatesRound1: [],
     targetRipeness: "ready_now",
+    round1FollowUp: null,
   };
 }
 
@@ -248,6 +250,7 @@ export function scanMachineReducer(
           firstPick,
           runnerUp,
           allCandidatesRound1: remappedCandidates,
+          round1FollowUp: resp.followUp ?? null,
         };
       }
 
@@ -358,12 +361,16 @@ export function scanMachineReducer(
           }
         : null;
 
+      const bannerText = action.targetRipeness === "ready_now"
+        ? (state.round1FollowUp?.bannerText || resolution.followUpHintOverride || state.lastResponse.followUp?.bannerText || "The blue one could be sweeter. Flip it and snap.")
+        : (resolution.followUpHintOverride || state.lastResponse.followUp?.bannerText || "Check underside before storing.");
+
       const updatedFollowUp = state.lastResponse?.followUp && runnerCandidate
         ? {
             ...state.lastResponse.followUp,
             targetCandidateId: runnerCandidate.id,
             targetRole: "runner_up" as const,
-            bannerText: resolution.followUpHintOverride || state.lastResponse.followUp.bannerText,
+            bannerText,
           }
         : state.lastResponse?.followUp ?? null;
 
