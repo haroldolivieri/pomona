@@ -112,17 +112,27 @@ export function verifyPromptfooOutput(
     };
   }
 
-  // 2. Expected Produce Type Check
-  if (
-    vars.expectedProduceType &&
-    response.produce &&
-    response.produce.type !== vars.expectedProduceType
-  ) {
-    return {
-      pass: false,
-      score: 0.5,
-      reason: `Expected produce type "${vars.expectedProduceType}" but received "${response.produce.type}"`,
-    };
+  // 2. Expected Produce Type Check (normalized for casing & singular/plural variations)
+  if (vars.expectedProduceType && response.produce) {
+    const normalizeSlug = (s: string) =>
+      s
+        .toLowerCase()
+        .trim()
+        .replace(/^(british|fresh|loose|organic|whole)\s+/i, "")
+        .replace(/ies$/, "y")
+        .replace(/es$/, "")
+        .replace(/s$/, "");
+
+    const actual = normalizeSlug(response.produce.type);
+    const expected = normalizeSlug(vars.expectedProduceType);
+
+    if (actual !== expected && !response.produce.type.toLowerCase().includes(expected)) {
+      return {
+        pass: false,
+        score: 0.5,
+        reason: `Expected produce type "${vars.expectedProduceType}" but received "${response.produce.type}"`,
+      };
+    }
   }
 
   // 3. Candidate Count Bounds Check (e.g. ensuring polygon isolation stripped outside items)

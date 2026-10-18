@@ -153,6 +153,13 @@ async function runLiveBenchmark() {
     fs.writeFileSync(matrixReportPath, JSON.stringify(reportPayload, null, 2));
     console.log(`Updated live visual matrix report at ${matrixReportPath}`);
   }
+
+  const isStrict = process.env.CI === "true" || process.argv.includes("--strict");
+  if (isStrict && passed < manifest.length) {
+    console.error(`\n🚨 EVAL GATE FAILED: Only ${passed}/${manifest.length} scenarios passed. Blocking CI merge/deployment.`);
+    process.exit(1);
+  }
 }
 
 runLiveBenchmark();
+

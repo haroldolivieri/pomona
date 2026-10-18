@@ -96,7 +96,13 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
     })
   );
 
-  // 500 KB request body limit with JSON error
+  // Set security and permissions policy headers
+  app.use("*", async (c, next) => {
+    await next();
+    c.header("Permissions-Policy", "camera=(self), microphone=()");
+  });
+
+
   app.use(
     "/api/v1/scan",
     bodyLimit({

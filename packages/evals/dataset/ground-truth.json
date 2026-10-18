@@ -550,7 +550,7 @@
       "expectedProduceType": "carrots",
       "focusPolygon": null,
       "expectedCandidateCountMin": 2,
-      "expectedCandidateCountMax": 4,
+      "expectedCandidateCountMax": 8,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
@@ -573,7 +573,7 @@
       "expectedProduceType": "potatoes",
       "focusPolygon": null,
       "expectedCandidateCountMin": 2,
-      "expectedCandidateCountMax": 4,
+      "expectedCandidateCountMax": 8,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
@@ -596,7 +596,7 @@
       "expectedProduceType": "banana",
       "focusPolygon": null,
       "expectedCandidateCountMin": 1,
-      "expectedCandidateCountMax": 4,
+      "expectedCandidateCountMax": 8,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",

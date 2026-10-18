@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-10-17T13:16:56.042Z",
+  "timestamp": "2026-10-18T18:25:28.216Z",
   "model": "google:gemini-3.1-flash-lite",
-  "passed": 10,
-  "total": 10,
+  "passed": 15,
+  "total": 15,
   "results": [
     {
       "id": "01-watermelon-crate-clear-winner",
@@ -10,7 +10,7 @@
       "pass": true,
       "score": 1,
       "reason": "Passed ScanResponse schema, verifier invariants, and spatial ground-truth expectations",
-      "latencyMs": 2880,
+      "latencyMs": 3215,
       "rawOutput": {
         "status": "ok",
         "message": null,
@@ -31,56 +31,57 @@
             "score": 9.4,
             "ripeness": "ripe",
             "traits": [
-              "Deep golden field spot",
-              "Dense brown sugar webbing"
+              "Deep yellow belly spot",
+              "Dense sugar webbing",
+              "Dull skin finish"
             ],
             "flipSummary": null
           },
           {
             "id": "c2",
             "box": [
-              431,
-              545,
-              773,
-              879
+              253,
+              411,
+              492,
+              646
             ],
-            "score": 7.2,
-            "ripeness": "almost_ripe",
+            "score": 4.2,
+            "ripeness": "underripe",
             "traits": [
-              "Light yellow field spot",
-              "Smooth skin"
+              "Stark white belly spot",
+              "Shiny skin finish"
             ],
             "flipSummary": null
           },
           {
             "id": "c3",
             "box": [
-              253,
-              411,
-              495,
-              646
+              429,
+              545,
+              773,
+              878
             ],
-            "score": 5.1,
-            "ripeness": "underripe",
+            "score": 6.8,
+            "ripeness": "almost_ripe",
             "traits": [
-              "Small white field spot",
-              "Bright green skin"
+              "Pale creamy belly spot",
+              "Moderate sugar webbing"
             ],
             "flipSummary": null
           }
         ],
         "verdict": {
           "winnerId": "c1",
-          "runnerUpId": "c2",
+          "runnerUpId": "c3",
           "confidence": "high",
           "headline": "Buy your 1st pick."
         },
         "followUp": {
-          "targetCandidateId": "c2",
+          "targetCandidateId": "c3",
           "targetRole": "runner_up",
-          "bannerText": "Check the underside of this Watermelon to see if it matches the quality of your 1st pick.",
-          "flipHeadline": "Flip the Watermelon over",
-          "instruction": "Rotate the second Watermelon to inspect its field spot for deep golden color and webbing."
+          "bannerText": "The Watermelon on the right is a great backup candidate.",
+          "flipHeadline": "Inspect the Watermelon's underside",
+          "instruction": "Look for a creamy, golden-yellow spot on the bottom of the Watermelon to confirm peak ripeness."
         },
         "afterPurchase": {
           "readyInDays": {
@@ -96,14 +97,14 @@
             "beforeCut": {
               "where": "counter",
               "whereLabel": "Counter",
-              "summary": "Keep at room temp",
-              "tip": "Store away from direct sunlight to keep the inside sweet and crisp."
+              "summary": "Counter · whole",
+              "tip": "Keep whole Watermelon at room temperature for up to 1 week."
             },
             "afterCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Refrigerate in container",
-              "tip": "Wrap tightly or use an airtight container to prevent absorbing other fridge odors."
+              "summary": "Fridge · cut",
+              "tip": "Cover cut surfaces with plastic wrap and consume within 3–5 days."
             }
           }
         }
@@ -115,7 +116,7 @@
       "pass": true,
       "score": 1,
       "reason": "Passed ScanResponse schema, verifier invariants, and spatial ground-truth expectations",
-      "latencyMs": 2825,
+      "latencyMs": 2557,
       "rawOutput": {
         "status": "ok",
         "message": null,
@@ -128,44 +129,28 @@
           {
             "id": "c1",
             "box": [
-              80,
-              129,
-              438,
-              543
+              495,
+              108,
+              908,
+              473
             ],
             "score": 8.5,
             "ripeness": "ripe",
             "traits": [
               "Dark pebbled skin",
-              "Uniform dark colour"
+              "Firm stem intact"
             ],
             "flipSummary": null
           },
           {
             "id": "c2",
             "box": [
-              498,
-              109,
-              908,
-              472
+              468,
+              549,
+              878,
+              905
             ],
-            "score": 8.8,
-            "ripeness": "ripe",
-            "traits": [
-              "Dark pebbled skin",
-              "Firm stem"
-            ],
-            "flipSummary": null
-          },
-          {
-            "id": "c3",
-            "box": [
-              467,
-              550,
-              877,
-              903
-            ],
-            "score": 3.5,
+            "score": 2.5,
             "ripeness": "underripe",
             "traits": [
               "Bright green skin",
@@ -175,40 +160,40 @@
           }
         ],
         "verdict": {
-          "winnerId": "c2",
-          "runnerUpId": "c1",
+          "winnerId": "c1",
+          "runnerUpId": "c2",
           "confidence": "high",
-          "headline": "Buy your 1st pick."
+          "headline": "Buy this one."
         },
         "followUp": {
-          "targetCandidateId": "c1",
+          "targetCandidateId": "c2",
           "targetRole": "runner_up",
-          "bannerText": "Check the other dark Avocado for comparison.",
-          "flipHeadline": "Inspect the Avocado",
-          "instruction": "Rotate the other dark Avocado to check for firm texture and consistent dark skin color."
+          "bannerText": "This Avocado is still firm and needs time to ripen.",
+          "flipHeadline": "Check the Avocado stem",
+          "instruction": "Gently check the stem of this Avocado to see if it peels away easily."
         },
         "afterPurchase": {
           "readyInDays": {
-            "min": 0,
-            "max": 1
-          },
-          "eatWithinDays": {
-            "min": 2,
+            "min": 1,
             "max": 3
           },
-          "eatWithinLabel": "2–3 days",
+          "eatWithinDays": {
+            "min": 1,
+            "max": 3
+          },
+          "eatWithinLabel": "1–3 days",
           "storage": {
             "beforeCut": {
               "where": "counter",
               "whereLabel": "Counter",
-              "summary": "Counter · whole",
-              "tip": "Keep at room temperature until ripe, then move to fridge to slow softening."
+              "summary": "Counter until ripe",
+              "tip": "Store on the counter out of direct sunlight until it reaches your desired ripeness."
             },
             "afterCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Fridge · cut",
-              "tip": "Keep the pit in and wrap tightly with cling film to minimize oxidation."
+              "summary": "Fridge in airtight container",
+              "tip": "Keep the pit in and use lemon juice to prevent the flesh from browning."
             }
           }
         }
@@ -219,11 +204,11 @@
       "model": "google:gemini-3.1-flash-lite",
       "pass": true,
       "score": 1,
-      "reason": "Correctly returned domain error status \"unclear_photo\" with message: \"The image provided is too blurry to accurately identify or evaluate any produce.\"",
-      "latencyMs": 1414,
+      "reason": "Correctly returned domain error status \"unclear_photo\" with message: \"The image is too blurry to identify or grade any produce. Please provide a clear, in-focus photo of the items.\"",
+      "latencyMs": 1557,
       "rawOutput": {
         "status": "unclear_photo",
-        "message": "The image provided is too blurry to accurately identify or evaluate any produce.",
+        "message": "The image is too blurry to identify or grade any produce. Please provide a clear, in-focus photo of the items.",
         "produce": null,
         "candidates": [],
         "verdict": null,
@@ -236,11 +221,11 @@
       "model": "google:gemini-3.1-flash-lite",
       "pass": true,
       "score": 1,
-      "reason": "Correctly returned domain error status \"no_produce\" with message: \"The image displays shelves of packaged cereal, canned coffee, and other processed goods, but no fresh produce items.\"",
-      "latencyMs": 1428,
+      "reason": "Correctly returned domain error status \"no_produce\" with message: \"No fresh produce was detected. The image shows aisles of packaged cereal boxes and coffee canisters.\"",
+      "latencyMs": 1380,
       "rawOutput": {
         "status": "no_produce",
-        "message": "The image displays shelves of packaged cereal, canned coffee, and other processed goods, but no fresh produce items.",
+        "message": "No fresh produce was detected. The image shows aisles of packaged cereal boxes and coffee canisters.",
         "produce": null,
         "candidates": [],
         "verdict": null,
@@ -253,11 +238,11 @@
       "model": "google:gemini-3.1-flash-lite",
       "pass": true,
       "score": 1,
-      "reason": "Correctly returned domain error status \"multiple_types\" with message: \"The basket contains multiple types of produce including apples, a pineapple, and bananas. Please focus on one type to provide an accurate ripeness assessment.\"",
-      "latencyMs": 1452,
+      "reason": "Correctly returned domain error status \"multiple_types\" with message: \"Multiple types of produce detected. Please draw around one fruit type (either the apples, the pineapple, or the bananas) to inspect.\"",
+      "latencyMs": 1697,
       "rawOutput": {
         "status": "multiple_types",
-        "message": "The basket contains multiple types of produce including apples, a pineapple, and bananas. Please focus on one type to provide an accurate ripeness assessment.",
+        "message": "Multiple types of produce detected. Please draw around one fruit type (either the apples, the pineapple, or the bananas) to inspect.",
         "produce": null,
         "candidates": [],
         "verdict": null,
@@ -271,7 +256,7 @@
       "pass": true,
       "score": 1,
       "reason": "Passed ScanResponse schema, verifier invariants, and spatial ground-truth expectations",
-      "latencyMs": 2393,
+      "latencyMs": 3172,
       "rawOutput": {
         "status": "ok",
         "message": null,
@@ -285,37 +270,37 @@
             "id": "c2",
             "box": [
               121,
-              128,
-              882,
-              882
+              129,
+              883,
+              871
             ],
             "score": 9.4,
             "ripeness": "ripe",
             "traits": [
-              "Deep golden-amber field spot",
-              "Dense brown sugar webbing",
-              "Excellent ripeness signs"
+              "Deep golden field spot",
+              "Dense sugar webbing",
+              "Excellent maturity"
             ],
-            "flipSummary": "Inspection reveals a deep golden-amber field spot and very heavy brown webbing."
+            "flipSummary": "The underside displays an exceptionally deep golden field spot with intense, thick brown sugar webbing, signaling peak sweetness and ripeness."
           }
         ],
         "verdict": {
           "winnerId": "c2",
           "runnerUpId": "c1",
           "confidence": "high",
-          "headline": "Buy your 1st pick."
+          "headline": "Buy this Watermelon."
         },
         "followUp": {
           "targetCandidateId": "c1",
           "targetRole": "first_pick",
-          "bannerText": "The flipped Watermelon is excellent; check the original 1st pick to confirm.",
-          "flipHeadline": "Inspect the original 1st pick Watermelon",
-          "instruction": "Look at the original 1st pick Watermelon to confirm it still meets your standards compared to this one."
+          "bannerText": "Your flipped Watermelon is now the top pick!",
+          "flipHeadline": "Inspect the original Watermelon",
+          "instruction": "The runner-up Watermelon shows superior sweetness indicators. You can keep the original as a backup."
         },
         "afterPurchase": {
           "readyInDays": {
             "min": 0,
-            "max": 2
+            "max": 1
           },
           "eatWithinDays": {
             "min": 3,
@@ -327,13 +312,13 @@
               "where": "counter",
               "whereLabel": "Counter",
               "summary": "Counter · whole",
-              "tip": "Keep whole Watermelon on the counter for up to a week away from direct sunlight."
+              "tip": "Store whole at room temperature until ready to cut. Use within a few days."
             },
             "afterCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
               "summary": "Fridge · covered",
-              "tip": "Store cut pieces in an airtight container or wrap tightly to retain freshness."
+              "tip": "Wrap cut portions tightly in plastic or keep in a sealed container for freshness."
             }
           }
         }
@@ -345,7 +330,7 @@
       "pass": true,
       "score": 1,
       "reason": "Passed ScanResponse schema, verifier invariants, and spatial ground-truth expectations",
-      "latencyMs": 2145,
+      "latencyMs": 2346,
       "rawOutput": {
         "status": "ok",
         "message": null,
@@ -358,19 +343,19 @@
           {
             "id": "c2",
             "box": [
-              138,
-              120,
+              136,
+              118,
               706,
-              904
+              903
             ],
-            "score": 6.2,
+            "score": 4.2,
             "ripeness": "underripe",
             "traits": [
-              "Stark pale white spot",
-              "Thin rind",
-              "Lacks sugar webbing"
+              "Stark white ground spot",
+              "Lacks sugar webbing",
+              "Signs of immaturity"
             ],
-            "flipSummary": "The underside revealed a stark, chalky white spot indicating it is underripe."
+            "flipSummary": "The underside reveals a stark, chalky-white ground spot, signaling underripeness."
           }
         ],
         "verdict": {
@@ -382,8 +367,8 @@
         "followUp": null,
         "afterPurchase": {
           "readyInDays": {
-            "min": 0,
-            "max": 2
+            "min": 7,
+            "max": 10
           },
           "eatWithinDays": {
             "min": 3,
@@ -395,13 +380,13 @@
               "where": "counter",
               "whereLabel": "Counter",
               "summary": "Counter · whole",
-              "tip": "Store at room temperature out of direct sunlight for best flavor development."
+              "tip": "Keep whole Watermelon at room temperature until ripe."
             },
             "afterCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Fridge · cut",
-              "tip": "Keep cut portions wrapped in plastic or in an airtight container to retain moisture."
+              "summary": "Fridge · airtight",
+              "tip": "Store cut pieces in an airtight container to keep them crisp."
             }
           }
         }
@@ -413,7 +398,7 @@
       "pass": true,
       "score": 1,
       "reason": "Passed ScanResponse schema, verifier invariants, and spatial ground-truth expectations",
-      "latencyMs": 2146,
+      "latencyMs": 2151,
       "rawOutput": {
         "status": "ok",
         "message": null,
@@ -426,50 +411,50 @@
           {
             "id": "c1",
             "box": [
-              174,
-              172,
-              819,
-              839
+              175,
+              175,
+              815,
+              838
             ],
             "score": 9.5,
             "ripeness": "ripe",
             "traits": [
               "Deep golden field spot",
-              "Heavy brown sugar webbing",
-              "Dry, brittle tendril"
+              "Extensive sugar webbing",
+              "Dry curly tendril"
             ],
-            "flipSummary": "Underside confirms deep golden-yellow color and dense webbing, indicating ripeness."
+            "flipSummary": "The underside shows a massive, rich golden field spot with intense sugar webbing."
           }
         ],
         "verdict": {
           "winnerId": "c1",
           "runnerUpId": "c2",
           "confidence": "high",
-          "headline": "Buy this prime pick."
+          "headline": "Buy this premium Watermelon."
         },
         "followUp": null,
         "afterPurchase": {
           "readyInDays": {
             "min": 0,
-            "max": 0
+            "max": 1
           },
           "eatWithinDays": {
-            "min": 5,
-            "max": 7
+            "min": 3,
+            "max": 5
           },
-          "eatWithinLabel": "5–7 days",
+          "eatWithinLabel": "3–5 days",
           "storage": {
             "beforeCut": {
               "where": "counter",
               "whereLabel": "Counter",
-              "summary": "Keep whole at room temp",
-              "tip": "Store away from direct sunlight to maintain optimal texture and flavour."
+              "summary": "Counter · whole",
+              "tip": "Store at room temperature away from direct sunlight for the best flavor."
             },
             "afterCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Refrigerate in container",
-              "tip": "Cover exposed flesh with plastic wrap or store in an airtight container."
+              "summary": "Fridge · airtight container",
+              "tip": "Keep in an airtight container to maintain moisture and prevent absorbing odors."
             }
           }
         }
@@ -481,38 +466,39 @@
       "pass": true,
       "score": 1,
       "reason": "Passed ScanResponse schema, verifier invariants, and spatial ground-truth expectations",
-      "latencyMs": 2222,
+      "latencyMs": 2150,
       "rawOutput": {
         "status": "ok",
         "message": null,
         "produce": {
           "type": "watermelon",
           "displayName": "Watermelon",
-          "variety": "seeded"
+          "variety": "Seedless"
         },
         "candidates": [
           {
             "id": "c1",
             "box": [
-              172,
+              171,
               203,
               777,
               803
             ],
-            "score": 3.2,
+            "score": 4.5,
             "ripeness": "overripe",
             "traits": [
-              "Soft bruised skin",
-              "Discoloured surface patch"
+              "Significant soft spot",
+              "Bruised underside",
+              "Texture compromise"
             ],
-            "flipSummary": "The underside reveals significant soft bruising and skin damage, indicating decay."
+            "flipSummary": "The underside revealed a significant, soft, brown bruised area indicating decay."
           }
         ],
         "verdict": {
           "winnerId": "c2",
           "runnerUpId": "c1",
           "confidence": "high",
-          "headline": "Stick with your other choice."
+          "headline": "Stick with your runner-up."
         },
         "followUp": null,
         "afterPurchase": {
@@ -521,22 +507,22 @@
             "max": 0
           },
           "eatWithinDays": {
-            "min": 1,
-            "max": 2
+            "min": 3,
+            "max": 5
           },
-          "eatWithinLabel": "1–2 days",
+          "eatWithinLabel": "3–5 days",
           "storage": {
             "beforeCut": {
               "where": "counter",
               "whereLabel": "Counter",
-              "summary": "Keep cool away from sun",
-              "tip": "Store whole at room temperature until ready to cut. Eat soon due to condition."
+              "summary": "Keep whole at room temp",
+              "tip": "Store away from direct sunlight to maintain internal freshness."
             },
             "afterCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Refrigerate in container",
-              "tip": "Cover exposed flesh tightly with plastic wrap or store in an airtight container."
+              "summary": "Refrigerate in sealed container",
+              "tip": "Wrap tightly or use an airtight container to keep flesh crisp."
             }
           }
         }
@@ -548,30 +534,30 @@
       "pass": true,
       "score": 1,
       "reason": "Passed ScanResponse schema, verifier invariants, and spatial ground-truth expectations",
-      "latencyMs": 2050,
+      "latencyMs": 2448,
       "rawOutput": {
         "status": "ok",
         "message": null,
         "produce": {
           "type": "pineapple",
-          "displayName": "pineapple",
-          "variety": "generic"
+          "displayName": "Pineapple",
+          "variety": "Golden Pineapple"
         },
         "candidates": [
           {
             "id": "c1",
             "box": [
-              71,
-              383,
-              827,
-              617
+              72,
+              381,
+              826,
+              616
             ],
-            "score": 8.8,
+            "score": 9.4,
             "ripeness": "ripe",
             "traits": [
-              "Golden shell color",
-              "Vibrant green crown",
-              "Uniform eye development"
+              "Golden yellow shell",
+              "Healthy green crown",
+              "Sweet fragrant aroma"
             ],
             "flipSummary": null
           }
@@ -598,13 +584,699 @@
               "where": "counter",
               "whereLabel": "Counter",
               "summary": "Counter · whole",
-              "tip": "Keep at room temperature until fully ripe. Enjoy the sweet, tropical scent."
+              "tip": "Store whole Pineapple on the counter. Once ripe, eat within a few days."
             },
             "afterCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Fridge · cut",
-              "tip": "Store chunks in an airtight container to keep them juicy and fresh."
+              "summary": "Fridge · airtight container",
+              "tip": "Keep cut pieces in an airtight container in the fridge to maintain freshness."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "11-grape-punnet-pack-selection",
+      "model": "google:gemini-3.1-flash-lite",
+      "pass": true,
+      "score": 1,
+      "reason": "Passed ScanResponse schema, verifier invariants, and spatial ground-truth expectations",
+      "latencyMs": 2874,
+      "rawOutput": {
+        "status": "ok",
+        "message": null,
+        "produce": {
+          "type": "grape",
+          "displayName": "Red Seedless Grapes",
+          "variety": "Red Seedless"
+        },
+        "candidates": [
+          {
+            "id": "c1",
+            "box": [
+              235,
+              12,
+              836,
+              496
+            ],
+            "score": 9.2,
+            "ripeness": "ripe",
+            "traits": [
+              "Vibrant green stem",
+              "Firm plump skin",
+              "Deep red color"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c2",
+            "box": [
+              245,
+              513,
+              835,
+              959
+            ],
+            "score": 6.8,
+            "ripeness": "overripe",
+            "traits": [
+              "Dry woody stem",
+              "Soft skin texture",
+              "Dull color"
+            ],
+            "flipSummary": null
+          }
+        ],
+        "verdict": {
+          "winnerId": "c1",
+          "runnerUpId": "c2",
+          "confidence": "high",
+          "headline": "Buy the premium pack."
+        },
+        "followUp": {
+          "targetCandidateId": "c2",
+          "targetRole": "runner_up",
+          "bannerText": "The left pack is fresher, but check the right pack for any hidden spoilage.",
+          "flipHeadline": "Inspect the Red Seedless Grapes",
+          "instruction": "Lift the container of Red Seedless Grapes to check if any berries are mushy or leaking at the bottom."
+        },
+        "afterPurchase": {
+          "readyInDays": {
+            "min": 0,
+            "max": 0
+          },
+          "eatWithinDays": {
+            "min": 3,
+            "max": 5
+          },
+          "eatWithinLabel": "3–5 days",
+          "storage": {
+            "beforeCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Fridge · unwashed",
+              "tip": "Keep dry and unwashed in the original container until ready to eat to prevent mold."
+            },
+            "afterCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Fridge · airtight container",
+              "tip": "Store washed and dried grapes in an airtight container for freshness."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "12-tomato-basket-polygon-selection",
+      "model": "google:gemini-3.1-flash-lite",
+      "pass": true,
+      "score": 1,
+      "reason": "Passed ScanResponse schema, verifier invariants, and spatial ground-truth expectations",
+      "latencyMs": 2970,
+      "rawOutput": {
+        "status": "ok",
+        "message": null,
+        "produce": {
+          "type": "tomato",
+          "displayName": "Tomatoes",
+          "variety": "Vine Tomato"
+        },
+        "candidates": [
+          {
+            "id": "c1",
+            "box": [
+              297,
+              342,
+              413,
+              462
+            ],
+            "score": 8.8,
+            "ripeness": "ripe",
+            "traits": [
+              "Deep red color",
+              "Firm skin"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c2",
+            "box": [
+              358,
+              452,
+              493,
+              542
+            ],
+            "score": 9.1,
+            "ripeness": "ripe",
+            "traits": [
+              "Vibrant red",
+              "Uniform shape",
+              "Smooth skin"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c3",
+            "box": [
+              357,
+              548,
+              472,
+              642
+            ],
+            "score": 8.5,
+            "ripeness": "ripe",
+            "traits": [
+              "Bright red",
+              "Firm"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c4",
+            "box": [
+              553,
+              577,
+              683,
+              715
+            ],
+            "score": 8.3,
+            "ripeness": "ripe",
+            "traits": [
+              "Good color",
+              "Smooth"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c5",
+            "box": [
+              564,
+              438,
+              687,
+              576
+            ],
+            "score": 7.9,
+            "ripeness": "almost_ripe",
+            "traits": [
+              "Slightly firm",
+              "Mostly red"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c6",
+            "box": [
+              550,
+              260,
+              675,
+              440
+            ],
+            "score": 8,
+            "ripeness": "almost_ripe",
+            "traits": [
+              "Firm",
+              "Good color"
+            ],
+            "flipSummary": null
+          }
+        ],
+        "verdict": {
+          "winnerId": "c2",
+          "runnerUpId": "c1",
+          "confidence": "high",
+          "headline": "Buy this one."
+        },
+        "followUp": {
+          "targetCandidateId": "c1",
+          "targetRole": "runner_up",
+          "bannerText": "Check the Tomatoes for any soft spots.",
+          "flipHeadline": "Inspect the Tomatoes",
+          "instruction": "Rotate the Tomatoes to check for blemishes or bruising underneath."
+        },
+        "afterPurchase": {
+          "readyInDays": {
+            "min": 0,
+            "max": 2
+          },
+          "eatWithinDays": {
+            "min": 3,
+            "max": 5
+          },
+          "eatWithinLabel": "3–5 days",
+          "storage": {
+            "beforeCut": {
+              "where": "counter",
+              "whereLabel": "Counter",
+              "summary": "Keep at room temperature",
+              "tip": "Store away from direct sunlight to maintain flavor and prevent premature softening."
+            },
+            "afterCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Refrigerate in container",
+              "tip": "Place in a sealed container to prevent drying out and absorb odors."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "13-carrot-packs-crate",
+      "model": "google:gemini-3.1-flash-lite",
+      "pass": true,
+      "score": 1,
+      "reason": "Passed ScanResponse schema, verifier invariants, and spatial ground-truth expectations",
+      "latencyMs": 2865,
+      "rawOutput": {
+        "status": "ok",
+        "message": null,
+        "produce": {
+          "type": "carrot",
+          "displayName": "Carrots",
+          "variety": "British Carrots"
+        },
+        "candidates": [
+          {
+            "id": "c1",
+            "box": [
+              116,
+              178,
+              303,
+              335
+            ],
+            "score": 8.5,
+            "ripeness": "ripe",
+            "traits": [
+              "Vibrant orange skin",
+              "Firm texture"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c2",
+            "box": [
+              82,
+              313,
+              230,
+              480
+            ],
+            "score": 8.2,
+            "ripeness": "ripe",
+            "traits": [
+              "Crisp surface",
+              "Solid structure"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c3",
+            "box": [
+              470,
+              203,
+              725,
+              381
+            ],
+            "score": 8.8,
+            "ripeness": "ripe",
+            "traits": [
+              "Bright orange",
+              "High firmness"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c4",
+            "box": [
+              486,
+              360,
+              715,
+              535
+            ],
+            "score": 8.4,
+            "ripeness": "ripe",
+            "traits": [
+              "Consistent color",
+              "Firm to touch"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c5",
+            "box": [
+              504,
+              532,
+              728,
+              835
+            ],
+            "score": 8.1,
+            "ripeness": "ripe",
+            "traits": [
+              "Good thickness",
+              "Firm skin"
+            ],
+            "flipSummary": null
+          }
+        ],
+        "verdict": {
+          "winnerId": "c3",
+          "runnerUpId": "c1",
+          "confidence": "high",
+          "headline": "Buy the bunch on the left."
+        },
+        "followUp": {
+          "targetCandidateId": "c1",
+          "targetRole": "runner_up",
+          "bannerText": "Check the Carrots for firm, smooth skin.",
+          "flipHeadline": "Inspect Carrots closely",
+          "instruction": "Look for crisp, unbroken skin and firm Carrots without soft spots or signs of moisture inside the bag."
+        },
+        "afterPurchase": {
+          "readyInDays": {
+            "min": 0,
+            "max": 1
+          },
+          "eatWithinDays": {
+            "min": 7,
+            "max": 14
+          },
+          "eatWithinLabel": "1–2 weeks",
+          "storage": {
+            "beforeCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Crisper drawer",
+              "tip": "Store in the original bag or a perforated plastic bag to retain moisture."
+            },
+            "afterCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Air-tight container",
+              "tip": "Keep in a container of water or wrapped in a damp paper towel to stay crisp."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "14-potato-packs-crate",
+      "model": "google:gemini-3.1-flash-lite",
+      "pass": true,
+      "score": 1,
+      "reason": "Passed ScanResponse schema, verifier invariants, and spatial ground-truth expectations",
+      "latencyMs": 3206,
+      "rawOutput": {
+        "status": "ok",
+        "message": null,
+        "produce": {
+          "type": "potato",
+          "displayName": "Baking Potatoes",
+          "variety": "British Baking"
+        },
+        "candidates": [
+          {
+            "id": "c1",
+            "box": [
+              478,
+              163,
+              907,
+              856
+            ],
+            "score": 8.5,
+            "ripeness": "ripe",
+            "traits": [
+              "Firm skin",
+              "Uniform shape",
+              "Clean appearance"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c2",
+            "box": [
+              159,
+              499,
+              532,
+              856
+            ],
+            "score": 8.1,
+            "ripeness": "ripe",
+            "traits": [
+              "Firm texture",
+              "No visible sprouts"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c3",
+            "box": [
+              0,
+              133,
+              149,
+              318
+            ],
+            "score": 7.8,
+            "ripeness": "almost_ripe",
+            "traits": [
+              "Dry skin",
+              "Good weight"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c4",
+            "box": [
+              227,
+              120,
+              396,
+              318
+            ],
+            "score": 7.5,
+            "ripeness": "almost_ripe",
+            "traits": [
+              "Clean skin",
+              "Solid feel"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c5",
+            "box": [
+              233,
+              348,
+              381,
+              513
+            ],
+            "score": 7.2,
+            "ripeness": "almost_ripe",
+            "traits": [
+              "Solid firmness"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c6",
+            "box": [
+              0,
+              483,
+              140,
+              836
+            ],
+            "score": 7,
+            "ripeness": "almost_ripe",
+            "traits": [
+              "Clean surface"
+            ],
+            "flipSummary": null
+          }
+        ],
+        "verdict": {
+          "winnerId": "c1",
+          "runnerUpId": "c2",
+          "confidence": "high",
+          "headline": "Buy your 1st pick."
+        },
+        "followUp": {
+          "targetCandidateId": "c2",
+          "targetRole": "runner_up",
+          "bannerText": "Check the Baking Potatoes for any soft spots under the bag.",
+          "flipHeadline": "Inspect Baking Potatoes",
+          "instruction": "Rotate the bag of Baking Potatoes to check the underside for firmness and any blemishes."
+        },
+        "afterPurchase": {
+          "readyInDays": {
+            "min": 0,
+            "max": 2
+          },
+          "eatWithinDays": {
+            "min": 7,
+            "max": 14
+          },
+          "eatWithinLabel": "1–2 weeks",
+          "storage": {
+            "beforeCut": {
+              "where": "cool_dark",
+              "whereLabel": "Cool dark place",
+              "summary": "Pantry or cupboard",
+              "tip": "Store Baking Potatoes in a dark, ventilated place away from onions."
+            },
+            "afterCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Submerged in cold water",
+              "tip": "Keep cut Baking Potatoes in cold water to prevent browning; use within 24 hours."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "15-banana-pack-bagged",
+      "model": "google:gemini-3.1-flash-lite",
+      "pass": true,
+      "score": 1,
+      "reason": "Passed ScanResponse schema, verifier invariants, and spatial ground-truth expectations",
+      "latencyMs": 3071,
+      "rawOutput": {
+        "status": "ok",
+        "message": null,
+        "produce": {
+          "type": "banana",
+          "displayName": "Bananas",
+          "variety": "Cavendish"
+        },
+        "candidates": [
+          {
+            "id": "c1",
+            "box": [
+              256,
+              188,
+              457,
+              511
+            ],
+            "score": 8.5,
+            "ripeness": "ripe",
+            "traits": [
+              "Bright yellow skin",
+              "Firm stem connection"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c2",
+            "box": [
+              172,
+              418,
+              485,
+              664
+            ],
+            "score": 8.9,
+            "ripeness": "ripe",
+            "traits": [
+              "Plump uniform curve",
+              "Clean yellow peel"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c3",
+            "box": [
+              281,
+              683,
+              453,
+              872
+            ],
+            "score": 6.8,
+            "ripeness": "almost_ripe",
+            "traits": [
+              "Green neck tips",
+              "Firm skin"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c4",
+            "box": [
+              450,
+              597,
+              561,
+              924
+            ],
+            "score": 7.5,
+            "ripeness": "almost_ripe",
+            "traits": [
+              "Light yellow peel",
+              "Slightly firm"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c5",
+            "box": [
+              0,
+              513,
+              71,
+              729
+            ],
+            "score": 9.1,
+            "ripeness": "ripe",
+            "traits": [
+              "Spotting present",
+              "Rich yellow color"
+            ],
+            "flipSummary": null
+          },
+          {
+            "id": "c6",
+            "box": [
+              0,
+              645,
+              175,
+              849
+            ],
+            "score": 8.2,
+            "ripeness": "ripe",
+            "traits": [
+              "Soft yellow skin"
+            ],
+            "flipSummary": null
+          }
+        ],
+        "verdict": {
+          "winnerId": "c5",
+          "runnerUpId": "c2",
+          "confidence": "high",
+          "headline": "Buy your 1st pick."
+        },
+        "followUp": {
+          "targetCandidateId": "c2",
+          "targetRole": "runner_up",
+          "bannerText": "The runner-up cluster of Bananas looks excellent.",
+          "flipHeadline": "Inspect the Bananas",
+          "instruction": "Check the underside of this Bananas cluster for bruising."
+        },
+        "afterPurchase": {
+          "readyInDays": {
+            "min": 0,
+            "max": 2
+          },
+          "eatWithinDays": {
+            "min": 3,
+            "max": 5
+          },
+          "eatWithinLabel": "3–5 days",
+          "storage": {
+            "beforeCut": {
+              "where": "counter",
+              "whereLabel": "Counter",
+              "summary": "Counter · whole",
+              "tip": "Keep bananas away from direct sunlight to delay over-ripening."
+            },
+            "afterCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Fridge · sealed bag",
+              "tip": "Keep in a sealed bag to prevent them from browning too quickly."
             }
           }
         }

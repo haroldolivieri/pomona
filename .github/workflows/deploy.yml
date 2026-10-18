@@ -1,7 +1,10 @@
-name: Deploy to Cloudflare Workers
+name: CI & Deployment Gate
 
 on:
   push:
+    branches:
+      - main
+  pull_request:
     branches:
       - main
   workflow_dispatch:
@@ -11,8 +14,72 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  check-changes:
+    name: Detect Changed Paths
+    runs-on: ubuntu-latest
+    outputs:
+      prompts_changed: ${{ steps.filter.outputs.prompts }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Path Filter
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            prompts:
+              - 'apps/proxy/src/prompts/**'
+              - 'packages/contract/src/schemas.ts'
+              - 'packages/evals/**'
+
+  eval-gate:
+    name: Prompt Regression & Ground-Truth Eval Gate
+    needs: check-changes
+    if: needs.check-changes.outputs.prompts_changed == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build dependencies
+        run: |
+          pnpm --filter @pomona/contract build || true
+          pnpm --filter @pomona/proxy build || true
+
+      - name: Run Deterministic Unit Evals
+        run: pnpm --filter @pomona/evals test
+
+      - name: Run Live Model Benchmark Gate (Gemini 3.1 Flash-Lite)
+        run: pnpm --filter @pomona/evals eval:live
+        env:
+          CI: "true"
+          EVAL_MODEL: "gemini-3.1-flash-lite"
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
   deploy:
     name: Build & Deploy Worker + Static Assets
+    needs: [check-changes, eval-gate]
+    # Deploy only on push to main (or workflow_dispatch), and ensure eval-gate passes if it ran
+    if: |
+      always() &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/main' &&
+      (needs.eval-gate.result == 'success' || needs.eval-gate.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -48,5 +115,3 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFARE_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID || '553fb87d04f36b2f088f1250f34503cc' }}
-
-
