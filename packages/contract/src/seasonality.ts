@@ -661,7 +661,7 @@ function localCopy(status: SeasonalityStatus, label: string): { badgeText: strin
     case "peak":
       return {
         badgeText: trimMax(`Peak season (${label})`, 48),
-        noteText: "In peak harvest locally — expect the best flavour.",
+        noteText: "In peak harvest locally, expect the best flavour.",
       };
     case "in_season":
       return {
@@ -676,7 +676,7 @@ function localCopy(status: SeasonalityStatus, label: string): { badgeText: strin
     default:
       return {
         badgeText: "Imported year-round",
-        noteText: "Not grown locally — quality depends on the shipment.",
+        noteText: "Not grown locally. Quality depends on the shipment.",
       };
   }
 }
@@ -689,7 +689,7 @@ function originCopy(
   if (status === "peak") {
     return {
       badgeText: trimMax(`Peak in ${name} (${label})`, 48),
-      noteText: trimMax(`In peak harvest in ${name} right now — expect the best flavour.`, 90),
+      noteText: trimMax(`In peak harvest in ${name} right now, expect the best flavour.`, 90),
     };
   }
   if (status === "in_season") {
@@ -700,7 +700,7 @@ function originCopy(
   }
   return {
     badgeText: trimMax(`Off-season in ${name} (Peak: ${label})`, 48),
-    noteText: trimMax(`Out of season in ${name} — may be stored or flown in.`, 90),
+    noteText: trimMax(`Out of season in ${name}, may be stored or flown in.`, 90),
   };
 }
 

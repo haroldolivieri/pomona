@@ -416,7 +416,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
         >
           {t("draw.subtitle", {
             defaultValue:
-              "Trace with your finger so the AI only grades the produce inside your loop — or skip to scan the whole photo.",
+              "Trace with your finger so the AI only grades the produce inside your loop, or skip to scan the whole photo.",
           })}
         </div>
 
