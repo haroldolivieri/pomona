@@ -36,6 +36,10 @@ describe("resolveCandidatesForTarget", () => {
     const allRipe = [sampleCandidates[0]];
     const res = resolveCandidatesForTarget(allRipe, "later_this_week");
     expect(res.isExactMatch).toBe(false);
+    expect(res.mismatchReason).toBe("all_already_ripe");
+    expect(res.badgeLabel).toBe("Closest match · Already ripe");
+    expect(res.bannerNotice).toContain("All items in view are already ripe");
+    expect(res.headline).toBe("No items will keep until later.");
     expect(res.eyebrow).toContain("CLOSEST MATCH");
   });
 });

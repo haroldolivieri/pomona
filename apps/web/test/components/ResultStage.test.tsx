@@ -495,6 +495,55 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(screen.getByText("Yellow field spot")).toBeInTheDocument();
   });
 
+  it("renders amber highlight, mismatch tag, and advisory banner when no candidates in view match target window", () => {
+    // All candidates are ripe (like user's vine tomatoes)
+    const allRipeCandidates = [
+      { id: "c1", box: [360, 240, 680, 560] as [number, number, number, number], score: 8.8, ripeness: "ripe" as const, traits: ["Red skin"], flipSummary: null },
+      { id: "c2", box: [320, 580, 660, 900] as [number, number, number, number], score: 8.6, ripeness: "ripe" as const, traits: ["Red skin"], flipSummary: null },
+    ];
+
+    const state = {
+      ...initialScanMachineState(),
+      phase: "S4_InitialResult" as const,
+      firstPick: { ...allRipeCandidates[0], initialScore: 8.8, anglesInspected: 1, role: "first_pick" as const },
+      runnerUp: { ...allRipeCandidates[1], initialScore: 8.6, anglesInspected: 1, role: "runner_up" as const },
+      allCandidatesRound1: allRipeCandidates,
+      lastResponse: {
+        ...baseResponse,
+        candidates: allRipeCandidates,
+      },
+      targetRipeness: "in_2_3_days" as const,
+    };
+
+    render(
+      <ResultStage
+        state={state}
+        onCompareWithRunnerUp={vi.fn()}
+        onStartFinalCheck={vi.fn()}
+        onReset={vi.fn()}
+      />
+    );
+
+    // Advisory banner is shown under the tabs
+    const banner = screen.getByTestId("ripeness-mismatch-banner");
+    expect(banner).toBeInTheDocument();
+    expect(banner).toHaveTextContent("All items in view are already ripe — eat sooner");
+
+    // Mismatch tag is anchored to the winner box
+    const mismatchTag = screen.getByTestId("winner-mismatch-tag");
+    expect(mismatchTag).toBeInTheDocument();
+    expect(mismatchTag).toHaveTextContent("Closest match · Already ripe");
+
+    // Score badge has amber-orange background instead of gold
+    const scoreBadge = screen.getByTestId("winner-score-badge");
+    expect(scoreBadge).toHaveStyle({ backgroundColor: "#EA580C", color: "#FFFFFF" });
+
+    // Open sheet to inspect headline and eyebrow
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
+    expect(screen.getByText("No items will keep 2–3 days.")).toBeInTheDocument();
+    expect(screen.getAllByText(/All items in view are already ripe/i).length).toBeGreaterThanOrEqual(1);
+  });
+
   it("renders locked ripeness goal banner in S5B1 and S5B2 instead of interactive switch", () => {
     const stateS5B1 = {
       ...initialScanMachineState(),

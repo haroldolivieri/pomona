@@ -6,6 +6,9 @@ export interface TargetResolutionResult {
   winner: Candidate | null;
   runnerUp: Candidate | null;
   isExactMatch: boolean;
+  mismatchReason?: "all_already_ripe" | "all_underripe" | "no_match" | null;
+  badgeLabel?: string | null;
+  bannerNotice?: string | null;
   eyebrow: string;
   headline: string;
   subtitle: string;
@@ -137,6 +140,9 @@ export function resolveCandidatesForTarget(
   const runnerUp = rankedCandidates[1] ?? null;
 
   let isExactMatch = false;
+  let mismatchReason: "all_already_ripe" | "all_underripe" | "no_match" | null = null;
+  let badgeLabel: string | null = null;
+  let bannerNotice: string | null = null;
   let eyebrow = "BEST IN VIEW";
   let headline = "Buy it.";
   let subtitle = `${candidates.length} compared in view`;
@@ -147,9 +153,12 @@ export function resolveCandidatesForTarget(
     isExactMatch = winner?.ripeness === "ripe";
     followUpHintOverride = "Check underside for sweetness before buying";
     if (!isExactMatch && winner) {
-      eyebrow = "CLOSEST MATCH · NOT FULLY RIPE";
+      mismatchReason = "all_underripe";
+      badgeLabel = "Closest match · Not yet ripe";
+      bannerNotice = "All items in view are still underripe — showing closest to ripe";
+      eyebrow = "CLOSEST MATCH · ALL ITEMS UNDERRIPE";
       headline = winner.ripeness === "almost_ripe" ? "Ripens in 1–2 days." : "Firm & underripe.";
-      subtitle = "No fully ripe fruit found in view.";
+      subtitle = "No fully ripe fruit found in view. Needs time to ripen.";
     } else {
       eyebrow = "BEST IN VIEW · READY NOW";
       headline = "Buy it.";
@@ -163,15 +172,21 @@ export function resolveCandidatesForTarget(
       eyebrow = "BEST IN VIEW · IN 2–3 DAYS";
       headline = "Buy this one.";
       subtitle = `Will reach peak ripeness in 2–3 days · ${candidates.length} compared`;
-    } else if (winner?.ripeness === "ripe") {
+    } else if (winner?.ripeness === "ripe" || winner?.ripeness === "overripe") {
+      mismatchReason = "all_already_ripe";
+      badgeLabel = "Closest match · Already ripe";
+      bannerNotice = "All items in view are already ripe — eat sooner";
       eyebrow = "CLOSEST MATCH · ALL ITEMS ALREADY RIPE";
-      headline = "Eat sooner (already ripe).";
-      subtitle = "No fruit found that will keep 2–3 days before ripening.";
+      headline = "No items will keep 2–3 days.";
+      subtitle = "All items in view are already ripe. This one is best, but eat it sooner.";
       eatWithinOverride = null;
     } else {
+      mismatchReason = "all_underripe";
+      badgeLabel = "Closest match · Too firm";
+      bannerNotice = "All items in view are firm & underripe — will take 4+ days";
       eyebrow = "CLOSEST MATCH · FIRM & UNRIPE";
-      headline = "Will take 4+ days.";
-      subtitle = "Only firm underripe fruit found in view.";
+      headline = "Will take 4+ days to ripen.";
+      subtitle = "No items ready in 2–3 days. This one will take longer to soften.";
     }
   } else if (targetWindow === "later_this_week") {
     isExactMatch = winner?.ripeness === "underripe";
@@ -182,11 +197,17 @@ export function resolveCandidatesForTarget(
       headline = "Buy to store.";
       subtitle = `Firm and unbruised · will ripen later this week · ${candidates.length} compared`;
     } else if (winner?.ripeness === "ripe" || winner?.ripeness === "almost_ripe") {
+      mismatchReason = "all_already_ripe";
+      badgeLabel = "Closest match · Already ripe";
+      bannerNotice = "All items in view are already ripe — none will keep for later";
       eyebrow = "CLOSEST MATCH · ALL ITEMS ALREADY RIPE";
-      headline = "Eat sooner (already ripe).";
-      subtitle = "No green or firm fruit found to store for later.";
+      headline = "No items will keep until later.";
+      subtitle = "All items in view are already ripe. Pick from a fresher batch to store.";
       eatWithinOverride = null;
     } else {
+      mismatchReason = "no_match";
+      badgeLabel = "Closest match";
+      bannerNotice = "No items match later this week — closest match selected";
       eyebrow = "CLOSEST MATCH";
       headline = "Closest match in view.";
       subtitle = `${candidates.length} compared in view`;
@@ -199,6 +220,9 @@ export function resolveCandidatesForTarget(
     winner,
     runnerUp,
     isExactMatch,
+    mismatchReason,
+    badgeLabel,
+    bannerNotice,
     eyebrow,
     headline,
     subtitle,

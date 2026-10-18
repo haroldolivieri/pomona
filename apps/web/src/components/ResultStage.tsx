@@ -180,6 +180,17 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     targetResolution = resolveCandidatesForTarget(state.allCandidatesRound1, targetRipeness);
   }
 
+  const isMismatch = targetResolution ? !targetResolution.isExactMatch : false;
+  const mismatchColor = targetResolution?.mismatchReason === "all_underripe"
+    ? "#2563EB"
+    : "#EA580C";
+  const winnerBorderColor = isMismatch ? mismatchColor : "#F5D547";
+  const winnerGlowColor = isMismatch
+    ? (targetResolution?.mismatchReason === "all_underripe" ? "rgba(37, 99, 235, 0.35)" : "rgba(234, 88, 12, 0.35)")
+    : "rgba(245, 213, 71, 0.32)";
+  const winnerBadgeBg = isMismatch ? mismatchColor : "#F5D547";
+  const winnerBadgeColor = isMismatch ? "#FFFFFF" : "#142117";
+
   const winnerScoreStr = (score?: number) => (score !== undefined ? score.toFixed(1) : "8.6");
   const candidateCount = state.allCandidatesRound1?.length || lastResponse.candidates?.length || 2;
 
@@ -691,12 +702,39 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 position: "absolute",
                 ...boxToStyle(activeWinner.box),
                 borderRadius: "14px",
-                border: "3px solid #F5D547",
-                boxShadow: "0 0 0 4px rgba(245, 213, 71, 0.32), 0 6px 18px rgba(0, 0, 0, 0.35)",
+                border: `3px solid ${winnerBorderColor}`,
+                boxShadow: `0 0 0 4px ${winnerGlowColor}, 0 6px 18px rgba(0, 0, 0, 0.35)`,
                 boxSizing: "border-box",
                 pointerEvents: "none",
               }}
             >
+              {/* Tag on top-left of winner when not an exact match */}
+              {isMismatch && targetResolution?.badgeLabel && (
+                <span
+                  data-testid="winner-mismatch-tag"
+                  style={{
+                    position: "absolute",
+                    top: "-12px",
+                    left: "6px",
+                    backgroundColor: winnerBorderColor,
+                    color: "#FFFFFF",
+                    fontSize: "10.5px",
+                    fontWeight: 700,
+                    padding: "3px 8px",
+                    borderRadius: "8px",
+                    whiteSpace: "nowrap",
+                    fontFamily: "Inter, sans-serif",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <span>{targetResolution.mismatchReason === "all_underripe" ? "⏱️" : "⚠️"}</span>
+                  <span>{targetResolution.badgeLabel}</span>
+                </span>
+              )}
+
               {/* Circular score badge anchored top-right */}
               <span
                 data-testid="winner-score-badge"
@@ -707,8 +745,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   width: "34px",
                   height: "34px",
                   borderRadius: "50%",
-                  backgroundColor: "#F5D547",
-                  color: "#142117",
+                  backgroundColor: winnerBadgeBg,
+                  color: winnerBadgeColor,
                   fontWeight: 800,
                   fontSize: "13px",
                   display: "flex",
@@ -1003,6 +1041,32 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               </div>
             )}
 
+            {/* Advisory Mismatch Banner when no candidates in view match target window */}
+            {targetResolution && !targetResolution.isExactMatch && targetResolution.bannerNotice && (
+              <div
+                data-testid="ripeness-mismatch-banner"
+                style={{
+                  marginTop: "6px",
+                  padding: "6px 10px",
+                  borderRadius: "10px",
+                  backgroundColor: targetResolution.mismatchReason === "all_already_ripe"
+                    ? "rgba(234, 88, 12, 0.12)"
+                    : "rgba(37, 99, 235, 0.12)",
+                  border: `1px solid ${targetResolution.mismatchReason === "all_already_ripe" ? "rgba(234, 88, 12, 0.3)" : "rgba(37, 99, 235, 0.3)"}`,
+                  color: targetResolution.mismatchReason === "all_already_ripe" ? "#C2410C" : "#1D4ED8",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  lineHeight: 1.25,
+                }}
+              >
+                <span>{targetResolution.mismatchReason === "all_underripe" ? "⏱️" : "⚠️"}</span>
+                <span>{targetResolution.bannerNotice}</span>
+              </div>
+            )}
+
             {/* Divider 1: Under Goal Selector / Banner (Min height snap line) */}
             <div
               data-testid="sheet-divider-top"
@@ -1062,13 +1126,13 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               userSelect: "none",
             }}
             >
-              {phase !== "S4_InitialResult" && eyebrow && (
+              {(phase !== "S4_InitialResult" || isMismatch) && eyebrow && (
                 <span
                   style={{
                     fontSize: "11px",
                     fontWeight: 700,
                     letterSpacing: "0.12em",
-                    color: "var(--eyebrow-accent)",
+                    color: isMismatch ? winnerBorderColor : "var(--eyebrow-accent)",
                     textTransform: "uppercase",
                     display: "block",
                     marginBottom: "4px",
@@ -1138,7 +1202,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                         cy="24"
                         r="19"
                         fill="none"
-                        stroke="#F2C935"
+                        stroke={isMismatch ? winnerBorderColor : "#F2C935"}
                         strokeWidth="3.5"
                         strokeDasharray={2 * Math.PI * 19}
                         strokeDashoffset={
