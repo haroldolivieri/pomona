@@ -318,10 +318,10 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(sheet.style.transform).toBe("translate3d(0, -80px, 0)");
     expect(photoViewport.style.height).toBe("100%");
 
-    // Release snap expands sheet to 'expanded' static state (transform resets to 0, height is auto, maxHeight 86dvh)
+    // Release snap expands sheet to 'expanded' static state (transform resets to 0, height is auto, maxHeight 92dvh)
     fireEvent.touchEnd(dragArea);
     expect(sheet.style.transform).toBe("translate3d(0, 0px, 0)");
-    expect(sheet.style.maxHeight).toBe("86dvh");
+    expect(sheet.style.maxHeight).toBe("92dvh");
     expect(screen.getByTestId("sheet-expanded-content")).toBeInTheDocument();
     expect(photoViewport.style.height).toBe("100%");
   });

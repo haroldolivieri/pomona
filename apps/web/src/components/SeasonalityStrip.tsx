@@ -42,18 +42,18 @@ export const SeasonalityStrip: React.FC<SeasonalityStripProps> = ({
     <div
       data-testid="seasonality-strip"
       onClick={stop}
-      style={{ marginTop: "8px" }}
+      style={{ marginTop: "4px" }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
         <span
           data-testid="seasonality-badge"
           style={{
             display: "inline-flex",
             alignItems: "center",
             gap: "4px",
-            padding: "3px 9px",
+            padding: "2px 8px",
             borderRadius: "999px",
-            fontSize: "11px",
+            fontSize: "10.5px",
             fontWeight: 700,
             backgroundColor: style.bg,
             color: style.fg,
@@ -64,17 +64,17 @@ export const SeasonalityStrip: React.FC<SeasonalityStripProps> = ({
         </span>
         <span
           data-testid="seasonality-note"
-          style={{ fontSize: "11.5px", color: "var(--text-muted)" }}
+          style={{ fontSize: "11px", color: "var(--text-muted)" }}
         >
           {active.noteText}
         </span>
       </div>
 
       {showPills && (
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "7px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
           <span
             style={{
-              fontSize: "10px",
+              fontSize: "9.5px",
               fontWeight: 600,
               color: "var(--text-muted)",
               whiteSpace: "nowrap",

@@ -621,7 +621,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           right: 0,
           bottom: 0,
           height: "auto",
-          maxHeight: "86dvh",
+          maxHeight: "92dvh",
           backgroundColor: "var(--surface-sheet)",
           color: "var(--text-primary)",
           borderTopLeftRadius: "26px",
@@ -630,12 +630,12 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           paddingLeft: "18px",
           paddingRight: "18px",
           paddingBottom: isFullyOpen
-            ? "calc(max(16px, env(safe-area-inset-bottom)) + 12px)"
+            ? "calc(max(12px, env(safe-area-inset-bottom)) + 4px)"
             : "calc(max(14px, env(safe-area-inset-bottom)) + 4px)",
           zIndex: 15,
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
+          gap: "4px",
           boxShadow: "0 -8px 32px rgba(0, 0, 0, 0.22)",
           transform: isFullyOpen
             ? `translate3d(0, ${Math.max(0, dragOffsetY)}px, 0)`
@@ -1109,7 +1109,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "8px",
+              gap: "6px",
               flex: 1,
               overflow: "hidden", // ZERO SCROLLING
               touchAction: "none",
@@ -1122,7 +1122,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   <span
                     key={idx}
                     style={{
-                      padding: "5px 10px",
+                      padding: "4px 9px",
                       borderRadius: "6px",
                       backgroundColor: "var(--surface-chip)",
                       color: "var(--surface-chip-text)",
@@ -1143,8 +1143,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 height: "1px",
                 backgroundColor: "var(--surface-card-border)",
                 opacity: 0.6,
-                marginTop: "6px",
-                marginBottom: "4px",
+                marginTop: "3px",
+                marginBottom: "2px",
               }}
             />
 
@@ -1341,13 +1341,13 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             height: "1px",
             backgroundColor: "var(--surface-card-border)",
             opacity: 0.6,
-            marginTop: "8px",
-            marginBottom: "2px",
+            marginTop: "3px",
+            marginBottom: "1px",
           }}
         />
 
         {/* Primary Action Button */}
-        <div style={{ paddingTop: "6px" }}>
+        <div style={{ paddingTop: "2px" }}>
           {phase === "S4_InitialResult" && (
             <button
               onClick={onCompareWithRunnerUp}
