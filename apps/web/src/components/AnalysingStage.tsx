@@ -108,9 +108,40 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
     ? rawPoints.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p[0]} ${p[1]}`).join(" ") + " Z"
     : "";
 
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const imgRef = React.useRef<HTMLImageElement>(null);
+  const [coverRect, setCoverRect] = useState<any>(null);
+
+  const updateCoverRect = () => {
+    const vp = containerRef.current;
+    const img = imgRef.current;
+    if (!vp || !img) return;
+
+    const cw = vp.clientWidth;
+    const ch = vp.clientHeight;
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+
+    if (cw > 0 && ch > 0 && iw > 0 && ih > 0) {
+      const scale = Math.max(cw / iw, ch / ih);
+      const width = iw * scale;
+      const height = ih * scale;
+      const left = (cw - width) / 2;
+      const top = (ch - height) / 2;
+      setCoverRect({ left, top, width, height });
+    }
+  };
+
+  useEffect(() => {
+    updateCoverRect();
+    window.addEventListener("resize", updateCoverRect);
+    return () => window.removeEventListener("resize", updateCoverRect);
+  }, [photoDataUrl]);
+
   return (
     <div
       data-testid="stage-S3_Analysing"
+      ref={containerRef}
       style={{
         position: "relative",
         width: "100%",
@@ -125,8 +156,10 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
       {/* Background frozen image */}
       {photoDataUrl && (
         <img
+          ref={imgRef}
           src={photoDataUrl}
           alt="Analysing produce"
+          onLoad={updateCoverRect}
           style={{
             position: "absolute",
             top: 0,
@@ -139,108 +172,106 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
         />
       )}
 
-      {/* Dim mask outside drawn focus polygon if applicable */}
-      {isDrawnArea && rawPoints && (
+      {/* SVG overlay exactly aligned with rendered image's coverRect */}
+      <div
+        data-testid="analysing-overlay-wrapper"
+        style={{
+          position: "absolute",
+          left: coverRect ? `${coverRect.left}px` : 0,
+          top: coverRect ? `${coverRect.top}px` : 0,
+          width: coverRect ? `${coverRect.width}px` : "100%",
+          height: coverRect ? `${coverRect.height}px` : "100%",
+          pointerEvents: "none",
+          zIndex: 5,
+        }}
+      >
         <svg
           data-testid="scanning-polygon-overlay"
           viewBox="0 0 1000 1000"
           preserveAspectRatio="none"
           style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
             width: "100%",
             height: "100%",
             pointerEvents: "none",
-            zIndex: 5,
           }}
-        >
-          {/* Dim outer mask: rgba(0, 0, 0, 0.48) */}
-          <path
-            d={`M 0 0 L 1000 0 L 1000 1000 L 0 1000 Z ${polygonPathD}`}
-            fill="rgba(0, 0, 0, 0.48)"
-            fillRule="evenodd"
-          />
-          {/* Glowing polygon outline: dashed yellow */}
-          <path
-            d={polygonPathD}
-            fill="rgba(245, 213, 71, 0.08)"
-            stroke="#F5D547"
-            strokeWidth="3.5"
-            strokeDasharray="7 5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      )}
-
-      {/* SVG clip path definition for precise polygon boundary masking */}
-      {isDrawnArea && rawPoints && (
-        <svg
-          width="0"
-          height="0"
-          style={{ position: "absolute", pointerEvents: "none" }}
-          aria-hidden="true"
         >
           <defs>
-            <clipPath id="drawn-focus-clip" clipPathUnits="objectBoundingBox">
-              <path
-                d={rawPoints
-                  .map(
-                    (p, idx) =>
-                      `${idx === 0 ? "M" : "L"} ${(p[0] / 1000).toFixed(4)} ${(p[1] / 1000).toFixed(4)}`
-                  )
-                  .join(" ") + " Z"}
-              />
-            </clipPath>
+            {isDrawnArea && rawPoints && (
+              <clipPath id="drawn-focus-clip">
+                <path d={polygonPathD} />
+              </clipPath>
+            )}
           </defs>
-        </svg>
-      )}
 
-      {/* Bounded Laser Sweep Scanning Overlay masked to drawn area if applicable */}
-      <div
-        data-testid="scanning-laser-container"
-        style={{
-          position: "absolute",
-          left: scanBox.left,
-          top: scanBox.top,
-          width: scanBox.width,
-          height: scanBox.height,
-          overflow: "hidden",
-          pointerEvents: "none",
-          zIndex: 10,
-          clipPath: isDrawnArea && rawPoints ? "url(#drawn-focus-clip)" : undefined,
-          WebkitClipPath: isDrawnArea && rawPoints ? "url(#drawn-focus-clip)" : undefined,
-        }}
-      >
+          {/* Dim outer mask: rgba(0, 0, 0, 0.48) */}
+          {isDrawnArea && rawPoints && (
+            <path
+              d={`M 0 0 L 1000 0 L 1000 1000 L 0 1000 Z ${polygonPathD}`}
+              fill="rgba(0, 0, 0, 0.48)"
+              fillRule="evenodd"
+            />
+          )}
+
+          {/* Glowing polygon outline: dashed yellow */}
+          {isDrawnArea && rawPoints && (
+            <path
+              d={polygonPathD}
+              fill="rgba(245, 213, 71, 0.08)"
+              stroke="#F5D547"
+              strokeWidth="4"
+              strokeDasharray="7 5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
+        </svg>
+
+        {/* Laser Sweep Scanning Overlay strictly constrained to drawn area */}
         <div
-          className="animate-scan-laser"
+          data-testid="scanning-laser-container"
           style={{
             position: "absolute",
-            left: 0,
-            right: 0,
-            height: "4px",
-            background:
-              "linear-gradient(90deg, transparent 0%, #FFF275 30%, #F5D547 50%, #FFF275 70%, transparent 100%)",
-            boxShadow: "0 0 20px 4px #F5D547, 0 0 6px 1px #FFFFFF",
+            left: scanBox.left,
+            top: scanBox.top,
+            width: scanBox.width,
+            height: scanBox.height,
+            overflow: "hidden",
+            pointerEvents: "none",
+            zIndex: 10,
+            clipPath: isDrawnArea && rawPoints ? "url(#drawn-focus-clip)" : undefined,
+            WebkitClipPath: isDrawnArea && rawPoints ? "url(#drawn-focus-clip)" : undefined,
           }}
-        />
-      </div>
+        >
+          <div
+            className="animate-scan-laser"
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              height: "4px",
+              background:
+                "linear-gradient(90deg, transparent 0%, #FFF275 30%, #F5D547 50%, #FFF275 70%, transparent 100%)",
+              boxShadow: "0 0 20px 4px #F5D547, 0 0 6px 1px #FFFFFF",
+            }}
+          />
+        </div>
 
-      {/* Candidate pulsing dots */}
-      {candidateDots.map((dot, index) => (
-        <div
-          key={index}
-          data-testid="candidate-pulse-dot"
-          className="node-pulse-dot"
-          style={{
-            left: dot.left,
-            top: dot.top,
-            transform: "translate(-50%, -50%)",
-            animationDelay: dot.delay,
-          }}
-        />
-      ))}
+        {/* Candidate pulsing dots positioned in 0..1000 image coordinate space */}
+        {candidateDots.map((dot, index) => (
+          <div
+            key={index}
+            data-testid="candidate-pulse-dot"
+            className="node-pulse-dot"
+            style={{
+              position: "absolute",
+              left: dot.left,
+              top: dot.top,
+              transform: "translate(-50%, -50%)",
+              animationDelay: dot.delay,
+            }}
+          />
+        ))}
+      </div>
 
       {/* Top bar */}
       <div

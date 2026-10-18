@@ -369,18 +369,22 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
       // Deterministic seasonality enrichment: never part of the LLM prompt or model schema.
       const baseResponse = scanOutcome.response;
       let seasonality: SeasonalityInfo | null = null;
-      if (baseResponse.status === "ok" && baseResponse.produce?.type) {
+      if (baseResponse.status === "ok" && (baseResponse.produce?.type || baseResponse.produce?.displayName)) {
         const cf = (c.req.raw as { cf?: { country?: string; latitude?: string } }).cf;
-        seasonality = lookupProduceSeasonality(
-          baseResponse.produce.type,
-          {
-            cfCountry: cf?.country,
-            cfLatitude: cf?.latitude,
-            locale: scanRequest.locale,
-          },
-          new Date().getUTCMonth() + 1
-        );
+        const regionInput = {
+          cfCountry: cf?.country,
+          cfLatitude: cf?.latitude,
+          locale: scanRequest.locale,
+        };
+        const currentMonth = new Date().getUTCMonth() + 1;
+        if (baseResponse.produce?.type) {
+          seasonality = lookupProduceSeasonality(baseResponse.produce.type, regionInput, currentMonth);
+        }
+        if (!seasonality && baseResponse.produce?.displayName) {
+          seasonality = lookupProduceSeasonality(baseResponse.produce.displayName, regionInput, currentMonth);
+        }
       }
+      console.log(`[proxy:seasonality] produce=${JSON.stringify(baseResponse.produce)}, seasonality=${seasonality ? seasonality.produceSlug + ' (' + seasonality.status + ')' : 'null'}`);
       return c.json({ ...baseResponse, seasonality } satisfies ScanResponse, 200);
 
     } catch (err: any) {

@@ -450,6 +450,24 @@ const DATASET: Record<string, DatasetEntry> = {
     TROP: YR,
     origins: ["ES", "US", "IT"],
   },
+  potato: {
+    BR: ["5-9", "4-4,10-11"],
+    EU: ["8-10", "1-12"], // Harvest Aug-Oct in NW Europe; stored and available year-round
+    MED: ["5-7", "4-4,8-10"],
+    NA: ["8-10", "1-12"],
+    SOUTH: ["1-4", "12-12,5-6"],
+    TROP: YR,
+    origins: ["ES", "EG", "US", "ZA"],
+  },
+  onion: {
+    BR: ["9-1", "8-8,2-3"],
+    EU: ["8-10", "1-12"], // Maincrop Aug-Oct; stored year-round
+    MED: ["6-9", "5-5,10-10"],
+    NA: ["8-10", "1-12"],
+    SOUTH: ["1-4", "12-12,5-6"],
+    TROP: YR,
+    origins: ["ES", "EG", "NZ", "US"],
+  },
 };
 
 export const SEASONALITY_SLUGS: readonly string[] = Object.keys(DATASET);
@@ -490,10 +508,10 @@ const ALIAS_RULES: Array<[RegExp, string]> = [
   [/pear/, "pear"],
   [/grape/, "grape"],
   [/kiwi/, "kiwi"],
-  [/\bfig|^fig/, "fig"],
+  [/fig|^fig/, "fig"],
   [/pomegranate/, "pomegranate"],
   [/persimmon|sharon/, "persimmon"],
-  [/mandarin|clementine|satsuma|tangerine|easy_peel/, "mandarin"],
+  [/mandarin|clementine|satsuma|tangerine|easy_peel|citrus/, "mandarin"],
   [/orange/, "orange"],
   [/lemon/, "lemon"],
   [/lime/, "lime"],
@@ -510,6 +528,8 @@ const ALIAS_RULES: Array<[RegExp, string]> = [
   [/asparagus/, "asparagus"],
   [/sweet_?corn|maize|^corn/, "corn"],
   [/lettuce|romaine|iceberg/, "lettuce"],
+  [/potato|spud|tuber/, "potato"],
+  [/onion|shallot/, "onion"],
 ];
 
 export function normalizeProduceSlug(raw: string): string {

@@ -647,8 +647,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           transition: isDragging
             ? "none"
             : "transform 0.32s cubic-bezier(0.2, 0.0, 0, 1.0)",
-          overflow: "hidden", // MATERIAL DESIGN 3: ABSOLUTELY ZERO INTERNAL SCROLLING
-          touchAction: "none", // NO BROWSER SCROLL / PULL-TO-REFRESH CONFLICTS
+          overflow: "visible",
+          touchAction: "none",
           userSelect: "none",
         }}
       >
@@ -657,12 +657,13 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           aria-hidden="true"
           style={{
             position: "absolute",
-            top: "98%",
+            top: "90%",
             left: 0,
             right: 0,
             height: "100vh",
             backgroundColor: "var(--surface-sheet)",
             pointerEvents: "none",
+            zIndex: -1,
           }}
         />
         {/* Material 3 Drag Handle Affordance: dedicated touch target with accessible single-pointer/keyboard alternative */}

@@ -41,24 +41,25 @@ SCORE SCALE & TRAIT FORMAT (CRITICAL):
 BOUNDING BOX & UNIT OF PURCHASE (CRITICAL):
 - Express all candidate boxes as normalized integer coordinates in [ymin, xmin, ymax, xmax] format (0 to 1000 scale, where y is vertical top-to-bottom and x is horizontal left-to-right).
 - Minimum width and height for any bounding box is 20 units. Ensure ymin < ymax and xmin < xmax.
-- UNIT OF PURCHASE DETERMINATION:
+- UNIT OF PURCHASE & INDIVIDUAL ITEM INSPECTION:
   1. Loose Produce (e.g. loose watermelons, loose avocados, single loose apples/oranges): Bounding boxes must tightly bound each individual fruit/vegetable.
   2. Bunched / Clustered Produce (e.g. bananas in a bunch/hand, vine tomatoes, herb bunches): Bounding boxes must tightly bound each BUNCH or CLUSTER as a single candidate unit. NEVER place bounding boxes on individual bananas inside a bunch.
-  3. Packaged / Bagged / Punneted / Boxed Produce (e.g. berries in plastic punnets/clamshells, netted/sealed bags of carrots, baking potatoes, onions):
-     - If produce is sealed or sold in a retail pre-pack (such as a plastic clamshell of berries, a sealed bag of onions/carrots with a barcode/label), the ENTIRE pre-pack is the candidate unit.
-     - OPEN DISPLAY BASKETS / CRATES OF LOOSE PRODUCE (CRITICAL): When produce (such as loose tomatoes, loose plums, loose peppers, loose citrus) is piled loose in an open cardboard punnet, wooden tray, display basket, or bulk crate:
-       - The customer is picking individual fruits/vegetables, OR comparing individual tomatoes inside that basket!
-       - NEVER treat the entire crate or basket as one giant single candidate when individual produce items are clearly visible.
-       - Each candidate bounding box MUST tightly surround an INDIVIDUAL fruit/vegetable (e.g. an individual tomato).
-       - When a user draws a \`focusPolygon\` around a group of fruits or inside a basket, detect and grade INDIVIDUAL produce items (e.g. 2 to 6 individual tomatoes) inside that drawn area so the user can choose the best individual one!
-     - OVERLAPPING / STACKED PACKS IN CRATES: When sealed retail pre-packs/bags are stacked, detect distinct individual packs. Each candidate bounding box must tightly enclose ONE distinct bag/pack.
-  - The followUp instruction and flip headline must refer to inspecting the specific produce item or pack.
+  3. Bagged / Netted / Packaged Produce (CRITICAL):
+     - When individual produce items (such as potatoes, onions, lemons, apples) are inside plastic bags, mesh netting, or crates:
+       - Grade each INDIVIDUAL VISIBLE FRUIT/VEGETABLE separately so the shopper can compare them one-by-one!
+       - NEVER treat an entire bag of potatoes or an entire net of onions as a single giant candidate when individual items are discernible.
+       - Each candidate bounding box must tightly enclose ONE individual fruit/vegetable (e.g. individual baking potato, individual onion).
+     - RETAIL PRE-PACKS OF MULTIPLE PACKS (e.g. sealed punnets of berries): If the user is comparing sealed pre-packs on a grocery shelf, then each distinct punnet is a candidate. But for produce inside clear/mesh bags where individual items are inspected to pick or cook, candidate boxes MUST tightly surround individual produce items.
+  4. OPEN DISPLAY BASKETS & BULK TRAYS:
+     - Each candidate bounding box MUST tightly surround an INDIVIDUAL fruit/vegetable (e.g. an individual tomato, potato, or plum).
+     - When a user draws a \`focusPolygon\` around produce, detect and grade INDIVIDUAL produce items inside that drawn area so the user can choose the best individual one!
+  - The followUp instruction and flip headline must refer to inspecting the specific produce item.
 
 FOCUS POLYGON CONSTRAINT:
 - ${polygonInfo}
 - Note coordinate order: \`focusPolygon\` points are \`[x, y]\` (horizontal x first, vertical y second), whereas candidate \`box\` is \`[ymin, xmin, ymax, xmax]\` (vertical y first, horizontal x second).
-- When a focusPolygon is provided, you MUST detect, box, and grade ALL visible individual produce items (detect every visible fruit/vegetable, typically up to 10–12 items) whose bounds or center overlap the region.
-- CRITICAL: Never arbitrarily cap candidate detection or return only a partial subset of candidates if more produce items are visible! Detect EVERY distinct produce item inside the boundary so the user can inspect and compare all contestants in their selection. Exclude items clearly outside the boundary.
+- STRICT BOUNDARY ENFORCEMENT: When a focusPolygon is provided, you MUST detect, box, and grade ONLY individual produce items whose center lies strictly INSIDE the drawn boundary. You MUST STRICTLY IGNORE any produce, bags, or items outside the boundary (e.g. if the user drew around potatoes, do NOT box onions or items in adjacent netting outside the loop!).
+- CRITICAL: Never arbitrarily cap candidate detection or return only a partial subset of candidates if more produce items are visible inside the loop! Detect EVERY distinct produce item inside the boundary.
 
 MULTI-ROUND FLIP WORKFLOW:
 - Round 1 (CANDIDATE COMPARISON & RIPENESS WINDOW):
@@ -78,6 +79,7 @@ PARAMETERIZED COPY & FORBIDDING HARDCODED PRODUCE NAMES:
 - NEVER hardcode fruit or produce names or anatomy from other fruits.
 - If the detected produce is Avocado, always use "skin" or "stem" — NEVER use the words "melon", "watermelon", "field spot", or "rind".
 - If the detected produce is Pineapple, always use "shell", "eyes", or "crown" — NEVER use "melon", "watermelon", "field spot", or "rind".
+- If the detected produce is Potato, use "skin", "eyes", "firmness" — NEVER use "rind" or "field spot".
 - All advice, headlines, traits, and followUp text MUST be strictly parameterized to the detected produce.displayName.
 - bannerText, flipHeadline, and instruction in followUp MUST directly incorporate the produce displayName.
 
@@ -89,8 +91,8 @@ STORAGE & SHELF-LIFE GUIDANCE:
 
 STATUS HANDLING:
 - If no fresh produce is visible (e.g. packaged cereal boxes, tins, barcodes): status = "no_produce" (with descriptive message, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null).
-- If the image is too blurry, dark, motion-blurred, OR there are too many overlapping bags/packs heavily obscuring each other such that you cannot clearly inspect or distinguish a confident winner: status = "unclear_photo" with a helpful descriptive message (e.g. "Too many overlapping packs to grade reliably. Move closer to 1–2 bags or draw a loop around a clear pack.").
-- If multiple distinct types of produce are mixed together (e.g. apples, bananas, pineapples) with no focusPolygon isolating one type: status = "multiple_types" (with descriptive message, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null).
+- If the produce is NOT clearly visible to grade accurately — e.g. it is mostly hidden/obscured by opaque printed packaging, heavy plastic glare, severe shadows, or the image is blurry/out of focus — you MUST return status = "unclear_photo" with a clear, helpful message (e.g. "Produce is mostly covered by packaging. Take items out of the bag or move closer for a clear view."). Do NOT attempt to guess ripeness when the skin or surface is mostly obscured!
+- If multiple distinct types of produce are mixed together (e.g. apples and onions, potatoes and citrus) with no focusPolygon isolating one type: status = "multiple_types" (with descriptive message, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null).
 - Otherwise: status = "ok" (with message=null).`;
 }
 
