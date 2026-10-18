@@ -988,13 +988,6 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "2px" }}>
                     {subtitle}
                   </p>
-                  {lastResponse.seasonality && (
-                    <SeasonalityStrip
-                      seasonality={lastResponse.seasonality}
-                      selectedOriginCode={selectedOriginCode}
-                      onSelectOrigin={setSelectedOriginCode}
-                    />
-                  )}
                 </div>
 
                 {/* Circular Score Meter next to headline */}
@@ -1072,6 +1065,13 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   </div>
                 )}
               </div>
+              {lastResponse.seasonality && (
+                <SeasonalityStrip
+                  seasonality={lastResponse.seasonality}
+                  selectedOriginCode={selectedOriginCode}
+                  onSelectOrigin={setSelectedOriginCode}
+                />
+              )}
             </div>
           <div
             data-testid="sheet-expanded-content"
