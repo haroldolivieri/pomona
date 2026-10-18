@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   type Candidate,
@@ -27,26 +27,24 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 }) => {
   const { t } = useTranslation();
   // 3-way bottom sheet snap mode:
-  // 'collapsed': minimum sheet size (peek mode) showing handle + target goal + verdict headline + score bar; picture maximized to ~68dvh
-  // 'default': standard balance showing above + traits + storage cards
-  // 'expanded': scrolled up to clearly show follow-up hint and action buttons
-  // Two clean sheet states:
-  // 'collapsed': min-height mode showing grab handle + target selector + headline + score meter (ripeness bar)
-  const [sheetMode, setSheetMode] = useState<"collapsed" | "expanded">("collapsed");
+  // 'min': collapsed even more up to divider 1 (under Ready Now tab / Goal selector)
+  // 'default': default initial height up to divider 2 (below labels / vibrant skin / score)
+  // 'expanded': fully scrolled up showing storage cards, hint, and action buttons
+  const [sheetMode, setSheetMode] = useState<"min" | "default" | "expanded">("default");
   const [dragOffsetY, setDragOffsetY] = useState<number>(0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const dragStartY = useRef<number | null>(null);
   const dragStartTime = useRef<number>(0);
   const dragMovedDistance = useRef<number>(0);
   const suppressClickUntil = useRef<number>(0);
-
-  // Photo pan offset (automatically centers winner in the visible photo area above bottom sheet)
-  const [photoPanY, setPhotoPanY] = useState<number>(0);
+  const dragSource = useRef<"sheet" | "photo">("sheet");
 
   const sheetRef = useRef<HTMLDivElement | null>(null);
-  const peekRef = useRef<HTMLDivElement | null>(null);
+  const minPeekRef = useRef<HTMLDivElement | null>(null); // Peek bar up to divider 1 (Ready now tab)
+  const defaultPeekRef = useRef<HTMLDivElement | null>(null); // Peek bar up to divider 2 (below labels)
   const [sheetHeight, setSheetHeight] = useState<number>(0);
-  const [peekHeight, setPeekHeight] = useState<number>(80);
+  const [minPeekHeight, setMinPeekHeight] = useState<number>(76);
+  const [defaultPeekHeight, setDefaultPeekHeight] = useState<number>(180);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [coverRect, setCoverRect] = useState<RenderedCoverRect | null>(null);
@@ -87,11 +85,14 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const targetRipeness = state.targetRipeness || "ready_now";
 
   const updateSheetDimensions = () => {
-    if (sheetRef.current) {
+    if (sheetRef.current && sheetRef.current.offsetHeight > 0) {
       setSheetHeight(sheetRef.current.offsetHeight);
     }
-    if (peekRef.current) {
-      setPeekHeight(peekRef.current.offsetHeight);
+    if (minPeekRef.current && minPeekRef.current.offsetHeight > 0) {
+      setMinPeekHeight(minPeekRef.current.offsetHeight);
+    }
+    if (defaultPeekRef.current && defaultPeekRef.current.offsetHeight > 0) {
+      setDefaultPeekHeight(defaultPeekRef.current.offsetHeight);
     }
   };
 
@@ -104,8 +105,11 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         updateSheetDimensions();
       });
       ro.observe(sheetRef.current);
-      if (peekRef.current) {
-        ro.observe(peekRef.current);
+      if (minPeekRef.current) {
+        ro.observe(minPeekRef.current);
+      }
+      if (defaultPeekRef.current) {
+        ro.observe(defaultPeekRef.current);
       }
     }
     return () => {
@@ -260,31 +264,41 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   };
 
   const isLostStyle = phase === "S5B1_RunnerUpBeaten" || phase === "S7A_FirstPickWonFinal" || phase === "S7B_FirstPickLostFinal";
-
-  // Calculate live drag delta and snap translation:
   const isFullyOpen = sheetMode === "expanded";
 
-  // Calculate translation distance needed to tuck the full sheet below bottom, leaving only peekHeight visible:
-  // Peek bar is grab handle + segmented control / goal banner (~75-80px)
-  // In real browser DOM, sheetHeight is 400-600px and peekHeight is ~75px. In JSDOM where offsetHeight is 0,
-  // we fallback to 320px for maxTranslate so tests and synthetic DOM environments can simulate dragging.
-  const measuredTranslate = sheetHeight > 0 ? Math.max(0, sheetHeight - peekHeight) : 320;
-  const maxTranslate = measuredTranslate;
-  // Base translateY: 0 when expanded, maxTranslate when collapsed
-  const baseTranslate = isFullyOpen ? 0 : maxTranslate;
+  // Calculate translation distance needed to tuck the sheet to each snap height:
+  // - 'expanded': translateY = 0 (full sheet visible)
+  // - 'default': translateY = sheetHeight - defaultPeekHeight (shows handle + goal + headline/score + labels + divider 2)
+  // - 'min': translateY = sheetHeight - minPeekHeight (shows handle + goal + divider 1)
+  const defaultTranslate = sheetHeight > 0
+    ? Math.max(0, sheetHeight - defaultPeekHeight)
+    : 160;
+  const maxTranslate = sheetHeight > 0
+    ? Math.max(0, sheetHeight - minPeekHeight)
+    : 320;
+
+  // Base translateY for the current discrete mode:
+  const baseTranslate =
+    sheetMode === "expanded"
+      ? 0
+      : sheetMode === "default"
+      ? defaultTranslate
+      : maxTranslate;
+
   // Apply drag offset directly with rubber banding past extremes
   let currentTranslate = baseTranslate + dragOffsetY;
   if (currentTranslate < 0) {
     currentTranslate = currentTranslate * 0.2; // Rubberband upward past fully expanded
   } else if (currentTranslate > maxTranslate) {
-    currentTranslate = maxTranslate + (currentTranslate - maxTranslate) * 0.2; // Rubberband downward past collapsed
+    currentTranslate = maxTranslate + (currentTranslate - maxTranslate) * 0.2; // Rubberband downward past min collapsed
   }
 
-  // Coordinates dragging for bottom sheet with native Material Design 3 mechanics:
-  // - When collapsed: swiping or dragging up expands sheet; tapping toggles.
-  // - When expanded: swiping or dragging down collapses sheet; tapping toggles.
-  // - NO internal scroll inside the sheet: the entire sheet glides with zero scroll fighting.
-  const handleDragStart = (clientY: number) => {
+  // Coordinates dragging for bottom sheet across 3 snap points:
+  // expanded <---> default <---> min
+  // Coordinates dragging for bottom sheet across 3 snap points:
+  // expanded <---> default <---> min
+  const handleDragStart = (clientY: number, source: "sheet" | "photo" = "sheet") => {
+    dragSource.current = source;
     dragStartY.current = clientY;
     dragStartTime.current = Date.now();
     dragMovedDistance.current = 0;
@@ -293,30 +307,39 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
   const handleDragMove = (clientY: number) => {
     if (dragStartY.current === null) return;
-    const deltaY = clientY - dragStartY.current;
-    dragMovedDistance.current = Math.abs(deltaY);
-    setDragOffsetY(deltaY);
+    const rawDeltaY = clientY - dragStartY.current;
+    dragMovedDistance.current = Math.abs(rawDeltaY);
+    // When dragging the photo directly, apply a 1.6x multiplier so dragging the photo feels natural
+    // and creates a differentiated parallax motion relative to the bottom sheet
+    const factor = dragSource.current === "photo" ? 1.6 : 1.0;
+    setDragOffsetY(rawDeltaY * factor);
   };
 
   const handleDragEnd = (clientY?: number) => {
     if (dragStartY.current === null) return;
     const currentY = clientY ?? (dragStartY.current + dragOffsetY);
-    const deltaY = currentY - dragStartY.current;
+    const rawDeltaY = currentY - dragStartY.current;
+    const factor = dragSource.current === "photo" ? 1.6 : 1.0;
+    const deltaY = rawDeltaY * factor;
     const elapsed = Math.max(1, Date.now() - dragStartTime.current);
     const velocity = deltaY / elapsed; // px/ms
 
     if (dragMovedDistance.current > 8) {
-      // The user performed an actual drag gesture: suppress subsequent synthetic clicks
       suppressClickUntil.current = Date.now() + 250;
 
-      if (sheetMode === "collapsed") {
-        if (deltaY < -30 || velocity < -0.25) {
-          setSheetMode("expanded");
-        }
+      // Project ending position based on current drag + velocity throw
+      const projectedTranslate = baseTranslate + deltaY + velocity * 120;
+
+      // Threshold midpoints between snap levels:
+      const midExpandedDefault = defaultTranslate / 2;
+      const midDefaultMin = (defaultTranslate + maxTranslate) / 2;
+
+      if (projectedTranslate <= midExpandedDefault) {
+        setSheetMode("expanded");
+      } else if (projectedTranslate <= midDefaultMin) {
+        setSheetMode("default");
       } else {
-        if (deltaY > 30 || velocity > 0.25) {
-          setSheetMode("collapsed");
-        }
+        setSheetMode("min");
       }
     }
 
@@ -325,36 +348,47 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     setIsDragging(false);
   };
 
-  // Auto-scroll image so winner is centered in visible photo area above bottom sheet
-  useEffect(() => {
-    if (!coverRect || !activeWinner || !viewportRef.current) return;
-    const vpHeight = viewportRef.current.clientHeight;
-    if (vpHeight <= 0) return;
+  // Toggle on click / tap:
+  // If at 'expanded', collapses to 'default'
+  // If at 'default' or 'min', toggles to 'expanded' (or user can toggle back and forth)
+  const handleSheetToggle = () => {
+    if (Date.now() < suppressClickUntil.current) return;
+    setSheetMode((prev) => (prev === "expanded" ? "default" : "expanded"));
+  };
 
-    // Determine bottom sheet height (or fallback to ~30% of viewport when collapsed)
-    const sheetEl = sheetRef.current;
-    const sheetHeight = sheetEl?.offsetHeight || vpHeight * 0.3;
-    const visibleAreaHeight = Math.max(100, vpHeight - sheetHeight);
+  // Synchronous live photo pan offset based on current sheet translation
+  // Synchronous live photo pan offset based on current sheet translation
+  // Moves the photo at the exact same time as the bottom sheet with a smooth 2:1 parallax
+  const livePhotoPanY = useMemo(() => {
+    if (!coverRect || !activeWinner) return 0;
+    const vpHeight = viewportRef.current?.clientHeight || (typeof window !== "undefined" && window.innerHeight > 0 ? window.innerHeight : 800);
+    if (vpHeight <= 0) return 0;
 
-    // Target center Y in viewport coordinates
+    const actualSheetHeight = sheetHeight || sheetRef.current?.offsetHeight || 0;
+    const basePeek = sheetMode === "expanded"
+      ? (actualSheetHeight || vpHeight * 0.5)
+      : sheetMode === "default"
+      ? (defaultPeekHeight || 180)
+      : (minPeekHeight || 76);
+
+    const effectiveSheetHeight = actualSheetHeight > 0
+      ? Math.max(0, actualSheetHeight - currentTranslate)
+      : Math.max(0, basePeek - dragOffsetY);
+
+    const visibleAreaHeight = Math.max(120, vpHeight - effectiveSheetHeight);
     const targetCenterY = visibleAreaHeight / 2;
 
-    // Winner box center Y in 0..1000 normalized coordinates
     const boxCenterNormalizedY = (activeWinner.box[0] + activeWinner.box[2]) / 2 / 1000;
-
-    // Rendered winner center Y in unpanned coverRect coordinates
     const renderedWinnerY = coverRect.top + boxCenterNormalizedY * coverRect.height;
-
-    // Required pan offset: targetCenterY - renderedWinnerY
-    // Negative offset moves photo up, positive moves photo down
     const desiredPanY = Math.round(targetCenterY - renderedWinnerY);
 
-    // Allow a generous vertical pan range so any winner anywhere in the frame can be centered
-    const maxPan = Math.max(300, coverRect.height / 2);
-    const clampedPanY = Math.max(-maxPan, Math.min(maxPan, desiredPanY));
+    const minPanY = Math.min(0, (vpHeight - effectiveSheetHeight) - (coverRect.top + coverRect.height));
+    const maxPanY = Math.max(0, -coverRect.top);
 
-    setPhotoPanY(clampedPanY);
-  }, [coverRect, activeWinner?.id, sheetMode]);
+    return minPanY <= maxPanY
+      ? Math.max(minPanY, Math.min(maxPanY, desiredPanY))
+      : desiredPanY;
+  }, [coverRect, activeWinner, currentTranslate, dragOffsetY, sheetHeight, sheetMode, defaultPeekHeight, minPeekHeight]);
 
   return (
     <div
@@ -477,6 +511,37 @@ export const ResultStage: React.FC<ResultStageProps> = ({
       <div
         ref={viewportRef}
         data-testid="result-photo-viewport"
+        onTouchStart={(e) => handleDragStart(e.touches[0].clientY, "photo")}
+        onTouchMove={(e) => {
+          if (dragStartY.current !== null) {
+            handleDragMove(e.touches[0].clientY);
+          }
+        }}
+        onTouchEnd={(e) => {
+          const clientY = e.changedTouches?.[0]?.clientY;
+          handleDragEnd(clientY);
+        }}
+        onPointerDown={(e) => {
+          if (e.pointerType === "mouse") {
+            try {
+              e.currentTarget.setPointerCapture(e.pointerId);
+            } catch {}
+            handleDragStart(e.clientY, "photo");
+          }
+        }}
+        onPointerMove={(e) => {
+          if (e.pointerType === "mouse" && dragStartY.current !== null) {
+            handleDragMove(e.clientY);
+          }
+        }}
+        onPointerUp={(e) => {
+          if (e.pointerType === "mouse") {
+            try {
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            } catch {}
+            handleDragEnd(e.clientY);
+          }
+        }}
         style={{
           position: "absolute",
           inset: 0,
@@ -485,10 +550,15 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           backgroundColor: "#000000",
           overflow: "hidden",
           zIndex: 1,
-          transform: `translate3d(0, ${photoPanY}px, 0)`,
-          transition: "transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1)",
+          transform: `translate3d(0, ${livePhotoPanY}px, 0)`,
+          transition: isDragging
+            ? "none"
+            : "transform 0.32s cubic-bezier(0.2, 0.0, 0, 1.0)",
           willChange: "transform",
-          pointerEvents: "none",
+          pointerEvents: "auto",
+          touchAction: "none",
+          userSelect: "none",
+          cursor: isDragging ? "grabbing" : "grab",
         }}
       >
         {round1PhotoDataUrl && (
@@ -706,252 +776,19 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           }}
         />
         {/* Material 3 Drag Handle Affordance: dedicated touch target with accessible single-pointer/keyboard alternative */}
-        <div ref={peekRef} data-testid="sheet-peek-bar" style={{ width: "100%", display: "flex", flexDirection: "column" }}>
         <div
-          data-testid="sheet-drag-area"
-          role="button"
-          tabIndex={0}
-          aria-label={isFullyOpen ? "Collapse results sheet" : "Expand results sheet"}
-          aria-expanded={isFullyOpen}
-          onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
-          onTouchMove={(e) => {
-            if (dragStartY.current !== null) {
-              handleDragMove(e.touches[0].clientY);
-            }
-          }}
-          onTouchEnd={(e) => {
-            const clientY = e.changedTouches?.[0]?.clientY;
-            handleDragEnd(clientY);
-          }}
-          onPointerDown={(e) => {
-            if (e.pointerType === "mouse") {
-              handleDragStart(e.clientY);
-            }
-          }}
-          onPointerMove={(e) => {
-            if (e.pointerType === "mouse" && dragStartY.current !== null) {
-              handleDragMove(e.clientY);
-            }
-          }}
-          onPointerUp={(e) => {
-            if (e.pointerType === "mouse") {
-              handleDragEnd(e.clientY);
-            }
-          }}
-          onClick={() => {
-            if (Date.now() < suppressClickUntil.current) return;
-            setSheetMode((prev) => (prev === "collapsed" ? "expanded" : "collapsed"));
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setSheetMode((prev) => (prev === "collapsed" ? "expanded" : "collapsed"));
-            }
-          }}
-          style={{
-            width: "100%",
-            minHeight: "20px",
-            paddingTop: "8px",
-            paddingBottom: "4px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            touchAction: "none",
-            outline: "none",
-          }}
+          ref={defaultPeekRef}
+          data-testid="sheet-peek-bar"
+          style={{ width: "100%", display: "flex", flexDirection: "column" }}
         >
-          <div
-            data-testid="drag-handle"
-            style={{
-              width: "36px",
-              height: "4px",
-              borderRadius: "4px",
-              backgroundColor: "rgba(107, 106, 101, 0.45)",
-              pointerEvents: "none",
-            }}
-          />
-        </div>
-
-        {/* 3-Way Segmented Control in S4_InitialResult - also draggable to expand/collapse sheet */}
-        {phase === "S4_InitialResult" && (
-          <div
-            data-testid="ripeness-target-switch"
-            role="tablist"
-            aria-label="Target ripeness window"
-            onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
-            onTouchMove={(e) => {
-              if (dragStartY.current !== null) {
-                handleDragMove(e.touches[0].clientY);
-              }
-            }}
-            onTouchEnd={(e) => {
-              const clientY = e.changedTouches?.[0]?.clientY;
-              handleDragEnd(clientY);
-            }}
-            onPointerDown={(e) => {
-              if (e.pointerType === "mouse") {
-                handleDragStart(e.clientY);
-              }
-            }}
-            onPointerMove={(e) => {
-              if (e.pointerType === "mouse" && dragStartY.current !== null) {
-                handleDragMove(e.clientY);
-              }
-            }}
-            onPointerUp={(e) => {
-              if (e.pointerType === "mouse") {
-                handleDragEnd(e.clientY);
-              }
-            }}
-            style={{
-              backgroundColor: "var(--surface-card)",
-              padding: "3.5px",
-              borderRadius: "13px",
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "4px",
-              border: "1px solid var(--surface-card-border)",
-              touchAction: "none",
-            }}
-          >
-            {(
-              [
-                { id: "ready_now", label: "Ready now", sub: "Peak ripe", dot: "#16A34A" },
-                { id: "in_2_3_days", label: "In 2–3 days", sub: "Almost ripe", dot: "#D97706" },
-                { id: "later_this_week", label: "Later this week", sub: "Firm / Unripe", dot: "#2563EB" },
-              ] as const
-            ).map((tab) => {
-              const isActive = targetRipeness === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  data-testid={`target-tab-${tab.id}`}
-                  onClick={() => {
-                    if (Date.now() < suppressClickUntil.current) return;
-                    if (onSetTargetRipeness) onSetTargetRipeness(tab.id);
-                  }}
-                  style={{
-                    border: "none",
-                    backgroundColor: isActive ? "var(--surface-sheet)" : "transparent",
-                    color: isActive ? "var(--text-primary)" : "var(--text-muted)",
-                    padding: "6px 4px",
-                    borderRadius: "10px",
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    lineHeight: 1.15,
-                    boxShadow: isActive ? "0 2px 6px rgba(0, 0, 0, 0.12)" : "none",
-                    transition: "all 0.18s ease",
-                  }}
-                >
-                  <span style={{ fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center" }}>
-                    {isActive && (
-                      <span
-                        style={{
-                          width: "6px",
-                          height: "6px",
-                          borderRadius: "50%",
-                          backgroundColor: tab.dot,
-                          marginRight: "4px",
-                          display: "inline-block",
-                        }}
-                      />
-                    )}
-                    {tab.label}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "9.5px",
-                      fontWeight: 600,
-                      color: isActive ? "var(--text-primary)" : "var(--text-muted)",
-                      marginTop: "2px",
-                    }}
-                  >
-                    {tab.sub}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Locked Goal Banner in States 5B, 7A, 7B */}
-        {(phase === "S5B1_RunnerUpBeaten" ||
-          phase === "S5B2_RunnerUpTookLead" ||
-          phase === "S7A_FirstPickWonFinal" ||
-          phase === "S7B_FirstPickLostFinal") && (
-          <div
-            data-testid="locked-ripeness-goal"
-            style={{
-              backgroundColor: "var(--surface-card)",
-              border: "1px solid var(--surface-card-border)",
-              borderRadius: "11px",
-              padding: "7px 12px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              fontSize: "11.5px",
-              fontWeight: 700,
-              color: "var(--text-primary)",
-            }}
-          >
-            <span>
-              🎯 Shopping for:{" "}
-              <strong>
-                {targetRipeness === "in_2_3_days"
-                  ? "In 2–3 days"
-                  : targetRipeness === "later_this_week"
-                  ? "Later this week"
-                  : "Ready now"}
-              </strong>
-            </span>
-            <span
-              style={{
-                backgroundColor: "var(--surface-sheet)",
-                padding: "2px 8px",
-                borderRadius: "999px",
-                fontSize: "10.5px",
-                fontWeight: 800,
-                color: "var(--eyebrow-accent)",
-                border: "1px solid var(--surface-card-border)",
-              }}
-            >
-              {targetRipeness === "in_2_3_days"
-                ? "Almost ripe"
-                : targetRipeness === "later_this_week"
-                ? "Firm & unripe"
-                : "Peak ripe"}
-            </span>
-          </div>
-        )}
-        </div>
-
-        {/* Bottom Sheet Body: always mounted in DOM, revealed smoothly as sheet translates up */}
-        <div data-testid="sheet-body-content" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          {/* Divider 1: Between Target Selector / Goal Banner and Headline area */}
+          {/* Section 1: Drag handle + Ripeness tabs + Divider 1 (Min collapsed height boundary) */}
+          <div ref={minPeekRef} style={{ width: "100%", display: "flex", flexDirection: "column" }}>
             <div
-              data-testid="sheet-divider-top"
-              style={{
-                height: "1px",
-                backgroundColor: "var(--surface-card-border)",
-                opacity: 0.6,
-                marginTop: "6px",
-                marginBottom: "4px",
-              }}
-            />
-
-            {/* Eyebrow, Headline & Round Score Rating */}
-            <div
-              data-testid="sheet-header-summary"
+              data-testid="sheet-drag-area"
               role="button"
               tabIndex={0}
-              aria-label={isFullyOpen ? "Collapse results sheet" : "Expand results sheet"}
-              aria-expanded={isFullyOpen}
+              aria-label={sheetMode === "expanded" ? "Collapse results sheet" : "Expand results sheet"}
+              aria-expanded={sheetMode === "expanded"}
               onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
               onTouchMove={(e) => {
                 if (dragStartY.current !== null) {
@@ -977,22 +814,253 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   handleDragEnd(e.clientY);
                 }
               }}
-              onClick={() => {
-                if (Date.now() < suppressClickUntil.current) return;
-                setSheetMode((prev) => (prev === "collapsed" ? "expanded" : "collapsed"));
-              }}
+              onClick={handleSheetToggle}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  setSheetMode((prev) => (prev === "collapsed" ? "expanded" : "collapsed"));
+                  handleSheetToggle();
                 }
               }}
               style={{
+                width: "100%",
+                minHeight: "20px",
+                paddingTop: "8px",
+                paddingBottom: "4px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 cursor: "pointer",
                 touchAction: "none",
                 outline: "none",
-                userSelect: "none",
               }}
+            >
+              <div
+                data-testid="drag-handle"
+                style={{
+                  width: "36px",
+                  height: "4px",
+                  borderRadius: "4px",
+                  backgroundColor: "rgba(107, 106, 101, 0.45)",
+                  pointerEvents: "none",
+                }}
+              />
+            </div>
+
+            {/* 3-Way Segmented Control in S4_InitialResult - also draggable to expand/collapse sheet */}
+            {phase === "S4_InitialResult" && (
+              <div
+                data-testid="ripeness-target-switch"
+                role="tablist"
+                aria-label="Target ripeness window"
+                onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+                onTouchMove={(e) => {
+                  if (dragStartY.current !== null) {
+                    handleDragMove(e.touches[0].clientY);
+                  }
+                }}
+                onTouchEnd={(e) => {
+                  const clientY = e.changedTouches?.[0]?.clientY;
+                  handleDragEnd(clientY);
+                }}
+                onPointerDown={(e) => {
+                  if (e.pointerType === "mouse") {
+                    handleDragStart(e.clientY);
+                  }
+                }}
+                onPointerMove={(e) => {
+                  if (e.pointerType === "mouse" && dragStartY.current !== null) {
+                    handleDragMove(e.clientY);
+                  }
+                }}
+                onPointerUp={(e) => {
+                  if (e.pointerType === "mouse") {
+                    handleDragEnd(e.clientY);
+                  }
+                }}
+                style={{
+                  backgroundColor: "var(--surface-card)",
+                  padding: "3.5px",
+                  borderRadius: "13px",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: "4px",
+                  border: "1px solid var(--surface-card-border)",
+                  touchAction: "none",
+                }}
+              >
+                {(
+                  [
+                    { id: "ready_now", label: "Ready now", sub: "Peak ripe", dot: "#16A34A" },
+                    { id: "in_2_3_days", label: "In 2–3 days", sub: "Almost ripe", dot: "#D97706" },
+                    { id: "later_this_week", label: "Later this week", sub: "Firm / Unripe", dot: "#2563EB" },
+                  ] as const
+                ).map((tab) => {
+                  const isActive = targetRipeness === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      data-testid={`target-tab-${tab.id}`}
+                      onClick={() => {
+                        if (Date.now() < suppressClickUntil.current) return;
+                        if (onSetTargetRipeness) onSetTargetRipeness(tab.id);
+                      }}
+                      style={{
+                        border: "none",
+                        backgroundColor: isActive ? "var(--surface-sheet)" : "transparent",
+                        color: isActive ? "var(--text-primary)" : "var(--text-muted)",
+                        padding: "6px 4px",
+                        borderRadius: "10px",
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        lineHeight: 1.15,
+                        boxShadow: isActive ? "0 2px 6px rgba(0, 0, 0, 0.12)" : "none",
+                        transition: "all 0.18s ease",
+                      }}
+                    >
+                      <span style={{ fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center" }}>
+                        {isActive && (
+                          <span
+                            style={{
+                              width: "6px",
+                              height: "6px",
+                              borderRadius: "50%",
+                              backgroundColor: tab.dot,
+                              marginRight: "4px",
+                              display: "inline-block",
+                            }}
+                          />
+                        )}
+                        {tab.label}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "9.5px",
+                          fontWeight: 600,
+                          color: isActive ? "var(--text-primary)" : "var(--text-muted)",
+                          marginTop: "2px",
+                        }}
+                      >
+                        {tab.sub}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Locked Goal Banner in States 5B, 7A, 7B */}
+            {(phase === "S5B1_RunnerUpBeaten" ||
+              phase === "S5B2_RunnerUpTookLead" ||
+              phase === "S7A_FirstPickWonFinal" ||
+              phase === "S7B_FirstPickLostFinal") && (
+              <div
+                data-testid="locked-ripeness-goal"
+                style={{
+                  backgroundColor: "var(--surface-card)",
+                  border: "1px solid var(--surface-card-border)",
+                  borderRadius: "11px",
+                  padding: "7px 12px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  fontSize: "11.5px",
+                  fontWeight: 700,
+                  color: "var(--text-primary)",
+                }}
+              >
+                <span>
+                  🎯 Shopping for:{" "}
+                  <strong>
+                    {targetRipeness === "in_2_3_days"
+                      ? "In 2–3 days"
+                      : targetRipeness === "later_this_week"
+                      ? "Later this week"
+                      : "Ready now"}
+                  </strong>
+                </span>
+                <span
+                  style={{
+                    backgroundColor: "var(--surface-sheet)",
+                    padding: "2px 8px",
+                    borderRadius: "999px",
+                    fontSize: "10.5px",
+                    fontWeight: 800,
+                    color: "var(--eyebrow-accent)",
+                    border: "1px solid var(--surface-card-border)",
+                  }}
+                >
+                  {targetRipeness === "in_2_3_days"
+                    ? "Almost ripe"
+                    : targetRipeness === "later_this_week"
+                    ? "Firm & unripe"
+                    : "Peak ripe"}
+                </span>
+              </div>
+            )}
+
+            {/* Divider 1: Under Goal Selector / Banner (Min height snap line) */}
+            <div
+              data-testid="sheet-divider-top"
+              style={{
+                height: "1px",
+                backgroundColor: "var(--surface-card-border)",
+                opacity: 0.6,
+                marginTop: "6px",
+                marginBottom: "6px",
+              }}
+            />
+          </div>
+
+          {/* Eyebrow, Headline & Round Score Rating */}
+          <div
+            data-testid="sheet-header-summary"
+            role="button"
+            tabIndex={0}
+            aria-label={sheetMode === "expanded" ? "Collapse results sheet" : "Expand results sheet"}
+            aria-expanded={sheetMode === "expanded"}
+            onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+            onTouchMove={(e) => {
+              if (dragStartY.current !== null) {
+                handleDragMove(e.touches[0].clientY);
+              }
+            }}
+            onTouchEnd={(e) => {
+              const clientY = e.changedTouches?.[0]?.clientY;
+              handleDragEnd(clientY);
+            }}
+            onPointerDown={(e) => {
+              if (e.pointerType === "mouse") {
+                handleDragStart(e.clientY);
+              }
+            }}
+            onPointerMove={(e) => {
+              if (e.pointerType === "mouse" && dragStartY.current !== null) {
+                handleDragMove(e.clientY);
+              }
+            }}
+            onPointerUp={(e) => {
+              if (e.pointerType === "mouse") {
+                handleDragEnd(e.clientY);
+              }
+            }}
+            onClick={handleSheetToggle}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleSheetToggle();
+              }
+            }}
+            style={{
+              cursor: "pointer",
+              touchAction: "none",
+              outline: "none",
+              userSelect: "none",
+            }}
             >
               {phase !== "S4_InitialResult" && eyebrow && (
                 <span
@@ -1149,6 +1217,22 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Divider 2: Under Traits / Seasonality Labels */}
+            <div
+              data-testid="sheet-divider-second"
+              style={{
+                height: "1px",
+                backgroundColor: "var(--surface-card-border)",
+                opacity: 0.6,
+                marginTop: "8px",
+                marginBottom: "4px",
+              }}
+            />
+        </div>
+
+        {/* Bottom Sheet Body: always mounted in DOM, revealed smoothly as sheet translates up */}
+        <div data-testid="sheet-body-content" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           <div
             data-testid="sheet-expanded-content"
             onTouchStart={(e) => {

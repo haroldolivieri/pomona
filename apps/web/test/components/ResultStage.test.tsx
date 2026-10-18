@@ -304,17 +304,17 @@ describe("ResultStage (Mockup Parity)", () => {
     const sheet = screen.getByTestId("result-bottom-sheet");
     const photoViewport = screen.getByTestId("result-photo-viewport");
 
-    // Initial state: photo viewport is full-bleed 100%, sheet is translated down into collapsed peek position
+    // Initial state: photo viewport is full-bleed 100%, sheet is translated to default peek position (divider 2)
     expect(photoViewport.style.height).toBe("100%");
-    expect(sheet.style.transform).toBe("translate3d(0, 320px, 0)");
+    expect(sheet.style.transform).toBe("translate3d(0, 160px, 0)");
 
     // Drag up from the grab handle / drag area
     const dragArea = screen.getByTestId("sheet-drag-area");
     fireEvent.touchStart(dragArea, { touches: [{ clientY: 500 }] });
-    fireEvent.touchMove(dragArea, { touches: [{ clientY: 420 }] }); // -80px drag up: 320px - 80px = 240px
+    fireEvent.touchMove(dragArea, { touches: [{ clientY: 420 }] }); // -80px drag up: 160px - 80px = 80px
 
     // Live drag glides sheet up by exactly 80px
-    expect(sheet.style.transform).toBe("translate3d(0, 240px, 0)");
+    expect(sheet.style.transform).toBe("translate3d(0, 80px, 0)");
     expect(photoViewport.style.height).toBe("100%");
 
     // Release snap expands sheet to 'expanded' static state (transform reaches 0, height is auto, maxHeight 92dvh)
@@ -323,6 +323,43 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(sheet.style.maxHeight).toBe("92dvh");
     expect(screen.getByTestId("sheet-expanded-content")).toBeInTheDocument();
     expect(photoViewport.style.height).toBe("100%");
+  });
+
+  it("allows dragging directly on the photo viewport with parallax to glide both sheet and photo simultaneously", () => {
+    const state = {
+      ...initialScanMachineState(),
+      phase: "S4_InitialResult" as const,
+      firstPick: sampleFirstPick,
+      runnerUp: sampleRunnerUp,
+      lastResponse: baseResponse,
+      round1PhotoDataUrl: "data:image/webp;base64,mock",
+    };
+
+    render(
+      <ResultStage
+        state={state}
+        onCompareWithRunnerUp={vi.fn()}
+        onStartFinalCheck={vi.fn()}
+        onReset={vi.fn()}
+      />
+    );
+
+    const sheet = screen.getByTestId("result-bottom-sheet");
+    const photoViewport = screen.getByTestId("result-photo-viewport");
+
+    // Starting at default translate (160px)
+    expect(sheet.style.transform).toBe("translate3d(0, 160px, 0)");
+
+    // Touch and drag directly on photo viewport downward: 50px drag down
+    // With 1.6x factor, sheet moves down by 80px (160px + 80px = 240px)
+    fireEvent.touchStart(photoViewport, { touches: [{ clientY: 300 }] });
+    fireEvent.touchMove(photoViewport, { touches: [{ clientY: 350 }] });
+
+    expect(sheet.style.transform).toBe("translate3d(0, 240px, 0)");
+
+    // Releasing after downward drag snaps to min collapsed state
+    fireEvent.touchEnd(photoViewport);
+    expect(sheet.style.transform).toBe("translate3d(0, 320px, 0)"); // maxTranslate min collapsed position
   });
 
   it("renders 3-way ripeness switch in S4_InitialResult and triggers onSetTargetRipeness", () => {
