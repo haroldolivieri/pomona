@@ -11,7 +11,9 @@
     "flash": "Flash",
     "scansLeftToday": "{{count}} scans left today",
     "promptTitle": "Point at a pile or single fruit",
-    "promptSubtitle": "Works with any fruit, vegetable, or produce"
+    "promptSubtitle": "Works with any fruit, vegetable, or produce",
+    "offlineTitle": "You're offline",
+    "offlineSubtitle": "Connect to the internet to take a photo and scan produce"
   },
   "draw": {
     "instruction": "Draw a loop around the produce to focus, or analyse whole photo",

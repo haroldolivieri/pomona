@@ -9,6 +9,7 @@ export interface CameraViewfinderProps {
   theme?: "light" | "dark";
   remainingScans?: number;
   onQuotaClick?: () => void;
+  onBrandTap?: () => void;
 }
 
 export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
@@ -18,6 +19,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   theme = "light",
   remainingScans = 10,
   onQuotaClick,
+  onBrandTap,
 }) => {
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -25,6 +27,22 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   const [streamActive, setStreamActive] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [flashActive, setFlashActive] = useState<boolean>(false);
+  const [isOnline, setIsOnline] = useState<boolean>(() =>
+    typeof navigator !== "undefined" && typeof navigator.onLine === "boolean"
+      ? navigator.onLine
+      : true
+  );
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -89,6 +107,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleCapture = () => {
+    if (!isOnline) return;
     if (videoRef.current && streamActive) {
       const video = videoRef.current;
       const container = containerRef.current;
@@ -123,6 +142,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isOnline) return;
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -167,9 +187,12 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
           background: "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%)",
         }}
       >
-        {/* Left: Pomona brand pill */}
+        {/* Left: Pomona brand pill (5-tap debug trigger) */}
         <div
           data-testid="brand-pill"
+          onClick={onBrandTap}
+          role={onBrandTap ? "button" : undefined}
+          tabIndex={onBrandTap ? 0 : undefined}
           style={{
             background: "rgba(251,250,246,0.92)",
             color: "#142117",
@@ -180,6 +203,8 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
             display: "inline-flex",
             alignItems: "center",
             boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+            cursor: onBrandTap ? "pointer" : "default",
+            userSelect: "none",
           }}
         >
           <span
@@ -194,33 +219,6 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
           >
             Pomona
           </span>
-        </div>
-
-        {/* Center: Quota chip pill */}
-        <div
-          data-testid="scan-quota-pill"
-          onClick={onQuotaClick}
-          role={onQuotaClick ? "button" : undefined}
-          tabIndex={onQuotaClick ? 0 : undefined}
-          title={onQuotaClick ? "Tap to override scan quota (testing)" : undefined}
-          style={{
-            background: "rgba(251,250,246,0.92)",
-            color: "#142117",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            fontFamily: "Inter, system-ui, sans-serif",
-            fontWeight: 600,
-            fontSize: "12px",
-            lineHeight: 1,
-            padding: "7px 12px",
-            borderRadius: "999px",
-            display: "inline-flex",
-            alignItems: "center",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
-            cursor: onQuotaClick ? "pointer" : "default",
-          }}
-        >
-          {t("camera.scansLeftToday", { count: remainingScans ?? 10 })}
         </div>
 
         {/* Right action buttons: Flash toggle, Theme toggle, Close button */}
@@ -397,7 +395,8 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
               {t("camera.permissionDenied")}
             </p>
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => isOnline && fileInputRef.current?.click()}
+              disabled={!isOnline}
               style={{
                 backgroundColor: "var(--cta-primary)",
                 color: "#FFF",
@@ -405,7 +404,8 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
                 padding: "8px 16px",
                 borderRadius: "20px",
                 fontSize: "14px",
-                cursor: "pointer",
+                cursor: isOnline ? "pointer" : "not-allowed",
+                opacity: isOnline ? 1 : 0.5,
               }}
             >
               {t("camera.uploadFallback")}
@@ -444,7 +444,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
             marginBottom: "3px",
           }}
         >
-          {t("camera.promptTitle")}
+          {isOnline ? t("camera.promptTitle") : t("camera.offlineTitle")}
         </div>
         <div
           style={{
@@ -455,7 +455,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
             color: "#55544F",
           }}
         >
-          {t("camera.promptSubtitle")}
+          {isOnline ? t("camera.promptSubtitle") : t("camera.offlineSubtitle")}
         </div>
       </div>
 
@@ -482,6 +482,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
           type="file"
           accept="image/*"
           capture="environment"
+          disabled={!isOnline}
           style={{ display: "none" }}
           onChange={handleFileInput}
           data-testid="file-fallback-input"
@@ -489,6 +490,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
 
         <button
           onClick={handleCapture}
+          disabled={!isOnline}
           data-testid="shutter-button"
           aria-label={t("camera.shutter")}
           style={{
@@ -499,7 +501,8 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
             border: "4px solid #FFFFFF",
             padding: "4px",
             boxSizing: "border-box",
-            cursor: "pointer",
+            cursor: isOnline ? "pointer" : "not-allowed",
+            opacity: isOnline ? 1 : 0.45,
             boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
             display: "flex",
             alignItems: "center",
@@ -512,7 +515,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
               width: "100%",
               height: "100%",
               borderRadius: "50%",
-              backgroundColor: "#F5D547",
+              backgroundColor: isOnline ? "#F5D547" : "#9E9D98",
             }}
           />
         </button>

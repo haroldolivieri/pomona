@@ -203,6 +203,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
 
         <button
           onClick={handleResetPoints}
+          disabled={points.length === 0}
           data-testid="reset-draw-button"
           aria-label="Reset drawing"
           style={{
@@ -219,7 +220,9 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
             fontWeight: 700,
             backdropFilter: "blur(10px)",
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-            cursor: "pointer",
+            cursor: points.length === 0 ? "default" : "pointer",
+            opacity: points.length === 0 ? 0.35 : 1,
+            pointerEvents: points.length === 0 ? "none" : "auto",
           }}
         >
           ↺

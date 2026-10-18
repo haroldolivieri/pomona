@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import React from "react";
 import { FlipCameraStage } from "../../src/components/FlipCameraStage";
@@ -90,4 +90,29 @@ describe("FlipCameraStage (Mockup Parity)", () => {
     // Subtitle copy tailored to storage target
     expect(screen.getByTestId("flip-instruction-card")).toHaveTextContent(/check the underside for hidden bruises or uneven ripening/i);
   });
+
+  it("disables flip shutter button when offline and re-enables when back online", () => {
+    const onCapture = vi.fn();
+    const onlineSpy = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    const state = {
+      ...initialScanMachineState(),
+      phase: "S5A_FlipRunnerUpCamera" as const,
+      round: 2 as const,
+    };
+
+    render(<FlipCameraStage state={state} onCapture={onCapture} onBack={vi.fn()} onClose={vi.fn()} />);
+
+    const flipShutterBtn = screen.getByTestId("flip-shutter-button");
+    expect(flipShutterBtn).toBeDisabled();
+    flipShutterBtn.click();
+    expect(onCapture).not.toHaveBeenCalled();
+
+    onlineSpy.mockReturnValue(true);
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+    expect(screen.getByTestId("flip-shutter-button")).not.toBeDisabled();
+    onlineSpy.mockRestore();
+  });
 });
+

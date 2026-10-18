@@ -230,10 +230,11 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
       />
     );
 
-    // State 1: Top middle chip shows 10 scans left today
-    expect(screen.getByTestId("scan-quota-pill")).toHaveTextContent("10 scans left today");
+    // State 1: Top bar has brand pill without middle quota pill
+    expect(screen.getByTestId("brand-pill")).toHaveTextContent("Pomona");
+    expect(screen.queryByTestId("scan-quota-pill")).toBeNull();
 
-    // Snap photo -> State 2: Top middle chip STILL shows 10 scans left today
+    // Snap photo -> State 2: Top middle chip shows 10 scans left today
     fireEvent.click(screen.getByTestId("shutter-button"));
     expect(await screen.findByTestId("stage-S2_DrawFocusArea")).toBeTruthy();
     expect(screen.getByTestId("scan-quota-pill")).toHaveTextContent("10 scans left today");
@@ -243,16 +244,23 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     expect(await screen.findByTestId("stage-S4_InitialResult")).toBeTruthy();
     expect(screen.getByTestId("produce-name-chip")).toHaveTextContent("Alphonso Mango");
 
-    // Retake / Reset to Camera -> Counter has decremented to 9
+    // Retake / Reset to Camera -> Returns to State 1
     fireEvent.click(screen.getByTestId("retake-button"));
     expect(await screen.findByTestId("stage-S1_LiveCamera")).toBeTruthy();
-    expect(screen.getByTestId("scan-quota-pill")).toHaveTextContent("9 scans left today");
 
-    // Test override mechanism by clicking the quota chip pill
+    // Five taps on the Pomona brand logo activates dev mode on this device
+    const brandPill = screen.getByTestId("brand-pill");
+    for (let i = 0; i < 5; i++) {
+      fireEvent.click(brandPill);
+    }
+    const devSetScansBtn = await screen.findByTestId("dev-set-scans-button");
+    expect(devSetScansBtn).toBeInTheDocument();
+
+    // Test override mechanism via dev button
     const promptSpy = vi.spyOn(window, "prompt").mockReturnValueOnce("3");
-    fireEvent.click(screen.getByTestId("scan-quota-pill"));
+    fireEvent.click(devSetScansBtn);
     expect(promptSpy).toHaveBeenCalled();
-    expect(await screen.findByText("3 scans left today")).toBeTruthy();
+    expect(await screen.findByText("⚡ 3 scans")).toBeTruthy();
   });
 
   it("shows the seasonality badge on S4, lets the shopper pick an origin, and clears the pick after a reset", async () => {

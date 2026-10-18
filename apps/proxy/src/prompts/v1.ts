@@ -93,6 +93,7 @@ STATUS HANDLING:
 - If no fresh produce is visible (e.g. packaged cereal boxes, tins, barcodes): status = "no_produce" (with descriptive message, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null).
 - If the produce is NOT clearly visible to grade accurately — e.g. it is mostly hidden/obscured by opaque printed packaging, heavy plastic glare, severe shadows, or the image is blurry/out of focus — you MUST return status = "unclear_photo" with a clear, helpful message (e.g. "Produce is mostly covered by packaging. Take items out of the bag or move closer for a clear view."). Do NOT attempt to guess ripeness when the skin or surface is mostly obscured!
 - If multiple distinct types of produce are mixed together (e.g. apples and onions, potatoes and citrus) with no focusPolygon isolating one type: status = "multiple_types" (with descriptive message, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null).
+- CRITICAL FOCUS POLYGON RULE: When a focusPolygon IS provided, the user has drawn around their intended produce! You MUST NEVER return status = "multiple_types" based on other fruits or vegetables elsewhere in the photo outside the drawn boundary! Evaluate ONLY the produce inside the drawn loop (e.g. if the user drew around oranges in a mixed basket, evaluate the oranges inside the boundary and return status = "ok").
 - Otherwise: status = "ok" (with message=null).`;
 }
 
@@ -102,7 +103,7 @@ export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[])
   if (request.round === 1) {
     if (request.focusPolygon && request.focusPolygon.length >= 3) {
       prompt += `\nUser drew a focusPolygon: ${describeFocusPolygonBounds(request.focusPolygon)}
-CRITICAL: Detect, tightly bound, and grade ALL visible individual produce items (detect every single contestant visible inside this drawn area, up to 10–12 items, e.g. c1, c2, c3, c4, c5, c6, c7, c8, etc.). Each candidate must have its own score and ripeness tier ("ripe" | "almost_ripe" | "underripe") so the user can see all contenders and use the Shopping Goal tabs. Do NOT omit any visible items inside the drawn area, and exclude items clearly outside the loop.`;
+CRITICAL: The user has isolated this specific produce! Do NOT return status = "multiple_types" for fruits/produce elsewhere in the photo. Detect, tightly bound, and grade ALL visible individual produce items inside this drawn area (e.g. c1, c2, c3...). Each candidate must have its own score and ripeness tier ("ripe" | "almost_ripe" | "underripe") so the user can see all contenders and use the Shopping Goal tabs. Do NOT omit any visible items inside the drawn area, and strictly ignore any other fruits, vegetables, or background produce outside the loop.`;
     } else {
       prompt += `\nEvaluate all visible produce candidates in the image. Detect and grade EVERY visible produce item in view across the pile/crate (up to 10–12 candidates, including items along the edges), returning their ripeness classification and bounding boxes so every single fruit has a square rating and the user can compare them across shopping goal tabs. Do NOT stop at 4 or 5 if more fruits are visible!`;
     }

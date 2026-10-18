@@ -169,14 +169,14 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     await expect(wholePhotoButton).toBeVisible();
     await wholePhotoButton.click();
 
-    // S4: Initial Result (shows up to ripeness bar at min height)
+    // S4: Initial Result
     const s4Stage = page.getByTestId("stage-S4_InitialResult");
     await expect(s4Stage).toBeVisible();
+
+    // Expand bottom sheet to see headline, circular score meter, full storage details and action button
+    await page.getByTestId("sheet-drag-area").click();
     await expect(page.getByText("Best available.")).toBeVisible();
     await expect(page.getByTestId("circular-score-meter")).toBeVisible();
-
-    // Expand bottom sheet to see full storage details and action button
-    await page.getByTestId("sheet-drag-area").click();
     await expect(page.getByText("Counter · whole")).toBeVisible();
     await expect(page.getByText("Fridge · wrapped")).toBeVisible();
     await expect(page.getByTestId("cta-compare-runner-up")).toHaveText("Compare with Runner-Up");
@@ -248,11 +248,11 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     // Snap flipped produce -> S5B1_RunnerUpBeaten
     await page.getByTestId("flip-shutter-button").click();
     await expect(page.getByTestId("stage-S5B1_RunnerUpBeaten")).toBeVisible();
+
+    // Expand sheet to view headline, circular score meter, confirmation banner and scan-another CTA
+    await page.getByTestId("sheet-drag-area").click();
     await expect(page.getByText("Best available.")).toBeVisible();
     await expect(page.getByTestId("circular-score-meter")).toBeVisible();
-
-    // Expand sheet to view confirmation banner and scan-another CTA
-    await page.getByTestId("sheet-drag-area").click();
     await expect(page.getByText(/Runner-Up scored 7\.8 after flip/)).toBeVisible();
     await expect(page.getByTestId("cta-scan-another")).toBeVisible();
   });
@@ -302,10 +302,10 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     // S5A -> Snap flipped runner-up -> S5B2_RunnerUpTookLead (9.0 beats 8.6)
     await page.getByTestId("flip-shutter-button").click();
     await expect(page.getByTestId("stage-S5B2_RunnerUpTookLead")).toBeVisible();
-    await expect(page.getByText(/Beats 1st Winner \(9\.0 vs 8\.6\)/i)).toBeVisible();
 
-    // Expand bottom sheet to access final check CTA
+    // Expand bottom sheet to access headline and final check CTA
     await page.getByTestId("sheet-drag-area").click();
+    await expect(page.getByText(/Beats 1st Winner \(9\.0 vs 8\.6\)/i)).toBeVisible();
     const finalCheckBtn = page.getByTestId("cta-final-check-first-pick");
     await expect(finalCheckBtn).toHaveText("Flip 1st Winner for Final Check");
 
@@ -317,10 +317,10 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     // S6 -> Snap flipped 1st winner -> S7A_FirstPickWonFinal (9.3 beats 9.0)
     await page.getByTestId("flip-shutter-button").click();
     await expect(page.getByTestId("stage-S7A_FirstPickWonFinal")).toBeVisible();
-    await expect(page.getByText(/1st Winner Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeVisible();
 
-    // Expand bottom sheet to access scan-another CTA
+    // Expand bottom sheet to access verdict headline and scan-another CTA
     await page.getByTestId("sheet-drag-area").click();
+    await expect(page.getByText(/1st Winner Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeVisible();
     await expect(page.getByTestId("cta-scan-another")).toBeVisible();
   });
 
@@ -375,10 +375,10 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     // S6 -> Snap -> S7B_FirstPickLostFinal (8.4 lost to 9.0)
     await page.getByTestId("flip-shutter-button").click();
     await expect(page.getByTestId("stage-S7B_FirstPickLostFinal")).toBeVisible();
-    await expect(page.getByText(/Runner-Up Wins \(9\.0 vs 8\.4\)/i)).toBeVisible();
 
-    // Expand bottom sheet to access scan-another CTA
+    // Expand bottom sheet to access headline and scan-another CTA
     await page.getByTestId("sheet-drag-area").click();
+    await expect(page.getByText(/Runner-Up Wins \(9\.0 vs 8\.4\)/i)).toBeVisible();
     await expect(page.getByTestId("cta-scan-another")).toBeVisible();
   });
 

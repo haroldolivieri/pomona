@@ -1,4 +1,4 @@
-import React, { useReducer, useState, useEffect } from "react";
+import React, { useReducer, useState, useEffect, useRef } from "react";
 import type { ScanRequest, Point, ScanResponse } from "@pomona/contract";
 import type { PomonaApiClient } from "./lib/api-client";
 import type { TelemetryProvider } from "./lib/telemetry";
@@ -52,9 +52,63 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     ...initialState,
   });
 
-  // Debug mock mode is strictly active only during development (import.meta.env.DEV)
-  // or when explicitly enabled via enableDebugOverride (e.g. in targeted tests)
-  const isDevMode = Boolean(enableDebugOverride ?? (import.meta.env?.DEV));
+  // Device-specific developer / debug mode:
+  // Enabled ONLY on this specific device when activated via:
+  // 1. Five (5) rapid taps on the "Pomona" brand logo
+  // 2. OR ?debug=true in the URL
+  // 3. Stored in localStorage ("pomona-debug-device": "true") so it persists only on this device
+  // 4. In automated unit test environments with enableDebugOverride set to true
+  const [isDeviceDebugEnabled, setIsDeviceDebugEnabled] = useState<boolean>(() => {
+    if (enableDebugOverride !== undefined) return enableDebugOverride;
+    try {
+      if (typeof window !== "undefined") {
+        if (typeof window.location !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          if (params.get("debug") === "true") {
+            try {
+              localStorage.setItem("pomona-debug-device", "true");
+            } catch {}
+            return true;
+          }
+        }
+        if (typeof localStorage !== "undefined") {
+          return localStorage.getItem("pomona-debug-device") === "true";
+        }
+      }
+    } catch {}
+    return false;
+  });
+
+  const isDevMode = Boolean(enableDebugOverride ?? isDeviceDebugEnabled);
+
+  // 5-tap counter on the Pomona brand logo
+  const brandTapCountRef = useRef<number>(0);
+  const brandTapTimerRef = useRef<any>(null);
+
+  const handleBrandTap = () => {
+    brandTapCountRef.current += 1;
+    if (brandTapTimerRef.current) {
+      clearTimeout(brandTapTimerRef.current);
+    }
+    brandTapTimerRef.current = setTimeout(() => {
+      brandTapCountRef.current = 0;
+    }, 2000); // 5 taps must occur within 2 seconds
+
+    if (brandTapCountRef.current >= 5) {
+      brandTapCountRef.current = 0;
+      setIsDeviceDebugEnabled((prev) => {
+        const next = !prev;
+        try {
+          if (next) {
+            localStorage.setItem("pomona-debug-device", "true");
+          } else {
+            localStorage.removeItem("pomona-debug-device");
+          }
+        } catch {}
+        return next;
+      });
+    }
+  };
 
   const [isMockMode, setIsMockMode] = useState<boolean>(() => {
     if (!isDevMode) return false;
@@ -326,6 +380,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             onQuotaClick={handleQuotaPrompt}
             onToggleTheme={toggleTheme}
             theme={theme}
+            onBrandTap={handleBrandTap}
           />
         );
 

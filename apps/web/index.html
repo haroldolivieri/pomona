@@ -3,16 +3,59 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#2F5D34" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Pomona" />
     <meta name="description" content="Instant bounding-box produce picker and ripeness guide." />
     <title>Pomona · Produce Picker</title>
     <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-startup-image" href="/launch-screen.png" />
+    <style>
+      html, body {
+        background-color: #000000 !important;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        height: 100dvh;
+        overflow: hidden;
+      }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600..700;1,9..144,600..700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600..700;1,9..144,600..700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   </head>
-  <body>
-    <div id="root"></div>
+  <body style="margin:0;padding:0;background-color:#000000;color:#FFFFFF;overflow:hidden;-webkit-tap-highlight-color:transparent;">
+    <div id="root">
+      <div style="position:relative;width:100%;height:100dvh;background-color:#000000;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;">
+        <!-- Top bar silhouette -->
+        <div style="position:absolute;top:0;left:0;right:0;padding-top:max(16px, env(safe-area-inset-top));padding-left:20px;padding-right:20px;padding-bottom:16px;display:flex;justify-content:space-between;align-items:center;z-index:10;background:linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);">
+          <div style="background:rgba(251,250,246,0.92);color:#142117;padding:7px 14px;border-radius:999px;display:inline-flex;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.18);">
+            <span style="font-family:Fraunces,Georgia,serif;font-size:15px;font-weight:700;letter-spacing:0.02em;color:#142117;">Pomona</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="width:36px;height:36px;border-radius:50%;background-color:rgba(251,250,246,0.92);color:#142117;display:flex;align-items:center;justify-content:center;font-size:14px;">⚡</div>
+          </div>
+        </div>
+        <!-- Center reticle framing brackets silhouette -->
+        <div style="position:absolute;top:43%;left:50%;transform:translate(-50%, -50%);width:228px;height:240px;pointer-events:none;">
+          <span style="position:absolute;top:-2px;left:-2px;width:24px;height:24px;border-color:#F5D547;border-style:solid;border-width:0;border-top-width:3.5px;border-left-width:3.5px;border-top-left-radius:16px;"></span>
+          <span style="position:absolute;top:-2px;right:-2px;width:24px;height:24px;border-color:#F5D547;border-style:solid;border-width:0;border-top-width:3.5px;border-right-width:3.5px;border-top-right-radius:16px;"></span>
+          <span style="position:absolute;bottom:-2px;left:-2px;width:24px;height:24px;border-color:#F5D547;border-style:solid;border-width:0;border-bottom-width:3.5px;border-left-width:3.5px;border-bottom-left-radius:16px;"></span>
+          <span style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-color:#F5D547;border-style:solid;border-width:0;border-bottom-width:3.5px;border-right-width:3.5px;border-bottom-right-radius:16px;"></span>
+        </div>
+        <!-- Bottom shutter silhouette -->
+        <div style="position:absolute;bottom:0;left:0;right:0;padding-top:16px;padding-left:20px;padding-right:20px;padding-bottom:max(24px, env(safe-area-inset-bottom));display:flex;justify-content:center;align-items:center;z-index:10;background:linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);">
+          <div style="width:68px;height:68px;border-radius:50%;border:4px solid #FFFFFF;padding:4px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;">
+            <div style="width:100%;height:100%;border-radius:50%;background-color:#F5D547;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

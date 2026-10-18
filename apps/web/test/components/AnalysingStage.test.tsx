@@ -26,7 +26,6 @@ describe("AnalysingStage (State 3 Parity)", () => {
     expect(screen.getAllByTestId("candidate-pulse-dot").length).toBeGreaterThan(0);
     const laserContainer = screen.getByTestId("scanning-laser-container");
     expect(laserContainer).toBeInTheDocument();
-    expect(laserContainer.style.clipPath).toBe('url("#drawn-focus-clip")');
     expect(screen.queryByText(/Focusing on items/i)).not.toBeInTheDocument();
   });
 

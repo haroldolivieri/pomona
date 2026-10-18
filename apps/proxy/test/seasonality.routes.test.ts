@@ -78,9 +78,15 @@ describe("POST /api/v1/scan seasonality enrichment", () => {
   });
 
   it("sets seasonality to null for unknown produce", async () => {
-    const json = await scan(okOutput("dragonfruit_xyz", "Dragonfruit"), "en-GB");
+    const json = await scan(okOutput("mystery_pod_xyz", "Mystery Pod"), "en-GB");
     expect(json.status).toBe("ok");
     expect(json.seasonality ?? null).toBeNull();
+  });
+
+  it("falls back to produce.displayName when produce.type is generic", async () => {
+    const json = await scan(okOutput("fruit", "Ponkan Mandarin"), "pt-BR");
+    expect(json.status).toBe("ok");
+    expect(json.seasonality.produceSlug).toBe("mandarin");
   });
 
   it("omits seasonality for non-ok scans", async () => {

@@ -21,7 +21,23 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [streamActive, setStreamActive] = useState<boolean>(false);
+  const [isOnline, setIsOnline] = useState<boolean>(() =>
+    typeof navigator !== "undefined" && typeof navigator.onLine === "boolean"
+      ? navigator.onLine
+      : true
+  );
   const { phase, lastResponse, firstPick, runnerUp, round1PhotoDataUrl } = state;
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   const followUp = lastResponse?.followUp;
   const isFinalCheck = phase === "S6_FlipFirstPickCamera";
@@ -85,6 +101,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleCapture = () => {
+    if (!isOnline) return;
     if (videoRef.current && streamActive) {
       const video = videoRef.current;
       const container = containerRef.current;
@@ -518,7 +535,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
               margin: "2px 0 4px",
             }}
           >
-            {headline}
+            {isOnline ? headline : t("camera.offlineTitle")}
           </h2>
 
           {/* Description */}
@@ -532,7 +549,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
               margin: 0,
             }}
           >
-            {instruction}
+            {isOnline ? instruction : t("camera.offlineSubtitle")}
           </p>
 
           {/* Goal & Score Pills */}
@@ -594,6 +611,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
         {/* Shutter Button */}
         <button
           onClick={handleCapture}
+          disabled={!isOnline}
           data-testid="flip-shutter-button"
           aria-label="Capture flipped produce"
           style={{
@@ -604,7 +622,8 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
             border: "4px solid #FFFFFF",
             padding: "4px",
             boxSizing: "border-box",
-            cursor: "pointer",
+            cursor: isOnline ? "pointer" : "not-allowed",
+            opacity: isOnline ? 1 : 0.45,
             boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
             display: "flex",
             alignItems: "center",
@@ -616,7 +635,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
               width: "100%",
               height: "100%",
               borderRadius: "50%",
-              backgroundColor: "#F5D547",
+              backgroundColor: isOnline ? "#F5D547" : "#9E9D98",
             }}
           />
         </button>

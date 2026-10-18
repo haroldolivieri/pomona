@@ -196,11 +196,50 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
           }}
         >
           <defs>
+            <linearGradient id="laser-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#FFF275" stopOpacity="0" />
+              <stop offset="30%" stopColor="#FFF275" stopOpacity="0.8" />
+              <stop offset="50%" stopColor="#F5D547" stopOpacity="1" />
+              <stop offset="70%" stopColor="#FFF275" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#FFF275" stopOpacity="0" />
+            </linearGradient>
             {isDrawnArea && rawPoints && (
               <clipPath id="drawn-focus-clip">
                 <path d={polygonPathD} />
               </clipPath>
             )}
+            <style>
+              {`
+                @keyframes scan-laser-sweep-svg-bbox {
+                  0% {
+                    transform: translateY(${minY}px);
+                    opacity: 0.85;
+                  }
+                  50% {
+                    transform: translateY(${maxY}px);
+                    opacity: 1;
+                  }
+                  100% {
+                    transform: translateY(${minY}px);
+                    opacity: 0.85;
+                  }
+                }
+                @keyframes scan-laser-sweep-svg-full {
+                  0% {
+                    transform: translateY(0px);
+                    opacity: 0.85;
+                  }
+                  50% {
+                    transform: translateY(1000px);
+                    opacity: 1;
+                  }
+                  100% {
+                    transform: translateY(0px);
+                    opacity: 0.85;
+                  }
+                }
+              `}
+            </style>
           </defs>
 
           {/* Dim outer mask: rgba(0, 0, 0, 0.48) */}
@@ -212,49 +251,56 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
             />
           )}
 
-          {/* Glowing polygon outline: dashed yellow */}
-          {isDrawnArea && rawPoints && (
-            <path
-              d={polygonPathD}
-              fill="rgba(245, 213, 71, 0.08)"
-              stroke="#F5D547"
-              strokeWidth="4"
-              strokeDasharray="7 5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
-        </svg>
+            {/* Glowing polygon outline: dashed yellow */}
+            {isDrawnArea && rawPoints && (
+              <path
+                d={polygonPathD}
+                fill="rgba(245, 213, 71, 0.08)"
+                stroke="#F5D547"
+                strokeWidth="4"
+                strokeDasharray="7 5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )}
 
-        {/* Laser Sweep Scanning Overlay strictly constrained to drawn area */}
-        <div
-          data-testid="scanning-laser-container"
-          style={{
-            position: "absolute",
-            left: scanBox.left,
-            top: scanBox.top,
-            width: scanBox.width,
-            height: scanBox.height,
-            overflow: "hidden",
-            pointerEvents: "none",
-            zIndex: 10,
-            clipPath: isDrawnArea && rawPoints ? "url(#drawn-focus-clip)" : undefined,
-            WebkitClipPath: isDrawnArea && rawPoints ? "url(#drawn-focus-clip)" : undefined,
-          }}
-        >
-          <div
-            className="animate-scan-laser"
-            style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              height: "4px",
-              background:
-                "linear-gradient(90deg, transparent 0%, #FFF275 30%, #F5D547 50%, #FFF275 70%, transparent 100%)",
-              boxShadow: "0 0 20px 4px #F5D547, 0 0 6px 1px #FFFFFF",
-            }}
-          />
-        </div>
+            {/* Laser scanning beam inside SVG strictly clipped to the drawn polygon mask */}
+            <g clipPath={isDrawnArea && rawPoints ? "url(#drawn-focus-clip)" : undefined}>
+              <g
+                data-testid="scanning-laser-container"
+                style={{
+                  animation: `scan-laser-sweep-svg-${isDrawnArea ? "bbox" : "full"} 2.4s ease-in-out infinite`,
+                }}
+              >
+                {/* Wide soft glow */}
+                <rect
+                  x="0"
+                  y="-12"
+                  width="1000"
+                  height="24"
+                  fill="url(#laser-gradient)"
+                  opacity="0.6"
+                />
+                {/* Bright core beam */}
+                <rect
+                  x="0"
+                  y="-2"
+                  width="1000"
+                  height="4"
+                  fill="#FFF275"
+                  opacity="0.95"
+                />
+                {/* Thin intense laser line */}
+                <rect
+                  x="0"
+                  y="-1"
+                  width="1000"
+                  height="2"
+                  fill="#FFFFFF"
+                />
+              </g>
+            </g>
+          </svg>
 
         {/* Candidate pulsing dots positioned in 0..1000 image coordinate space */}
         {candidateDots.map((dot, index) => (
