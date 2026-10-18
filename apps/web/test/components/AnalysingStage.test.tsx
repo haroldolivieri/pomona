@@ -24,6 +24,10 @@ describe("AnalysingStage (State 3 Parity)", () => {
     expect(screen.getByText("Checking ripeness…")).toBeInTheDocument();
     expect(screen.getByTestId("scanning-polygon-overlay")).toBeInTheDocument();
     expect(screen.getAllByTestId("candidate-pulse-dot").length).toBeGreaterThan(0);
+    const laserContainer = screen.getByTestId("scanning-laser-container");
+    expect(laserContainer).toBeInTheDocument();
+    expect(laserContainer.style.clipPath).toBe('url("#drawn-focus-clip")');
+    expect(screen.queryByText(/Focusing on items/i)).not.toBeInTheDocument();
   });
 
   it("renders cancel button and triggers onCancel when clicked", () => {

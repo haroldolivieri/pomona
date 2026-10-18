@@ -174,8 +174,32 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
         </svg>
       )}
 
-      {/* Bounded Laser Sweep Scanning Overlay */}
+      {/* SVG clip path definition for precise polygon boundary masking */}
+      {isDrawnArea && rawPoints && (
+        <svg
+          width="0"
+          height="0"
+          style={{ position: "absolute", pointerEvents: "none" }}
+          aria-hidden="true"
+        >
+          <defs>
+            <clipPath id="drawn-focus-clip" clipPathUnits="objectBoundingBox">
+              <path
+                d={rawPoints
+                  .map(
+                    (p, idx) =>
+                      `${idx === 0 ? "M" : "L"} ${(p[0] / 1000).toFixed(4)} ${(p[1] / 1000).toFixed(4)}`
+                  )
+                  .join(" ") + " Z"}
+              />
+            </clipPath>
+          </defs>
+        </svg>
+      )}
+
+      {/* Bounded Laser Sweep Scanning Overlay masked to drawn area if applicable */}
       <div
+        data-testid="scanning-laser-container"
         style={{
           position: "absolute",
           left: scanBox.left,
@@ -185,6 +209,8 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
           overflow: "hidden",
           pointerEvents: "none",
           zIndex: 10,
+          clipPath: isDrawnArea && rawPoints ? "url(#drawn-focus-clip)" : undefined,
+          WebkitClipPath: isDrawnArea && rawPoints ? "url(#drawn-focus-clip)" : undefined,
         }}
       >
         <div
@@ -282,32 +308,6 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
         </div>
 
         <div style={{ width: "30px" }} />
-      </div>
-
-      {/* Floating yellow tag */}
-      <div
-        style={{
-          position: "absolute",
-          top: "112px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          backgroundColor: "#F5D547",
-          color: "#142117",
-          fontFamily: "Inter, system-ui, sans-serif",
-          fontWeight: 700,
-          fontSize: "10px",
-          lineHeight: 1,
-          padding: "5px 10px",
-          borderRadius: "999px",
-          whiteSpace: "nowrap",
-          boxShadow: "0 3px 10px rgba(0, 0, 0, 0.3)",
-          zIndex: 25,
-          pointerEvents: "none",
-        }}
-      >
-        {isDrawnArea
-          ? "Focusing on items in drawn area…"
-          : "Focusing on produce in frame…"}
       </div>
 
       {/* Curved ivory bottom sheet */}
