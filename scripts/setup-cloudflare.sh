@@ -17,6 +17,22 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 WRANGLER_FILE="${ROOT_DIR}/apps/proxy/wrangler.jsonc"
 
+# Load local env files if present
+if [ -f "${ROOT_DIR}/.env" ]; then
+  set -a
+  source "${ROOT_DIR}/.env"
+  set +a
+fi
+if [ -f "${ROOT_DIR}/apps/proxy/.dev.vars" ]; then
+  set -a
+  source "${ROOT_DIR}/apps/proxy/.dev.vars"
+  set +a
+fi
+
+# Normalize Cloudflare token and account ID from env
+export CLOUDFLARE_API_TOKEN="${CLOUDFARE_API_TOKEN:-${CLOUDFLARE_API_TOKEN:-}}"
+export CLOUDFLARE_ACCOUNT_ID="${CLOUDFARE_ACCOUNT_ID:-${CLOUDFLARE_ACCOUNT_ID:-553fb87d04f36b2f088f1250f34503cc}}"
+
 echo "=============================================="
 echo "  Pomona Cloudflare Provisioning & Deployment"
 echo "=============================================="
@@ -47,7 +63,7 @@ PROD_KV_ID=$(extract_kv_id "${PROD_KV_OUTPUT}")
 
 if [ -z "${PROD_KV_ID}" ]; then
   # Check if it already exists in kv namespace list
-  PROD_KV_ID=$(npx wrangler kv namespace list 2>/dev/null | grep -B 1 '"title": "pomona-proxy-POMONA_QUOTA_KV"' | grep '"id":' | head -n 1 | cut -d '"' -f 4 || true)
+  PROD_KV_ID=$(npx wrangler kv namespace list 2>/dev/null | grep -E -B 1 '"title": "(pomona-proxy-)?POMONA_QUOTA_KV"' | grep '"id":' | head -n 1 | cut -d '"' -f 4 || true)
 fi
 
 # Preview KV namespace
@@ -56,7 +72,7 @@ PREVIEW_KV_OUTPUT=$(npx wrangler kv namespace create POMONA_QUOTA_KV --preview 2
 PREVIEW_KV_ID=$(extract_kv_id "${PREVIEW_KV_OUTPUT}")
 
 if [ -z "${PREVIEW_KV_ID}" ]; then
-  PREVIEW_KV_ID=$(npx wrangler kv namespace list 2>/dev/null | grep -B 1 '"title": "pomona-proxy-POMONA_QUOTA_KV_PREVIEW"' | grep '"id":' | head -n 1 | cut -d '"' -f 4 || true)
+  PREVIEW_KV_ID=$(npx wrangler kv namespace list 2>/dev/null | grep -E -B 1 '"title": "(pomona-proxy-)?POMONA_QUOTA_KV_[Pp]review"' | grep '"id":' | head -n 1 | cut -d '"' -f 4 || true)
 fi
 
 echo "KV Production ID: ${PROD_KV_ID:-'(unchanged/existing)'}"

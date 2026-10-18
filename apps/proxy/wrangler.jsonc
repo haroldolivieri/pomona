@@ -7,8 +7,8 @@
   "kv_namespaces": [
     {
       "binding": "POMONA_QUOTA_KV",
-      "id": "POMONA_QUOTA_KV_ID",
-      "preview_id": "POMONA_QUOTA_KV_PREVIEW_ID"
+      "id": "9b4f7acc62bb445c8d0ed30683ec4a2f",
+      "preview_id": "60d7d61a6c244f13bce5676209ccac74"
     }
   ],
   "assets": {
