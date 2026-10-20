@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Auto-bumps apps/web version on push when it hasn't been bumped vs the
-# remote state being pushed to. The bump (if any) is committed before the
+# integration base (origin/main for feature branches). The bump (if any) is committed before the
 # push is stopped so the next push includes the new commit. Escapes: POMONA_SKIP_BUMP=1 or "[no-bump]" in latest commit.
 #
 # git pre-push contract: $1=remote-name $2=url; pushed refs arrive on stdin
@@ -29,13 +29,11 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   [ -n "$local_ref" ] || continue
   # Skip branch deletions (local ref is all zeros)
   if [ "${local_sha#000000000000}" = "${local_sha}" ]; then
-    # Base = the remote tip we are updating (previous state); ref name as fallback
-    base=""
-    if [ -n "$remote_sha" ] && [ "${remote_sha#000000000000}" = "${remote_sha}" ]; then
+    # Feature branches carry one release bump relative to main, including review pushes.
+    # Direct main updates compare against the previous main tip.
+    base="origin/main"
+    if [ "$remote_ref" = "refs/heads/main" ] && [ -n "$remote_sha" ] && [ "${remote_sha#000000000000}" = "$remote_sha" ]; then
       base="$remote_sha"
-    elif [ -n "$remote_ref" ]; then
-      # New branch (remote_sha all zeros): compare against the integration base
-      base="origin/main"
     fi
     # Do not fold an unfinished version edit into an automatic release commit.
     if ! git diff --quiet HEAD -- apps/web/package.json; then

@@ -113,3 +113,20 @@ test('whole-push base accepts a bump preceding the final source commit', t => {
   assert.match(result.stdout, /no bump needed/);
   assert.equal(f.git('status', '--porcelain'), '');
 });
+
+test('review pushes preserve the feature branch bump relative to main', t => {
+  const f = fixture(t);
+  f.git('checkout', '-b', 'feature/review');
+  writeFileSync(f.versionFile, '{"version": "0.2.0"}\n');
+  f.git('add', 'apps/web/package.json');
+  f.git('commit', '-m', 'feature version bump');
+  f.git('push', '-u', 'origin', 'feature/review');
+  writeFileSync(path.join(f.work, 'source.js'), 'review fix\n'.repeat(200));
+  f.git('add', 'source.js');
+  f.git('commit', '-m', 'review fix');
+  const before = f.git('rev-parse', 'HEAD');
+  f.git('push', 'origin', 'feature/review');
+  assert.equal(f.git('rev-parse', 'HEAD'), before);
+  assert.equal(JSON.parse(readFileSync(f.versionFile, 'utf8')).version, '0.2.0');
+  assert.equal(f.git('--git-dir=' + f.remote, 'rev-parse', 'feature/review'), before);
+});
