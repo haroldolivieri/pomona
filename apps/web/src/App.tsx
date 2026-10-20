@@ -151,7 +151,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     if (typeof window !== "undefined" && typeof window.location !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const scansParam = params.get("scans");
-      if (scansParam !== null) {
+      if (isLocalBuild && scansParam !== null) {
         const parsed = parseInt(scansParam, 10);
         if (!isNaN(parsed) && parsed >= 0) {
           activeApiClient
@@ -176,9 +176,10 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
         }
       })
       .catch((err) => console.warn("[quota] Failed to fetch quota from backend:", err));
-  }, [activeApiClient]);
+  }, [activeApiClient, isLocalBuild]);
 
   const handleQuotaPrompt = () => {
+    if (!isLocalBuild) return;
     if (typeof window === "undefined" || typeof window.prompt !== "function") return;
     const current = remainingScans;
     const val = window.prompt(
@@ -206,6 +207,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
   };
 
   useEffect(() => {
+    if (!isLocalBuild) return;
     if (typeof window !== "undefined") {
       (window as any).__setRemainingScans = (count: number) => {
         activeApiClient
@@ -217,8 +219,9 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
           })
           .catch(console.error);
       };
+      return () => { delete (window as any).__setRemainingScans; };
     }
-  }, [activeApiClient]);
+  }, [activeApiClient, isLocalBuild]);
 
   // Shake detection listener: only mounted in development / debug mode
   useEffect(() => {
@@ -394,7 +397,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
           <CameraViewfinder
             onCapture={handleFrameCaptured}
             remainingScans={remainingScans}
-            onQuotaClick={handleQuotaPrompt}
+            onQuotaClick={isLocalBuild ? handleQuotaPrompt : undefined}
             onToggleTheme={toggleTheme}
             theme={theme}
             onBrandTap={handleBrandTap}
@@ -409,7 +412,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             onRetake={handleReset}
             errorMessage={state.errorMessage}
             remainingScans={remainingScans}
-            onQuotaClick={handleQuotaPrompt}
+            onQuotaClick={isLocalBuild ? handleQuotaPrompt : undefined}
           />
         );
 
@@ -421,7 +424,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             cropRect={state.cropRect}
             onCancel={handleReset}
             remainingScans={remainingScans}
-            onQuotaClick={handleQuotaPrompt}
+            onQuotaClick={isLocalBuild ? handleQuotaPrompt : undefined}
           />
         );
 

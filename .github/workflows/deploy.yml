@@ -22,13 +22,13 @@ jobs:
     name: Version Bump Gate
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - name: Checkout repository (PR head)
         if: github.event_name == 'pull_request'
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
       - name: Checkout repository
@@ -42,40 +42,27 @@ jobs:
         with:
           node-version: 22
 
-      # PR: auto-bump fallback for pushers without the local pre-push hook.
-      # Push to main: hard-fail if sources changed without a version bump.
+      # Require the version bump in the submitted commit so checks remain attached
+      # to the actual PR head. CI must not push an unchecked replacement commit.
       - name: Compute version bump
         id: bump
         env:
-          BASE_REF: ${{ github.event_name == 'push' && 'HEAD^' || 'origin/main' }}
+          BASE_REF: ${{ github.event_name == 'push' && github.event.before || 'origin/main' }}
         run: |
           if [ "${{ github.event_name }}" != "push" ]; then
             git fetch origin main --no-tags 2>/dev/null || true
           fi
           node scripts/version-bump.mjs --base "$BASE_REF"
 
-      - name: Commit auto-bump (PR only)
-        if: github.event_name == 'pull_request'
+      - name: Require committed version bump
         run: |
-          if git status --porcelain apps/web/package.json | grep -q .; then
-            git config user.name "pomona-ci"
-            git config user.email "pomona-ci@users.noreply.github.com"
-            git add apps/web/package.json pnpm-lock.yaml
-            NEXT_VERSION=$(node -p "require('./apps/web/package.json').version")
-            git commit -m "chore(release): bump version to v$NEXT_VERSION"
-            git push origin ${{ github.event.pull_request.head.ref }}
-          else
-            echo "Version already bumped; nothing to commit"
-          fi
-
-      - name: Enforce bump on direct main push
-        if: github.event_name == 'push'
-        run: |
-          if git status --porcelain apps/web/package.json | grep -q .; then
-            echo "::error::Sources changed on main without a version bump. Bump apps/web/package.json (or use the local pre-push hook / open a PR)."
+          if ! git diff --quiet -- apps/web/package.json; then
+            echo "::error::Sources changed without a version bump. Run node scripts/version-bump.mjs --base '$BASE_REF', commit apps/web/package.json, and push again."
             exit 1
           fi
           echo "Version gate passed"
+        env:
+          BASE_REF: ${{ github.event_name == 'push' && github.event.before || 'origin/main' }}
 
   check-changes:
     name: Detect Changed Paths
@@ -124,6 +111,9 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Version hook regression tests
+        run: node --test scripts/version-hook.test.mjs
 
       - name: Unit tests (web, proxy, contract, evals)
         run: pnpm -r test

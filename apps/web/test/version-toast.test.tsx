@@ -12,6 +12,13 @@ vi.mock("../src/lib/build-mode", () => ({
 describe("Published build: 5-tap version toast only", () => {
   beforeEach(() => {
     cleanup();
+    const storage = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+      clear: () => storage.clear(),
+    });
     try {
       localStorage.clear();
     } catch {}
@@ -65,4 +72,31 @@ describe("Published build: 5-tap version toast only", () => {
       vi.useRealTimers();
     }
   });
+  it.each(["S2_DrawFocusArea", "S3_Analysing"] as const)(
+    "blocks production quota overrides in %s while fetching quota",
+    async (phase) => {
+      const client = makeDummyClient();
+      window.history.replaceState({}, "", "/?scans=999&debug=true");
+      localStorage.setItem("pomona-debug-device", "true");
+      localStorage.setItem("pomona-mock-mode", "true");
+      try {
+        await act(async () => {
+          render(<PomonaApp apiClient={client} telemetry={createNoopTelemetry()}
+            initialState={{ phase }} />);
+        });
+        expect(client.getQuota).toHaveBeenCalledOnce();
+        expect(client.overrideQuota).not.toHaveBeenCalled();
+        expect((window as any).__setRemainingScans).toBeUndefined();
+        const pill = screen.getByTestId("scan-quota-pill");
+        expect(pill.getAttribute("role")).toBeNull();
+        expect(pill.getAttribute("title")).toBeNull();
+        fireEvent.click(pill);
+        expect(client.overrideQuota).not.toHaveBeenCalled();
+      } finally {
+        window.history.replaceState({}, "", "/");
+        cleanup();
+      }
+    }
+  );
+
 });
