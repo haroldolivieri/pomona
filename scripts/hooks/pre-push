@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Auto-bumps apps/web version on push when it hasn't been bumped vs the
+# remote state being pushed to. The bump (if any) is committed before the
+# push proceeds. Escapes: POMONA_SKIP_BUMP=1 or "[no-bump]" in latest commit.
+#
+# git pre-push contract: $1=remote-name $2=url; pushed refs arrive on stdin
+# as "<local_ref> <local_sha> <remote_ref> <remote_sha>" lines.
+
+if [ -n "$POMONA_SKIP_BUMP" ]; then
+  echo "[version-hook] POMONA_SKIP_BUMP set; skipping"
+  exit 0
+fi
+
+bumped="0"
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -n "$local_ref" ] || continue
+  # Skip branch deletions (local ref is all zeros)
+  if [ "${local_sha#000000000000}" = "${local_sha}" ]; then
+    # Base = the remote tip we are updating (previous state); ref name as fallback
+    base=""
+    if [ -n "$remote_sha" ] && [ "${remote_sha#000000000000}" = "${remote_sha}" ]; then
+      base="$remote_sha"
+    elif [ -n "$remote_ref" ]; then
+      # New branch (remote_sha all zeros): compare against the integration base
+      base="origin/main"
+    fi
+    out=$(node scripts/version-bump.mjs --base "$base") || exit 1
+    echo "$out"
+    case "$out" in
+      *"[version] Bumped"*) bumped="1" ;;
+    esac
+  fi
+done
+
+if [ "$bumped" = "1" ]; then
+  git add apps/web/package.json pnpm-lock.yaml 2>/dev/null
+  NEXT_VERSION=$(node -p "require('./apps/web/package.json').version")
+  git commit -m "chore(release): bump version to v$NEXT_VERSION"
+  echo "[version-hook] Committed version bump to v$NEXT_VERSION"
+fi
+
+exit 0

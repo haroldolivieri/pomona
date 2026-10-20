@@ -7,6 +7,10 @@ on:
   pull_request:
     branches:
       - main
+    types:
+      - opened
+      - synchronize
+      - reopened
   workflow_dispatch:
 
 concurrency:
@@ -14,6 +18,65 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  version-gate:
+    name: Version Bump Gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository (PR head)
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Checkout repository
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # PR: auto-bump fallback for pushers without the local pre-push hook.
+      # Push to main: hard-fail if sources changed without a version bump.
+      - name: Compute version bump
+        id: bump
+        env:
+          BASE_REF: ${{ github.event_name == 'push' && 'HEAD^' || 'origin/main' }}
+        run: |
+          if [ "${{ github.event_name }}" != "push" ]; then
+            git fetch origin main --no-tags 2>/dev/null || true
+          fi
+          node scripts/version-bump.mjs --base "$BASE_REF"
+
+      - name: Commit auto-bump (PR only)
+        if: github.event_name == 'pull_request'
+        run: |
+          if git status --porcelain apps/web/package.json | grep -q .; then
+            git config user.name "pomona-ci"
+            git config user.email "pomona-ci@users.noreply.github.com"
+            git add apps/web/package.json pnpm-lock.yaml
+            NEXT_VERSION=$(node -p "require('./apps/web/package.json').version")
+            git commit -m "chore(release): bump version to v$NEXT_VERSION"
+            git push origin ${{ github.event.pull_request.head.ref }}
+          else
+            echo "Version already bumped; nothing to commit"
+          fi
+
+      - name: Enforce bump on direct main push
+        if: github.event_name == 'push'
+        run: |
+          if git status --porcelain apps/web/package.json | grep -q .; then
+            echo "::error::Sources changed on main without a version bump. Bump apps/web/package.json (or use the local pre-push hook / open a PR)."
+            exit 1
+          fi
+          echo "Version gate passed"
+
   check-changes:
     name: Detect Changed Paths
     runs-on: ubuntu-latest
@@ -33,10 +96,44 @@ jobs:
               - 'packages/contract/src/schemas.ts'
               - 'packages/evals/**'
 
+  unit-tests:
+    name: Typecheck & Unit Tests (all workspaces)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build dependencies
+        run: |
+          pnpm --filter @pomona/contract build || true
+          pnpm --filter @pomona/proxy build || true
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests (web, proxy, contract, evals)
+        run: pnpm -r test
+
   eval-gate:
-    name: Prompt Regression & Ground-Truth Eval Gate
+    name: Prompt Regression & Live Eval Gate (main merge only)
     needs: check-changes
-    if: needs.check-changes.outputs.prompts_changed == 'true' || github.event_name == 'workflow_dispatch'
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-changes.outputs.prompts_changed == 'true') ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -71,15 +168,9 @@ jobs:
           EVAL_MODEL: "gemini-3.1-flash-lite"
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
-  deploy:
-    name: Build & Deploy Worker + Static Assets
-    needs: [check-changes, eval-gate]
-    # Deploy only on push to main (or workflow_dispatch), and ensure eval-gate passes if it ran
-    if: |
-      always() &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      github.ref == 'refs/heads/main' &&
-      (needs.eval-gate.result == 'success' || needs.eval-gate.result == 'skipped')
+  e2e-web:
+    name: Playwright E2E (main merge only)
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -99,13 +190,42 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck
-        run: pnpm typecheck
+      - name: Install Playwright browsers
+        run: pnpm --filter @pomona/web exec playwright install --with-deps chromium
 
-      - name: Test contract & proxy
-        run: |
-          pnpm --filter @pomona/contract test
-          pnpm --filter @pomona/proxy test
+      - name: Run E2E tests
+        run: pnpm --filter @pomona/web test:e2e
+
+  deploy:
+    name: Build & Deploy Worker + Static Assets
+    needs: [version-gate, check-changes, unit-tests, eval-gate, e2e-web]
+    # Deploy only on push to main (or workflow_dispatch), and ensure gates passed if they ran
+    if: |
+      always() &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/main' &&
+      needs.version-gate.result == 'success' &&
+      needs.unit-tests.result == 'success' &&
+      (needs.eval-gate.result == 'success' || needs.eval-gate.result == 'skipped') &&
+      needs.e2e-web.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Build web client & worker
         run: pnpm build
@@ -114,4 +234,4 @@ jobs:
         run: pnpm --filter @pomona/proxy exec wrangler deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFARE_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID || '553fb87d04f36b2f088f1250f34503cc' }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID || '553fb87d04f36b2f088f1250f34503cc' }}
