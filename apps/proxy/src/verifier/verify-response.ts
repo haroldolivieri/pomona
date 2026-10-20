@@ -131,6 +131,7 @@ export function verifyAndResolveScanResponse(
       round: ctx.request.round,
       status: data.status,
       message: data.message,
+      countedTotal: data.countedTotal ?? null,
       produce: data.produce,
       candidates: data.candidates,
       verdict: data.verdict,
@@ -198,6 +199,24 @@ export function verifyAndResolveScanResponse(
     );
   }
 
+  // COUNT-COVERAGE INVARIANT (Round 1): the emitted candidates must cover at least 70% of
+  // the model's own silent count (countedTotal), capped at the 30-candidate UI limit.
+  // The model cannot game this report: inflating countedTotal only raises its own floor,
+  // and deflating it contradicts its own emitted boxes.
+  // Only enforced for dense scenes (countedTotal >= 10) — for sparse displays the
+  // GT bands and "every clearly visible item" rule already guarantee coverage, and
+  // small per-item count drift (e.g. counting an out-of-polygon item) would otherwise
+  // fail a scan that correctly covered the isolated region.
+  if (ctx.request.round === 1 && typeof data.countedTotal === "number" && data.countedTotal >= 10) {
+    const rawFloor = Math.ceil(data.countedTotal * 0.7);
+    const coverageFloor = Math.min(rawFloor, 30);
+    if (candidates.length < coverageFloor) {
+      errors.push(
+        `Count coverage violated: countedTotal=${data.countedTotal} requires at least ${rawFloor} candidates (70% of counted total${coverageFloor < rawFloor ? ", capped to UI limit 30" : ""}), but only ${candidates.length} valid candidates were emitted`
+      );
+    }
+  }
+
   if (candidates.length < 1) {
     errors.push("candidates must contain at least 1 valid candidate");
   }
@@ -213,8 +232,15 @@ export function verifyAndResolveScanResponse(
     : null;
 
   if (ctx.request.round === 1) {
-    // Round 1: Sort candidates descending by score
-    candidates.sort((a, b) => b.score - a.score);
+    // Round 1: Sort candidates descending by score.
+    // Deterministic tie-break for equal scores: prefer the topmost-then-leftmost box.
+    // Scores within ±0.2 wobble otherwise decide ranks by noise, making the "winner"
+    // unreproducible across runs; the position tie-break makes rank order stable.
+    candidates.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (a.box[0] !== b.box[0]) return a.box[0] - b.box[0];
+      return a.box[1] - b.box[1];
+    });
     const winner = candidates[0];
     const runnerUp = candidates.length > 1 ? candidates[1] : null;
 
@@ -329,6 +355,7 @@ export function verifyAndResolveScanResponse(
     round: ctx.request.round,
     status: data.status,
     message: data.message,
+    countedTotal: data.countedTotal ?? null,
     produce: data.produce,
     candidates,
     verdict: resolvedVerdict,

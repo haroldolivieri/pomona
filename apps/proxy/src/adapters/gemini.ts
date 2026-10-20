@@ -27,6 +27,13 @@ const GeminiStorageStageSchema = z.object({
 const GeminiProviderSchema = z.object({
   status: ModelStatusSchema,
   message: z.string().nullable().describe("Null when status is ok; descriptive error message otherwise (max 160 chars)"),
+  countedTotal: z
+    .number()
+    .int()
+    .min(0)
+    .max(500)
+    .nullable()
+    .describe("Round 1 only: the TOTAL number of individual produce item instances you silently counted in view (inside the focusPolygon bounds when provided, otherwise the whole foreground display). Null on Rounds 2/3 or when no produce is graded."),
   produce: ProduceInfoSchema.nullable(),
   candidates: z.array(
     z.object({
@@ -97,6 +104,7 @@ export function createGeminiVisionAdapter(options: GeminiVisionAdapterOptions): 
       const result = await generateFn({
         model: model as any,
         schema: GeminiProviderSchema as any,
+        temperature: 0.1,
         system: input.systemPrompt,
         messages: [
           {

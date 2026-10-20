@@ -16,14 +16,128 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     groundTruth: Record<string, any>;
   }> = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf-8"));
 
-  it("verifies all 15 generated ground-truth images exist on disk and are non-empty JPEGs", () => {
-    expect(manifest.length).toBe(15);
+  it("verifies all 17 generated ground-truth images exist on disk and are non-empty JPEGs", () => {
+    expect(manifest.length).toBe(17);
     for (const item of manifest) {
       const fullPath = path.resolve(__dirname, "..", item.imagePath);
       expect(fs.existsSync(fullPath)).toBe(true);
       const stat = fs.statSync(fullPath);
       expect(stat.size).toBeGreaterThan(10_000);
     }
+  });
+
+  it("Scenario 16 (Roma Tomatoes Bulk Pile): 70% count-coverage rule — countedTotal=48 forces the 30-candidate UI cap, and under-covering is a verifier failure", () => {
+      const gt = manifest.find((m) => m.id === "16-roma-tomatoes-bulk-pile")!.groundTruth;
+
+      const mkCandidate = (i: number, size = 110) => ({
+        id: `c${i + 1}`,
+        box: [20 + (i % 8) * size, 20 + Math.floor(i / 8) * size, 90 + (i % 8) * size, 90 + Math.floor(i / 8) * size],
+        score: +(8.0 + (i % 3) * 0.5).toFixed(1),
+        ripeness: "ripe",
+        traits: ["Deep red", "Firm skin"],
+        flipSummary: null,
+      });
+      const baseOutput = {
+        status: "ok",
+        message: null,
+        produce: { type: "tomato", displayName: "Roma Tomatoes", variety: "Roma" },
+        candidates: [] as any[],
+        countedTotal: 48,
+        verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy your 1st pick." },
+        followUp: {
+          targetCandidateId: "c2",
+          targetRole: "runner_up",
+          bannerText: "Compare firmness with candidate c2.",
+          flipHeadline: "Flip the Roma Tomato",
+          instruction: "Inspect underside for soft spots.",
+        },
+        afterPurchase: {
+          readyInDays: { min: 0, max: 0 },
+          eatWithinDays: { min: 3, max: 5 },
+          eatWithinLabel: "3–5 days",
+          storage: {
+            beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · room temp", tip: "Store stem side down" },
+            afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · container", tip: "Cover cut half" },
+          },
+        },
+      };
+
+      // 1. Valid high-density output: counted 48 → 70% floor is 34 → UI cap 30 → 30 candidates passes
+      const validOutput = { ...baseOutput, candidates: Array.from({ length: 30 }, (_, i) => mkCandidate(i)) };
+      expect(verifyPromptfooOutput(JSON.stringify(validOutput), { vars: gt }).pass).toBe(true);
+
+      // 2. Count coverage violation: countedTotal=48 requires 30 (capped), emitting only 20 must FAIL the verifier
+      const underCoverageOutput = { ...baseOutput, candidates: Array.from({ length: 20 }, (_, i) => mkCandidate(i)) };
+      const failCoverage = verifyPromptfooOutput(JSON.stringify(underCoverageOutput), { vars: gt });
+      expect(failCoverage.pass).toBe(false);
+      expect(failCoverage.reason).toContain("Count coverage violated");
+
+      // 3. Too sparse (no countedTotal honesty): 3 candidates fail the spatial band (27–30)
+      const sparseOutput = { ...baseOutput, countedTotal: null, candidates: Array.from({ length: 3 }, (_, i) => mkCandidate(i)) };
+      const failRes = verifyPromptfooOutput(JSON.stringify(sparseOutput), { vars: gt });
+      expect(failRes.pass).toBe(false);
+      expect(failRes.reason).toContain("Expected at least 27 candidates");
+  });
+
+  it("Scenario 17 (Roma Bulk Pile Focus-Polygon): 70% coverage of countedTotal with 24-30 in-polygon candidates; covers and collapses are failures", () => {
+    const gt = manifest.find((m) => m.id === "17-roma-bulk-pile-focus-polygon")!.groundTruth;
+
+    // 1. Valid polygon output: 24 individual tight boxes, all centers inside the drawn loop
+    const validPolygonOutput = {
+      status: "ok",
+      message: null,
+      produce: { type: "tomato", displayName: "Roma Tomatoes", variety: "Roma" },
+      candidates: Array.from({ length: 24 }, (_, i) => {
+        const y = 300 + Math.floor(i / 8) * 150;
+        const x = 120 + (i % 8) * 100;
+        return {
+          id: `c${i + 1}`,
+          box: [y, x, y + 120, x + 90],
+          score: +(8.0 + (i % 3) * 0.5).toFixed(1),
+          ripeness: "ripe",
+          traits: ["Deep red", "Firm skin"],
+          flipSummary: null,
+        };
+      }),
+      verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy your 1st pick." },
+      followUp: {
+        targetCandidateId: "c2",
+        targetRole: "runner_up",
+        bannerText: "Compare firmness with candidate c2.",
+        flipHeadline: "Flip the Roma Tomato",
+        instruction: "Inspect underside for soft spots.",
+      },
+      afterPurchase: {
+        readyInDays: { min: 0, max: 0 },
+        eatWithinDays: { min: 3, max: 5 },
+        eatWithinLabel: "3–5 days",
+        storage: {
+          beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · room temp", tip: "Store stem side down" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · container", tip: "Cover cut half" },
+        },
+      },
+    };
+
+    expect(verifyPromptfooOutput(JSON.stringify(validPolygonOutput), { vars: gt }).pass).toBe(true);
+
+    // 2. Adversarial: countedTotal=38 with only 24 emitted fails the 70% count-coverage floor
+    const underCoverageOutput = {
+      ...validPolygonOutput,
+      countedTotal: 38,
+    };
+    const failCoverage = verifyPromptfooOutput(JSON.stringify(underCoverageOutput), { vars: gt });
+    expect(failCoverage.pass).toBe(false);
+    expect(failCoverage.reason).toContain("Count coverage violated");
+
+    // 3. Adversarial failure: polygon path emits only a handful of candidates for a dense heap
+    const collapsedOutput = {
+      ...validPolygonOutput,
+      countedTotal: null,
+      candidates: validPolygonOutput.candidates.slice(0, 5),
+    };
+    const failRes = verifyPromptfooOutput(JSON.stringify(collapsedOutput), { vars: gt });
+    expect(failRes.pass).toBe(false);
+    expect(failRes.reason).toContain("Expected at least 24 candidates");
   });
 
   it("Scenario 01 (Watermelon Crate): passes when model picks bottom-left ripe winner [415,150,780,520] and bottom-right runner-up [430,545,775,880], and FAILS if model swaps them", () => {
@@ -532,48 +646,33 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     expect(resFailure.reason).toContain("Expected at most 2 candidates");
   });
 
-  it("Scenario 12 (Tomato Basket Polygon Selection): requires all prominent individual produce items inside the selected polygon to return candidate data", () => {
+  it("Scenario 12 (Tomato Basket Polygon Selection): requires ALL clearly visible items inside the selected polygon to return candidate data (12-30)", () => {
     const gt = manifest.find((m) => m.id === "12-tomato-basket-polygon-selection")!.groundTruth;
 
-    // 1. Valid model output: Returns multiple distinct individual tomatoes inside the polygon (3-5 candidates)
+    // 1. Valid model output: Returns all countable tomatoes inside the polygon (15 post-filter of countedTotal=20 = 75% ≥ 70%; band 12-30)
     const validMultiCandidateOutput = {
       status: "ok",
       message: null,
       produce: { type: "tomato", displayName: "Tomatoes", variety: "Round" },
       candidates: [
-        {
-          id: "c1",
-          box: [370, 420, 470, 520], // Center ripe tomato
-          score: 9.2,
-          ripeness: "ripe",
-          traits: ["Vibrant red", "Plump form"],
-          flipSummary: null,
-        },
-        {
-          id: "c2",
-          box: [290, 280, 390, 460], // Top-left ripe tomato
-          score: 8.8,
-          ripeness: "ripe",
-          traits: ["Uniform color"],
-          flipSummary: null,
-        },
-        {
-          id: "c3",
-          box: [360, 620, 470, 780], // Center-right tomato
-          score: 8.5,
-          ripeness: "almost_ripe",
-          traits: ["Firm skin"],
-          flipSummary: null,
-        },
-        {
-          id: "c4",
-          box: [440, 490, 510, 640], // Lower tomato
-          score: 8.0,
-          ripeness: "underripe",
-          traits: ["Firm green shoulder"],
-          flipSummary: null,
-        },
+        { id: "c1", box: [370, 420, 470, 520], score: 9.2, ripeness: "ripe", traits: ["Vibrant red", "Plump form"], flipSummary: null },
+        { id: "c2", box: [290, 280, 390, 460], score: 8.8, ripeness: "ripe", traits: ["Uniform color"], flipSummary: null },
+        { id: "c3", box: [360, 620, 470, 780], score: 8.5, ripeness: "almost_ripe", traits: ["Firm skin"], flipSummary: null },
+        { id: "c4", box: [440, 490, 510, 640], score: 8.0, ripeness: "underripe", traits: ["Firm green shoulder"], flipSummary: null },
+        { id: "c5", box: [250, 480, 340, 580], score: 8.3, ripeness: "ripe", traits: ["Even red"], flipSummary: null },
+        { id: "c6", box: [480, 300, 560, 400], score: 7.9, ripeness: "almost_ripe", traits: ["Slight blush"], flipSummary: null },
+        { id: "c7", box: [500, 520, 590, 630], score: 8.1, ripeness: "ripe", traits: ["Smooth skin"], flipSummary: null },
+        { id: "c8", box: [320, 700, 410, 800], score: 7.6, ripeness: "underripe", traits: ["Green shoulder"], flipSummary: null },
+        { id: "c9", box: [560, 380, 660, 490], score: 8.2, ripeness: "ripe", traits: ["Deep red"], flipSummary: null },
+        { id: "c10", box: [420, 200, 520, 310], score: 7.4, ripeness: "underripe", traits: ["Matte skin"], flipSummary: null },
+        { id: "c11", box: [600, 500, 700, 620], score: 7.9, ripeness: "almost_ripe", traits: ["Orange blush"], flipSummary: null },
+        { id: "c12", box: [300, 260, 400, 370], score: 7.2, ripeness: "underripe", traits: ["Pale red"], flipSummary: null },
+        { id: "c13", box: [460, 200, 570, 330], score: 7.7, ripeness: "almost_ripe", traits: ["Blush"], flipSummary: null },
+        { id: "c14", box: [380, 560, 480, 680], score: 8.4, ripeness: "ripe", traits: ["Glossy"], flipSummary: null },
+        { id: "c15", box: [520, 180, 630, 290], score: 7.5, ripeness: "underripe", traits: ["Green tint"], flipSummary: null },
+        { id: "c16", box: [280, 640, 380, 750], score: 8.0, ripeness: "ripe", traits: ["Round form"], flipSummary: null },
       ],
+      countedTotal: 20,
       verdict: {
         winnerId: "c1",
         runnerUpId: "c2",
@@ -604,6 +703,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     // 2. Adversarial failure: Model returns only 1 single candidate when multiple items exist in the selected area
     const invalidSingleCandidateOutput = {
       ...validMultiCandidateOutput,
+      countedTotal: null,
       candidates: [validMultiCandidateOutput.candidates[0]],
       verdict: { winnerId: "c1", runnerUpId: null, confidence: "high", headline: "Buy it." },
       followUp: null,
@@ -611,111 +711,90 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
 
     const failSingleRes = verifyPromptfooOutput(JSON.stringify(invalidSingleCandidateOutput), { vars: gt });
     expect(failSingleRes.pass).toBe(false);
-    expect(failSingleRes.reason).toContain("Expected at least 2 candidates");
+    expect(failSingleRes.reason).toContain("Expected at least 12 candidates");
   });
 
-  it("Scenario 13 (Overlapping Carrot Bags in Crate): passes when model boxes whole bags, rejects when individual loose carrots inside bag are boxed", () => {
+  it("Scenario 13 (Packaged Produce Obscurity / Glare): expects unclear_photo due to heavy printed branding and plastic glare", () => {
     const gt = manifest.find((m) => m.id === "13-carrot-packs-crate")!.groundTruth;
 
-    const validBagsOutput = {
+    // 1. Valid model output: Returns unclear_photo with descriptive message
+    const validUnclearOutput = {
+      status: "unclear_photo",
+      message: "Produce is mostly covered by packaging. Take items out of the bag or move closer for a clear view.",
+      produce: null,
+      candidates: [],
+      verdict: null,
+      followUp: null,
+      afterPurchase: null,
+    };
+
+    const passRes = verifyPromptfooOutput(JSON.stringify(validUnclearOutput), { vars: gt });
+    expect(passRes.pass).toBe(true);
+
+    // 2. Adversarial failure: Model returns status 'ok' attempting to guess through glare
+    const invalidOkOutput = {
       status: "ok",
       message: null,
-      produce: { type: "carrots", displayName: "British Carrots", variety: null },
+      produce: { type: "carrots", displayName: "Carrots", variety: null },
       candidates: [
-        {
-          id: "c1",
-          box: [470, 200, 720, 520], // Foreground British Carrots bag
-          score: 8.5,
-          ripeness: "ripe",
-          traits: ["Bright orange", "Firm roots", "Clear bag"],
-          flipSummary: null,
-        },
-        {
-          id: "c2",
-          box: [220, 180, 480, 500], // Upper bag in crate
-          score: 8.0,
-          ripeness: "almost_ripe",
-          traits: ["Uniform size", "Intact pack"],
-          flipSummary: null,
-        },
+        { id: "c1", box: [100, 100, 400, 400], score: 8.0, ripeness: "ripe", traits: ["Orange"], flipSummary: null }
       ],
-      verdict: {
-        winnerId: "c1",
-        runnerUpId: "c2",
-        confidence: "high",
-        headline: "Buy this pack.",
+      verdict: { winnerId: "c1", runnerUpId: null, confidence: "low", headline: "Uncertain" },
+      followUp: null,
+      afterPurchase: {
+        readyInDays: { min: 0, max: 0 },
+        eatWithinDays: { min: 5, max: 10 },
+        eatWithinLabel: "5–10 days",
+        storage: {
+          beforeCut: { where: "fridge", whereLabel: "Fridge", summary: "Crisper", tip: "Perforated bag" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Water", tip: "Cold water" },
+        },
       },
-      followUp: {
-        targetCandidateId: "c2",
-        targetRole: "runner_up",
-        bannerText: "The other bag scored 8.0. Check back of pack for condensation.",
-        flipHeadline: "Flip the carrot bag over",
-        instruction: "Turn the bag over to inspect roots on the bottom.",
-      },
+    };
+
+    const failOkRes = verifyPromptfooOutput(JSON.stringify(invalidOkOutput), { vars: gt });
+    expect(failOkRes.pass).toBe(false);
+    expect(failOkRes.reason).toContain('Expected status "unclear_photo" but received "ok"');
+  });
+
+  it("Scenario 14 (Packaged Produce Glare / Obscurity): expects unclear_photo for bagged potatoes", () => {
+    const gt = manifest.find((m) => m.id === "14-potato-packs-crate")!.groundTruth;
+
+    const validUnclearOutput = {
+      status: "unclear_photo",
+      message: "Produce is mostly covered by packaging. Take items out of the bag or move closer for a clear view.",
+      produce: null,
+      candidates: [],
+      verdict: null,
+      followUp: null,
+      afterPurchase: null,
+    };
+
+    expect(verifyPromptfooOutput(JSON.stringify(validUnclearOutput), { vars: gt }).pass).toBe(true);
+
+    const invalidOkOutput = {
+      status: "ok",
+      message: null,
+      produce: { type: "potato", displayName: "Baking Potatoes", variety: null },
+      candidates: [
+        { id: "c1", box: [400, 160, 900, 860], score: 8.5, ripeness: "ripe", traits: ["Firm"], flipSummary: null }
+      ],
+      verdict: { winnerId: "c1", runnerUpId: null, confidence: "low", headline: "Uncertain" },
+      followUp: null,
       afterPurchase: {
         readyInDays: { min: 0, max: 0 },
         eatWithinDays: { min: 7, max: 14 },
         eatWithinLabel: "1–2 weeks",
         storage: {
-          beforeCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · crisper", tip: "Keep in perforated bag" },
-          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · water", tip: "Submerge in fresh cold water" },
+          beforeCut: { where: "cool_dark", whereLabel: "Pantry", summary: "Pantry", tip: "Cool dry" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge", tip: "Water" },
         },
       },
     };
 
-    expect(verifyPromptfooOutput(JSON.stringify(validBagsOutput), { vars: gt }).pass).toBe(true);
-  });
-
-  it("Scenario 14 (Bagged Potatoes Crate): passes when whole potato bags are selected", () => {
-    const gt = manifest.find((m) => m.id === "14-potato-packs-crate")!.groundTruth;
-
-    const validPotatoOutput = {
-      status: "ok",
-      message: null,
-      produce: { type: "potatoes", displayName: "Baking Potatoes", variety: null },
-      candidates: [
-        {
-          id: "c1",
-          box: [420, 160, 880, 840], // Foreground large 4 Baking Potatoes bag
-          score: 8.7,
-          ripeness: "ripe",
-          traits: ["Firm spuds", "No sprouting", "Clean bag"],
-          flipSummary: null,
-        },
-        {
-          id: "c2",
-          box: [160, 500, 410, 860], // Upper bag
-          score: 8.1,
-          ripeness: "almost_ripe",
-          traits: ["Good size"],
-          flipSummary: null,
-        },
-      ],
-      verdict: {
-        winnerId: "c1",
-        runnerUpId: "c2",
-        confidence: "high",
-        headline: "Buy this pack.",
-      },
-      followUp: {
-        targetCandidateId: "c2",
-        targetRole: "runner_up",
-        bannerText: "Other bag scored 8.1. Check for green skin or soft eyes.",
-        flipHeadline: "Turn the potato pack over",
-        instruction: "Inspect bottom potatoes for softness.",
-      },
-      afterPurchase: {
-        readyInDays: { min: 0, max: 0 },
-        eatWithinDays: { min: 14, max: 21 },
-        eatWithinLabel: "2–3 weeks",
-        storage: {
-          beforeCut: { where: "cool_dark", whereLabel: "Pantry", summary: "Dark · cool place", tip: "Keep away from onions" },
-          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · submerged", tip: "Keep cut potatoes in cold water" },
-        },
-      },
-    };
-
-    expect(verifyPromptfooOutput(JSON.stringify(validPotatoOutput), { vars: gt }).pass).toBe(true);
+    const failOk = verifyPromptfooOutput(JSON.stringify(invalidOkOutput), { vars: gt });
+    expect(failOk.pass).toBe(false);
+    expect(failOk.reason).toContain('Expected status "unclear_photo" but received "ok"');
   });
 
   it("Scenario 15 (Bagged Bananas Crate): selects whole bunch/pack unit, not individual banana", () => {
