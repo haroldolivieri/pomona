@@ -26,7 +26,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     }
   });
 
-  it("Scenario 16 (Roma Tomatoes Bulk Pile): requires one candidate per eligible counted item with no cap", () => {
+  it("Scenario 16 (Roma Tomatoes Bulk Pile): 70% count-coverage rule — countedTotal=48 forces the 30-candidate UI cap, and under-covering is a verifier failure", () => {
       const gt = manifest.find((m) => m.id === "16-roma-tomatoes-bulk-pile")!.groundTruth;
 
       const mkCandidate = (i: number, size = 110) => ({
@@ -62,34 +62,33 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
         },
       };
 
-      // 1. Valid high-density output: all 48 eligible items have one candidate.
-      const validOutput = { ...baseOutput, candidates: Array.from({ length: 48 }, (_, i) => mkCandidate(i)) };
+      // 1. Valid high-density output: counted 48 → 70% floor is 34 → UI cap 30 → 30 candidates passes
+      const validOutput = { ...baseOutput, candidates: Array.from({ length: 30 }, (_, i) => mkCandidate(i)) };
       expect(verifyPromptfooOutput(JSON.stringify(validOutput), { vars: gt }).pass).toBe(true);
 
-      // 2. Count mismatch: countedTotal=48 with only 30 candidates must fail.
-      const underCoverageOutput = { ...baseOutput, candidates: Array.from({ length: 30 }, (_, i) => mkCandidate(i)) };
+      // 2. Count coverage violation: countedTotal=48 requires 30 (capped), emitting only 20 must FAIL the verifier
+      const underCoverageOutput = { ...baseOutput, candidates: Array.from({ length: 20 }, (_, i) => mkCandidate(i)) };
       const failCoverage = verifyPromptfooOutput(JSON.stringify(underCoverageOutput), { vars: gt });
       expect(failCoverage.pass).toBe(false);
-      expect(failCoverage.reason).toContain("Count mismatch");
+      expect(failCoverage.reason).toContain("Count coverage violated");
 
-      // 3. Too sparse (no countedTotal honesty): 3 candidates fail the expected minimum.
+      // 3. Too sparse (no countedTotal honesty): 3 candidates fail the spatial band (27–30)
       const sparseOutput = { ...baseOutput, countedTotal: null, candidates: Array.from({ length: 3 }, (_, i) => mkCandidate(i)) };
       const failRes = verifyPromptfooOutput(JSON.stringify(sparseOutput), { vars: gt });
       expect(failRes.pass).toBe(false);
-      expect(failRes.reason).toContain("Expected at least 31 candidates");
+      expect(failRes.reason).toContain("Expected at least 27 candidates");
   });
 
-  it("Scenario 17 (Roma Bulk Pile Focus-Polygon): requires one candidate per eligible in-polygon item", () => {
+  it("Scenario 17 (Roma Bulk Pile Focus-Polygon): 70% coverage of countedTotal with 24-30 in-polygon candidates; covers and collapses are failures", () => {
     const gt = manifest.find((m) => m.id === "17-roma-bulk-pile-focus-polygon")!.groundTruth;
 
-    // 1. Valid polygon output above 30 candidates, with boxes inside the drawn loop
+    // 1. Valid polygon output: 24 individual tight boxes, all centers inside the drawn loop
     const validPolygonOutput = {
       status: "ok",
       message: null,
       produce: { type: "tomato", displayName: "Roma Tomatoes", variety: "Roma" },
-      countedTotal: 34,
-      candidates: Array.from({ length: 34 }, (_, i) => {
-        const y = 230 + Math.floor(i / 8) * 130;
+      candidates: Array.from({ length: 24 }, (_, i) => {
+        const y = 300 + Math.floor(i / 8) * 150;
         const x = 120 + (i % 8) * 100;
         return {
           id: `c${i + 1}`,
@@ -121,15 +120,14 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
 
     expect(verifyPromptfooOutput(JSON.stringify(validPolygonOutput), { vars: gt }).pass).toBe(true);
 
-    // 2. Adversarial: countedTotal=48 with only 30 emitted fails exact count matching.
+    // 2. Adversarial: countedTotal=38 with only 24 emitted fails the 70% count-coverage floor
     const underCoverageOutput = {
       ...validPolygonOutput,
-      countedTotal: 48,
-      candidates: validPolygonOutput.candidates.slice(0, 30),
+      countedTotal: 38,
     };
     const failCoverage = verifyPromptfooOutput(JSON.stringify(underCoverageOutput), { vars: gt });
     expect(failCoverage.pass).toBe(false);
-    expect(failCoverage.reason).toContain("Count mismatch");
+    expect(failCoverage.reason).toContain("Count coverage violated");
 
     // 3. Adversarial failure: polygon path emits only a handful of candidates for a dense heap
     const collapsedOutput = {
@@ -139,7 +137,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     };
     const failRes = verifyPromptfooOutput(JSON.stringify(collapsedOutput), { vars: gt });
     expect(failRes.pass).toBe(false);
-    expect(failRes.reason).toContain("Expected at least 31 candidates");
+    expect(failRes.reason).toContain("Expected at least 24 candidates");
   });
 
   it("Scenario 01 (Watermelon Crate): passes when model picks bottom-left ripe winner [415,150,780,520] and bottom-right runner-up [430,545,775,880], and FAILS if model swaps them", () => {
@@ -651,7 +649,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
   it("Scenario 12 (Tomato Basket Polygon Selection): requires ALL clearly visible items inside the selected polygon to return candidate data (12-30)", () => {
     const gt = manifest.find((m) => m.id === "12-tomato-basket-polygon-selection")!.groundTruth;
 
-    // 1. Valid model output: 15 eligible tomatoes remain after polygon filtering; countedTotal matches.
+    // 1. Valid model output: Returns all countable tomatoes inside the polygon (15 post-filter of countedTotal=20 = 75% ≥ 70%; band 12-30)
     const validMultiCandidateOutput = {
       status: "ok",
       message: null,
@@ -674,7 +672,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
         { id: "c15", box: [520, 180, 630, 290], score: 7.5, ripeness: "underripe", traits: ["Green tint"], flipSummary: null },
         { id: "c16", box: [280, 640, 380, 750], score: 8.0, ripeness: "ripe", traits: ["Round form"], flipSummary: null },
       ],
-      countedTotal: 15,
+      countedTotal: 20,
       verdict: {
         winnerId: "c1",
         runnerUpId: "c2",

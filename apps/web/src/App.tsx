@@ -319,7 +319,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     try {
       telemetry.capture("scan_started", { round });
 
-      // Keep the production upload size unchanged until a larger-image eval shows a detection gain.
+      // Downsample and compress photo to <= 768px JPEG/WebP so it stays lightweight and within body limits
       const { base64: base64Data, mimeType } = await downsampleDataUrl(photoDataUrl, 768, 0.8);
       console.log(
         `[scan] Prepared payload: round ${round}, ${mimeType}, base64 length: ${base64Data.length} chars`
