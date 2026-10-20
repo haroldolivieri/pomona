@@ -45,6 +45,12 @@ function loadApiKeyFromEnvFiles(): { geminiKey?: string; openaiKey?: string } {
 
 async function runLiveBenchmark() {
   const { geminiKey, openaiKey } = loadApiKeyFromEnvFiles();
+  const scenarioId = process.env.EVAL_SCENARIO_ID;
+
+  if (scenarioId && !geminiKey) {
+    console.error("A GEMINI_API_KEY is required when EVAL_SCENARIO_ID is set.");
+    process.exit(1);
+  }
 
   if (!geminiKey && !openaiKey) {
     console.log(
@@ -59,21 +65,31 @@ async function runLiveBenchmark() {
   const adapter = geminiKey
     ? createGeminiVisionAdapter({
         apiKey: geminiKey,
-        modelId: process.env.EVAL_MODEL || "gemini-3.1-flash-lite",
+        modelId: scenarioId ? "gemini-3.1-flash-lite" : process.env.EVAL_MODEL || "gemini-3.1-flash-lite",
       })
     : createOpenAIVisionAdapter({
         apiKey: openaiKey!,
         modelId: process.env.EVAL_MODEL || "gpt-4o-mini",
       });
 
-  const manifest: GroundTruthEntry[] = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf-8"));
-  console.log(`\n🚀 Running Pomona Offline Ground-Truth Eval against ${adapter.providerId}:${adapter.modelId}...\n`);
+  const allEntries: GroundTruthEntry[] = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf-8"));
+  const manifest = scenarioId ? allEntries.filter((item) => item.id === scenarioId) : allEntries;
+  if (manifest.length === 0) {
+    console.error(`No eval scenario found for EVAL_SCENARIO_ID=${scenarioId}`);
+    process.exit(1);
+  }
+  console.log(
+    `\n🚀 Running ${scenarioId || "full"} eval${process.env.EVAL_PASS_LABEL ? ` (${process.env.EVAL_PASS_LABEL})` : ""} ` +
+      `against ${adapter.providerId}:${adapter.modelId}...\n`
+  );
 
   let passed = 0;
   const results = [];
 
   for (const item of manifest) {
-    const imgFullPath = path.resolve(__dirname, "..", item.imagePath);
+    const imgFullPath = process.env.EVAL_IMAGE_PATH
+      ? path.resolve(process.env.EVAL_IMAGE_PATH)
+      : path.resolve(__dirname, "..", item.imagePath);
     const imageBase64 = fs.readFileSync(imgFullPath).toString("base64");
     const gt = item.groundTruth;
 
@@ -106,17 +122,22 @@ async function runLiveBenchmark() {
       if (evalRes.pass) passed++;
 
       console.log(
-        `${evalRes.pass ? "✅ PASS" : "❌ FAIL"} [${item.id}] (${latencyMs}ms) — Score: ${evalRes.score}\n` +
+        `${evalRes.pass ? "✅ PASS" : "❌ FAIL"} [${item.id}]${process.env.EVAL_PASS_LABEL ? ` (${process.env.EVAL_PASS_LABEL})` : ""} ` +
+          `(${latencyMs}ms) — Score: ${evalRes.score}; ` +
+          `candidates=${(raw.object as any)?.candidates?.length ?? "none"}; ` +
+          `countedTotal=${(raw.object as any)?.countedTotal ?? "null"}\n` +
           `   Reason: ${evalRes.reason}\n`
       );
 
       results.push({
         id: item.id,
         model: `${adapter.providerId}:${adapter.modelId}`,
+        passLabel: process.env.EVAL_PASS_LABEL,
         pass: evalRes.pass,
         score: evalRes.score,
         reason: evalRes.reason,
         latencyMs,
+        usage: raw.usage,
         rawOutput: raw.object,
       });
     } catch (err: any) {
@@ -124,6 +145,7 @@ async function runLiveBenchmark() {
       results.push({
         id: item.id,
         model: `${adapter.providerId}:${adapter.modelId}`,
+        passLabel: process.env.EVAL_PASS_LABEL,
         pass: false,
         score: 0,
         reason: err?.message || String(err),
@@ -135,12 +157,16 @@ async function runLiveBenchmark() {
   const reportPayload = {
     timestamp: new Date().toISOString(),
     model: `${adapter.providerId}:${adapter.modelId}`,
+    passLabel: process.env.EVAL_PASS_LABEL,
     passed,
     total: manifest.length,
     results,
   };
 
-  const reportPath = path.resolve(__dirname, "../dataset/last-eval-report.json");
+  const reportPath = path.resolve(
+    process.env.EVAL_REPORT_PATH || path.resolve(__dirname, "../dataset/last-eval-report.json")
+  );
+  fs.mkdirSync(path.dirname(reportPath), { recursive: true });
   fs.writeFileSync(reportPath, JSON.stringify(reportPayload, null, 2));
   console.log(`Saved detailed report to ${reportPath}`);
 
@@ -148,7 +174,7 @@ async function runLiveBenchmark() {
     __dirname,
     "../../../.superpowers/brainstorm/34780-1792182706/content/evals"
   );
-  if (fs.existsSync(matrixReportDir)) {
+  if (!scenarioId && fs.existsSync(matrixReportDir)) {
     const matrixReportPath = path.join(matrixReportDir, "last-eval-report.json");
     fs.writeFileSync(matrixReportPath, JSON.stringify(reportPayload, null, 2));
     console.log(`Updated live visual matrix report at ${matrixReportPath}`);
