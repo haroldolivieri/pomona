@@ -222,20 +222,12 @@ export function verifyAndResolveScanResponse(
     );
   }
 
-  // COUNT-COVERAGE INVARIANT (Round 1): the emitted candidates must cover at least 70% of
-  // the model's own silent count (countedTotal), capped at the 30-candidate UI limit.
-  // The model cannot game this report: inflating countedTotal only raises its own floor,
-  // and deflating it contradicts its own emitted boxes.
-  // Only enforced for dense scenes (countedTotal >= 10) — for sparse displays the
-  // GT bands and "every clearly visible item" rule already guarantee coverage, and
-  // small per-item count drift (e.g. counting an out-of-polygon item) would otherwise
-  // fail a scan that correctly covered the isolated region.
-  if (ctx.request.round === 1 && typeof data.countedTotal === "number" && data.countedTotal >= 10) {
-    const rawFloor = Math.ceil(data.countedTotal * 0.7);
-    const coverageFloor = Math.min(rawFloor, 30);
-    if (candidates.length < coverageFloor) {
+  // Round 1 count is defined after foreground, type, visibility, and polygon filtering.
+  // Each eligible item must have exactly one valid candidate.
+  if (ctx.request.round === 1 && typeof data.countedTotal === "number") {
+    if (candidates.length !== data.countedTotal) {
       errors.push(
-        `Count coverage violated: countedTotal=${data.countedTotal} requires at least ${rawFloor} candidates (70% of counted total${coverageFloor < rawFloor ? ", capped to UI limit 30" : ""}), but only ${candidates.length} valid candidates were emitted`
+        `Count mismatch: countedTotal=${data.countedTotal} requires exactly ${data.countedTotal} valid candidates, but ${candidates.length} remain after validation`
       );
     }
   }

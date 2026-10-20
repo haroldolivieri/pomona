@@ -21,6 +21,11 @@ async function runLiveBenchmark() {
   const { geminiKey, openaiKey } = loadApiKeyFromEnvFiles(__dirname);
   const scenarioId = process.env.EVAL_SCENARIO_ID;
 
+  if (scenarioId && !geminiKey) {
+    console.error("A GEMINI_API_KEY is required when EVAL_SCENARIO_ID is set.");
+    process.exit(1);
+  }
+
   if (!geminiKey && !openaiKey && (process.env.CI === "true" || process.argv.includes("--strict"))) {
     console.error("Live eval gate requires GEMINI_API_KEY or OPENAI_API_KEY; refusing to skip.");
     process.exit(1);
@@ -39,7 +44,7 @@ async function runLiveBenchmark() {
   const adapter = geminiKey
     ? createGeminiVisionAdapter({
         apiKey: geminiKey,
-        modelId: process.env.EVAL_MODEL || "gemini-3.1-flash-lite",
+        modelId: scenarioId ? "gemini-3.1-flash-lite" : process.env.EVAL_MODEL || "gemini-3.1-flash-lite",
       })
     : createOpenAIVisionAdapter({
         apiKey: openaiKey!,
@@ -53,7 +58,7 @@ async function runLiveBenchmark() {
     process.exit(1);
   }
   console.log(
-    `\n🚀 Running ${scenarioId || "full"} eval ` +
+    `\n🚀 Running ${scenarioId || "full"} eval${process.env.EVAL_PASS_LABEL ? ` (${process.env.EVAL_PASS_LABEL})` : ""} ` +
       `against ${adapter.providerId}:${adapter.modelId}...\n`
   );
 
@@ -61,7 +66,9 @@ async function runLiveBenchmark() {
   const results = [];
 
   for (const item of manifest) {
-    const imgFullPath = path.resolve(__dirname, "..", item.imagePath);
+    const imgFullPath = process.env.EVAL_IMAGE_PATH
+      ? path.resolve(process.env.EVAL_IMAGE_PATH)
+      : path.resolve(__dirname, "..", item.imagePath);
     const imageBase64 = fs.readFileSync(imgFullPath).toString("base64");
     const gt = item.groundTruth;
     const imageMimeType = imgFullPath.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
@@ -95,7 +102,7 @@ async function runLiveBenchmark() {
       if (evalRes.pass) passed++;
 
       console.log(
-        `${evalRes.pass ? "✅ PASS" : "❌ FAIL"} [${item.id}] ` +
+        `${evalRes.pass ? "✅ PASS" : "❌ FAIL"} [${item.id}]${process.env.EVAL_PASS_LABEL ? ` (${process.env.EVAL_PASS_LABEL})` : ""} ` +
           `(${latencyMs}ms) — Score: ${evalRes.score}; ` +
           `candidates=${(raw.object as any)?.candidates?.length ?? "none"}; ` +
           `countedTotal=${(raw.object as any)?.countedTotal ?? "null"}\n` +
@@ -105,10 +112,12 @@ async function runLiveBenchmark() {
       results.push({
         id: item.id,
         model: `${adapter.providerId}:${adapter.modelId}`,
+        passLabel: process.env.EVAL_PASS_LABEL,
         pass: evalRes.pass,
         score: evalRes.score,
         reason: evalRes.reason,
         latencyMs,
+        usage: raw.usage,
         rawOutput: raw.object,
       });
     } catch (err: any) {
@@ -116,6 +125,7 @@ async function runLiveBenchmark() {
       results.push({
         id: item.id,
         model: `${adapter.providerId}:${adapter.modelId}`,
+        passLabel: process.env.EVAL_PASS_LABEL,
         pass: false,
         score: 0,
         reason: err?.message || String(err),
@@ -127,6 +137,7 @@ async function runLiveBenchmark() {
   const reportPayload = {
     timestamp: new Date().toISOString(),
     model: `${adapter.providerId}:${adapter.modelId}`,
+    passLabel: process.env.EVAL_PASS_LABEL,
     passed,
     total: manifest.length,
     results,

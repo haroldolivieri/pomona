@@ -14,11 +14,11 @@ describe("geometry & semantic verifier", () => {
   });
 
   it("strips candidates outside focusPolygon and promotes highest remaining candidate to winnerId", () => {
-    const res = verifyAndResolveScanResponse(
-      {
+    const rawOutput = {
         status: "ok",
         message: null,
         produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+        countedTotal: 2,
         candidates: [
           { id: "outside", box: [10, 10, 90, 90], score: 9.5, ripeness: "ripe", traits: ["Matte rind"], flipSummary: null },
           { id: "inside1", box: [300, 300, 600, 600], score: 8.6, ripeness: "ripe", traits: ["Yellow field spot"], flipSummary: null },
@@ -41,8 +41,8 @@ describe("geometry & semantic verifier", () => {
             afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · wrapped", tip: "Wrap" },
           },
         },
-      },
-      {
+      };
+    const context: Parameters<typeof verifyAndResolveScanResponse>[1] = {
         promptVersion: "v1",
         modelId: "gemini-2.5-flash",
         request: {
@@ -55,13 +55,23 @@ describe("geometry & semantic verifier", () => {
           focusPolygon: square,
           followUpContext: null,
         },
-      }
-    );
+      };
+    const res = verifyAndResolveScanResponse(rawOutput, context);
     expect(res.ok).toBe(true);
     if (res.ok) {
       expect(res.response.candidates.map((c) => c.id)).toEqual(["inside1", "inside2"]);
       expect(res.response.verdict?.winnerId).toBe("inside1");
       expect(res.response.verdict?.runnerUpId).toBe("inside2");
+    }
+    const countMismatch = verifyAndResolveScanResponse(
+      { ...rawOutput, countedTotal: 3 },
+      context
+    );
+    expect(countMismatch.ok).toBe(false);
+    if (!countMismatch.ok) {
+      expect(countMismatch.errors).toContain(
+        "Count mismatch: countedTotal=3 requires exactly 3 valid candidates, but 2 remain after validation"
+      );
     }
   });
 
