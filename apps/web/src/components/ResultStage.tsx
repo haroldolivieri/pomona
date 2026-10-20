@@ -277,6 +277,12 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const isLostStyle = phase === "S5B1_RunnerUpBeaten" || phase === "S7A_FirstPickWonFinal" || phase === "S7B_FirstPickLostFinal";
   const isFullyOpen = sheetMode === "expanded";
 
+  const denseCandidatesNote =
+    (lastResponse.candidates?.length ?? 0) >= 15
+      ? ` Top ${lastResponse.candidates.length} picks shown from all visible items.`
+      : "";
+  const fullSubtitle = subtitle + denseCandidatesNote;
+
   // Calculate translation distance needed to tuck the sheet to each snap height:
   // - 'expanded': translateY = 0 (full sheet visible)
   // - 'default': translateY = sheetHeight - defaultPeekHeight (shows handle + goal + headline/score + labels + divider 2)
@@ -1163,7 +1169,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                     {headline}
                   </h1>
                   <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "2px" }}>
-                    {subtitle}
+                    {fullSubtitle}
                   </p>
                 </div>
 

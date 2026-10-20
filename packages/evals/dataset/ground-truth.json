@@ -526,8 +526,8 @@
           351
         ]
       ],
-      "expectedCandidateCountMin": 2,
-      "expectedCandidateCountMax": 6,
+      "expectedCandidateCountMin": 12,
+      "expectedCandidateCountMax": 30,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
@@ -543,22 +543,12 @@
     "filename": "13-carrot-packs-crate.jpg",
     "imagePath": "dataset/images/13-carrot-packs-crate.jpg",
     "imageBase64PreviewLength": 450000,
-    "description": "Round 1 Overlapping Packs: Real-world user supermarket photo of multiple overlapping plastic bags of British Carrots in a green crate. Verifies overlapping pack rules: model must identify distinct foreground carrot bags as candidate units, must NOT box individual loose carrots inside a bag, and boxes must NOT heavily collide or cut halfway through a bag.",
+    "description": "Round 1 Packaged Produce Obscurity / Glare: Real-world user supermarket photo of multiple overlapping plastic bags of British Carrots in a green crate with heavy printed branding, plastic reflection, and visual glare obscuring individual root visibility. Verifies packaging error trigger: expects status = 'unclear_photo'.",
     "groundTruth": {
       "round": 1,
-      "expectedStatus": "ok",
-      "expectedProduceType": "carrots",
-      "focusPolygon": null,
-      "expectedCandidateCountMin": 2,
-      "expectedCandidateCountMax": 8,
-      "forbiddenWordsInCopy": [
-        "watermelon",
-        "melon",
-        "avocado",
-        "pineapple",
-        "field spot",
-        "rind"
-      ]
+      "expectedStatus": "unclear_photo",
+      "expectedProduceType": null,
+      "focusPolygon": null
     }
   },
   {
@@ -566,22 +556,12 @@
     "filename": "14-potato-packs-crate.jpg",
     "imagePath": "dataset/images/14-potato-packs-crate.jpg",
     "imageBase64PreviewLength": 450000,
-    "description": "Round 1 Overlapping Packs: Real-world user supermarket photo of bagged British Baking Potatoes in a green crate. Verifies that individual distinct potato bags in the foreground are detected with non-colliding bounding boxes enclosing each whole bag.",
+    "description": "Round 1 Packaged Produce Glare/Packaging: Real-world user supermarket photo of bagged British Baking Potatoes in a green crate with heavy printed branding and glare obscuring tuber details. Expects status = \"unclear_photo\".",
     "groundTruth": {
       "round": 1,
-      "expectedStatus": "ok",
-      "expectedProduceType": "potatoes",
-      "focusPolygon": null,
-      "expectedCandidateCountMin": 2,
-      "expectedCandidateCountMax": 8,
-      "forbiddenWordsInCopy": [
-        "watermelon",
-        "melon",
-        "avocado",
-        "pineapple",
-        "field spot",
-        "rind"
-      ]
+      "expectedStatus": "unclear_photo",
+      "expectedProduceType": null,
+      "focusPolygon": null
     }
   },
   {
@@ -603,6 +583,125 @@
         "avocado",
         "field spot",
         "rind"
+      ]
+    }
+  },
+  {
+    "id": "16-roma-tomatoes-bulk-pile",
+    "filename": "16-roma-tomatoes-bulk-pile.jpg",
+    "imagePath": "dataset/images/16-roma-tomatoes-bulk-pile.jpg",
+    "imageBase64PreviewLength": 75000,
+    "description": "Round 1 High-Density Bulk Pile: User supermarket photo of a dense display of loose Roma Tomatoes. Verifies that the model detects, bounds, and scores first-plane tomatoes across the pile (at least 20 candidates; second-plane crates and adjacent onions must be ignored), so the user can compare them across ripeness windows.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "ok",
+      "expectedProduceType": "tomato",
+      "focusPolygon": null,
+      "expectedCandidateCountMin": 27,
+      "expectedCandidateCountMax": 30,
+      "forbiddenWordsInCopy": [
+        "watermelon",
+        "melon",
+        "avocado",
+        "pineapple",
+        "banana",
+        "potato"
+      ]
+    }
+  },
+  {
+    "id": "17-roma-bulk-pile-focus-polygon",
+    "filename": "16-roma-tomatoes-bulk-pile.jpg",
+    "imagePath": "dataset/images/16-roma-tomatoes-bulk-pile.jpg",
+    "imageBase64PreviewLength": 75000,
+    "description": "Round 1 Focus-Polygon on Dense Bulk Pile: Same loose Roma tomato display as scenario 16, but the user drew a large loop around the whole pile. Verifies the polygon path detects 20-30 individual tomatoes WITH CENTERS INSIDE the drawn loop (no whole-cluster box, no background items, no count collapse).",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "ok",
+      "expectedProduceType": "tomato",
+      "focusPolygon": [
+        [
+          38,
+          272
+        ],
+        [
+          294,
+          198
+        ],
+        [
+          425,
+          284
+        ],
+        [
+          613,
+          213
+        ],
+        [
+          719,
+          239
+        ],
+        [
+          864,
+          236
+        ],
+        [
+          975,
+          272
+        ],
+        [
+          994,
+          338
+        ],
+        [
+          985,
+          560
+        ],
+        [
+          995,
+          780
+        ],
+        [
+          890,
+          970
+        ],
+        [
+          760,
+          1000
+        ],
+        [
+          560,
+          1000
+        ],
+        [
+          400,
+          990
+        ],
+        [
+          260,
+          940
+        ],
+        [
+          140,
+          830
+        ],
+        [
+          42,
+          700
+        ],
+        [
+          31,
+          415
+        ]
+      ],
+      "expectedCandidateCountMin": 24,
+      "expectedCandidateCountMax": 30,
+      "forbiddenWordsInCopy": [
+        "watermelon",
+        "melon",
+        "avocado",
+        "pineapple",
+        "banana",
+        "potato"
       ]
     }
   }

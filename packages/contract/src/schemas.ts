@@ -144,6 +144,14 @@ export const ScanStatusSchema = z.enum([
 export const ScanResponseModelSchema = z.object({
   status: ModelStatusSchema,
   message: z.string().max(160).nullable(),
+  countedTotal: z
+    .number()
+    .int()
+    .min(0)
+    .max(500)
+    .nullable()
+    .optional()
+    .describe("Round 1 only: total number of individual produce item instances silently counted in view (or inside the focusPolygon). Null on close-up rounds."),
   produce: ProduceInfoSchema.nullable(),
   candidates: z.array(CandidateSchema),
   verdict: VerdictSchema.nullable(),
@@ -159,6 +167,7 @@ export const ScanResponseSchema = z.object({
   round: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   status: ScanStatusSchema,
   message: z.string().max(160).nullable(),
+  countedTotal: z.number().int().min(0).max(500).nullable().optional(),
   produce: ProduceInfoSchema.nullable(),
   candidates: z.array(CandidateSchema),
   verdict: VerdictSchema.nullable(),
