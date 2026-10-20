@@ -81,9 +81,15 @@ describe("insufficient evidence abstention eval", () => {
     for (const prompt of [v1PromptConfig.buildUserPrompt(request), v1PromptConfig.buildRepairPrompt!(request, ["winnerId missing"])]) {
       expect(prompt).toContain("EVIDENCE CHECK FIRST");
       expect(prompt).toContain("including during repair");
+      expect(prompt).not.toMatch(/\b30\b/);
       if (request.round > 1) expect(prompt).toContain("CURRENT PHOTO OVERRIDES MEMORY");
     }
     expect(v1PromptConfig.buildSystemPrompt(request)).toContain("OVERRIDES ALL RANKING INSTRUCTIONS");
+    expect(v1PromptConfig.buildSystemPrompt(request)).not.toMatch(/\b30\b/);
+    if (request.round === 1) {
+      expect(v1PromptConfig.buildUserPrompt(request)).toContain("FINAL COVERAGE AUDIT");
+      expect(v1PromptConfig.buildSystemPrompt(request)).toContain("Readable tomato color");
+    }
   });
 
   it.each(["produce", "candidates", "verdict", "afterPurchase"] as const)("rejects abstention leaking %s", (field) => {

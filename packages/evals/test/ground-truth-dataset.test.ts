@@ -65,6 +65,10 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       // 1. Valid high-density output: all 48 eligible items have one candidate.
       const validOutput = { ...baseOutput, candidates: Array.from({ length: 48 }, (_, i) => mkCandidate(i)) };
       expect(verifyPromptfooOutput(JSON.stringify(validOutput), { vars: gt }).pass).toBe(true);
+      const minimumOutput = { ...baseOutput, countedTotal: 30, candidates: Array.from({ length: 30 }, (_, i) => mkCandidate(i)) };
+      expect(verifyPromptfooOutput(JSON.stringify(minimumOutput), { vars: gt }).pass).toBe(true);
+      const belowMinimum = { ...minimumOutput, countedTotal: 29, candidates: minimumOutput.candidates.slice(0, 29) };
+      expect(verifyPromptfooOutput(JSON.stringify(belowMinimum), { vars: gt }).pass).toBe(false);
 
       // 2. Count mismatch: declared total exceeds candidate list and must fail.
       const underCoverageOutput = { ...baseOutput, candidates: Array.from({ length: 30 }, (_, i) => mkCandidate(i)) };
@@ -76,7 +80,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       const sparseOutput = { ...baseOutput, countedTotal: null, candidates: Array.from({ length: 3 }, (_, i) => mkCandidate(i)) };
       const failRes = verifyPromptfooOutput(JSON.stringify(sparseOutput), { vars: gt });
       expect(failRes.pass).toBe(false);
-      expect(failRes.reason).toContain("Expected at least 31 candidates");
+      expect(failRes.reason).toContain("Expected at least 30 candidates");
   });
 
   it("Scenario 17 (Roma Bulk Pile Focus-Polygon): requires one candidate per eligible in-polygon item", () => {
@@ -120,6 +124,11 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     };
 
     expect(verifyPromptfooOutput(JSON.stringify(validPolygonOutput), { vars: gt }).pass).toBe(true);
+    const minimumOutput = { ...validPolygonOutput, countedTotal: 30, candidates: validPolygonOutput.candidates.slice(0, 30) };
+    expect(verifyPromptfooOutput(JSON.stringify(minimumOutput), { vars: gt }).pass).toBe(true);
+    const belowMinimum = { ...minimumOutput, countedTotal: 29, candidates: minimumOutput.candidates.slice(0, 29) };
+    expect(verifyPromptfooOutput(JSON.stringify(belowMinimum), { vars: gt }).pass).toBe(false);
+
 
     // 2. Adversarial: a declared total larger than the emitted list fails exact count matching.
     const underCoverageOutput = {
@@ -139,7 +148,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     };
     const failRes = verifyPromptfooOutput(JSON.stringify(collapsedOutput), { vars: gt });
     expect(failRes.pass).toBe(false);
-    expect(failRes.reason).toContain("Expected at least 31 candidates");
+    expect(failRes.reason).toContain("Expected at least 30 candidates");
   });
 
   it("Scenario 01 (Watermelon Crate): passes when model picks bottom-left ripe winner [415,150,780,520] and bottom-right runner-up [430,545,775,880], and FAILS if model swaps them", () => {

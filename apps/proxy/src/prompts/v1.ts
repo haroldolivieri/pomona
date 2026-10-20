@@ -1,4 +1,5 @@
 import type { ScanRequest } from "@pomona/contract";
+import { buildRoundOneSystemPrompt, buildRoundOneUserPrompt } from "./round-one";
 
 export interface PromptConfig {
   readonly version: string;
@@ -17,7 +18,7 @@ function describeFocusPolygonBounds(polygon: [number, number][]): string {
   return `focusPolygon vertices ([x, y] format): ${JSON.stringify(polygon)}. In [ymin, xmin, ymax, xmax] bounding-box coordinates, this region spans vertically from ymin=${ymin} to ymax=${ymax} and horizontally from xmin=${xmin} to xmax=${xmax}.`;
 }
 
-export function buildV1SystemPrompt(request: ScanRequest): string {
+function buildFollowUpSystemPrompt(request: ScanRequest): string {
   const polygonInfo =
     request.focusPolygon && request.focusPolygon.length >= 3
       ? `focusPolygon active! ${describeFocusPolygonBounds(request.focusPolygon)} Detect and grade ALL produce candidates whose center lies inside this region (ymin ${Math.min(...request.focusPolygon.map((p) => p[1]))}..${Math.max(...request.focusPolygon.map((p) => p[1]))}, xmin ${Math.min(...request.focusPolygon.map((p) => p[0]))}..${Math.max(...request.focusPolygon.map((p) => p[0]))}), and strictly ignore any produce outside it.`
@@ -130,7 +131,7 @@ STATUS HANDLING (these are DISTINCT user-facing errors with DIFFERENT messages):
 - Otherwise: status = "ok" (with message=null).`;
 }
 
-export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[]): string {
+function buildFollowUpUserPrompt(request: ScanRequest, repairErrors?: string[]): string {
   let prompt = `Analyze this grocery produce image for Round ${request.round} (locale: ${request.locale}). Remember: all candidate scores MUST be on a 0.0 to 10.0 scale, and each trait string MUST be <= 28 characters.`;
 
   if (request.round === 1) {
@@ -187,7 +188,7 @@ Output ONLY candidate "${ctx.targetCandidateId}" in candidates with a non-null f
   prompt += `\nEVIDENCE CHECK FIRST: If blur/glare makes the capture unusable, return unclear_photo. Otherwise, if this photo cannot support a confident ripeness comparison, return insufficient_evidence with no candidates, verdict, followUp, or afterPurchase. Explain what is missing and how to retake. This overrides scoring, counting, and winner instructions, including during repair.`;
 
   if (request.round > 1) {
-    prompt += `\nCURRENT PHOTO OVERRIDES MEMORY: A request to flip does not prove the item was flipped. Inspect the pixels first. If only green striped watermelon rinds are visible and no field spot or underside is visible, return insufficient_evidence. Do not copy golden field spots, sugar webbing, or dry stems from examples or previous traits into the result. Do not output a score or flipSummary without newly visible evidence, even on Round 3. Describe the missing view in at most 20 words and 140 characters.`;
+    prompt += `\nCURRENT PHOTO OVERRIDES MEMORY: A request to flip does not prove the item was flipped. Inspect the pixels first. If only green striped watermelon rinds are visible and no field spot or underside is visible, return insufficient_evidence. Do not copy golden field spots, sugar webbing, or dry stems from examples or previous traits into the result. Do not output a score or flipSummary without newly visible evidence, even on Round 3. Describe the missing view and next action in one short sentence of at most 16 words and 120 characters.`;
   }
 
   if (repairErrors && repairErrors.length > 0) {
@@ -198,6 +199,16 @@ You must fix all errors listed above and return a fully compliant JSON response.
   }
 
   return prompt;
+}
+
+export function buildV1SystemPrompt(request: ScanRequest): string {
+  return request.round === 1 ? buildRoundOneSystemPrompt() : buildFollowUpSystemPrompt(request);
+}
+
+export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[]): string {
+  return request.round === 1
+    ? buildRoundOneUserPrompt(request, repairErrors)
+    : buildFollowUpUserPrompt(request, repairErrors);
 }
 
 export function buildV1RepairPrompt(request: ScanRequest, repairErrors: string[]): string {
