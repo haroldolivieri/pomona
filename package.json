@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prepare": "git config core.hooksPath scripts/hooks",
     "dev": "pnpm --filter @pomona/web dev",
     "dev:proxy": "pnpm --filter @pomona/proxy dev",
     "dev:all": "pnpm --parallel --filter @pomona/web --filter @pomona/proxy dev",

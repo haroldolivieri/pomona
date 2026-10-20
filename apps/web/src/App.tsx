@@ -9,6 +9,7 @@ import {
   type ScanMachineState,
 } from "./state/scan-state-machine";
 import { downsampleDataUrl, simplifyPath, type CropRect } from "./lib/image-pipeline";
+import { getIsLocalBuild } from "./lib/build-mode";
 
 function generateUuid(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -28,6 +29,7 @@ import { AnalysingStage } from "./components/AnalysingStage";
 import { ResultStage } from "./components/ResultStage";
 import { FlipCameraStage } from "./components/FlipCameraStage";
 import { ScanErrorStage } from "./components/ScanErrorStage";
+import { Toast } from "./components/Toast";
 import "./styles/index.css";
 
 import { createMockApiClient } from "./lib/mock-api-client";
@@ -60,6 +62,8 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
   // 4. In automated unit test environments with enableDebugOverride set to true
   const [isDeviceDebugEnabled, setIsDeviceDebugEnabled] = useState<boolean>(() => {
     if (enableDebugOverride !== undefined) return enableDebugOverride;
+    // Published (non-local) builds never unlock debug mode on this device
+    if (!getIsLocalBuild()) return false;
     try {
       if (typeof window !== "undefined") {
         if (typeof window.location !== "undefined") {
@@ -80,6 +84,10 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
   });
 
   const isDevMode = Boolean(enableDebugOverride ?? isDeviceDebugEnabled);
+  const isLocalBuild = getIsLocalBuild();
+
+  // Toast state: 5 taps on the brand logo always show the app version briefly
+  const [brandToast, setBrandToast] = useState<string | null>(null);
 
   // 5-tap counter on the Pomona brand logo
   const brandTapCountRef = useRef<number>(0);
@@ -96,6 +104,15 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
 
     if (brandTapCountRef.current >= 5) {
       brandTapCountRef.current = 0;
+      // Always show the current app version, in every build
+      setBrandToast(`Pomona v${__APP_VERSION__}`);
+      if (!isLocalBuild) {
+        // Published build: show the toast only; never unlock debug mode
+        try {
+          localStorage.removeItem("pomona-debug-device");
+        } catch {}
+        return;
+      }
       setIsDeviceDebugEnabled((prev) => {
         const next = !prev;
         try {
@@ -134,7 +151,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     if (typeof window !== "undefined" && typeof window.location !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const scansParam = params.get("scans");
-      if (scansParam !== null) {
+      if (isLocalBuild && scansParam !== null) {
         const parsed = parseInt(scansParam, 10);
         if (!isNaN(parsed) && parsed >= 0) {
           activeApiClient
@@ -159,9 +176,10 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
         }
       })
       .catch((err) => console.warn("[quota] Failed to fetch quota from backend:", err));
-  }, [activeApiClient]);
+  }, [activeApiClient, isLocalBuild]);
 
   const handleQuotaPrompt = () => {
+    if (!isLocalBuild) return;
     if (typeof window === "undefined" || typeof window.prompt !== "function") return;
     const current = remainingScans;
     const val = window.prompt(
@@ -189,6 +207,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
   };
 
   useEffect(() => {
+    if (!isLocalBuild) return;
     if (typeof window !== "undefined") {
       (window as any).__setRemainingScans = (count: number) => {
         activeApiClient
@@ -200,12 +219,13 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
           })
           .catch(console.error);
       };
+      return () => { delete (window as any).__setRemainingScans; };
     }
-  }, [activeApiClient]);
+  }, [activeApiClient, isLocalBuild]);
 
   // Shake detection listener: only mounted in development / debug mode
   useEffect(() => {
-    if (!isDevMode) return;
+    if (!isDevMode || !getIsLocalBuild()) return;
     let lastX: number | null = null;
     let lastY: number | null = null;
     let lastZ: number | null = null;
@@ -377,7 +397,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
           <CameraViewfinder
             onCapture={handleFrameCaptured}
             remainingScans={remainingScans}
-            onQuotaClick={handleQuotaPrompt}
+            onQuotaClick={isLocalBuild ? handleQuotaPrompt : undefined}
             onToggleTheme={toggleTheme}
             theme={theme}
             onBrandTap={handleBrandTap}
@@ -392,7 +412,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             onRetake={handleReset}
             errorMessage={state.errorMessage}
             remainingScans={remainingScans}
-            onQuotaClick={handleQuotaPrompt}
+            onQuotaClick={isLocalBuild ? handleQuotaPrompt : undefined}
           />
         );
 
@@ -404,7 +424,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             cropRect={state.cropRect}
             onCancel={handleReset}
             remainingScans={remainingScans}
-            onQuotaClick={handleQuotaPrompt}
+            onQuotaClick={isLocalBuild ? handleQuotaPrompt : undefined}
           />
         );
 
@@ -481,8 +501,10 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     <div className="pomona-root">
       {renderCurrentStage()}
 
-      {/* Discrete tap target below top bar on left (DEV ONLY) */}
-      {isDevMode && (
+      {brandToast && <Toast message={brandToast} onDone={() => setBrandToast(null)} />}
+
+      {/* Discrete tap target below top bar on left (LOCAL DEV BUILDS ONLY) */}
+      {isDevMode && isLocalBuild && (
         <div
           style={{
             position: "fixed",

@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Auto-bumps apps/web version on push when it hasn't been bumped vs the
+# integration base (origin/main for feature branches). The bump (if any) is committed before the
+# push is stopped so the next push includes the new commit. Escapes: POMONA_SKIP_BUMP=1 or "[no-bump]" in latest commit.
+#
+# git pre-push contract: $1=remote-name $2=url; pushed refs arrive on stdin
+# as "<local_ref> <local_sha> <remote_ref> <remote_sha>" lines.
+
+if [ -n "$POMONA_SKIP_BUMP" ]; then
+  echo "[version-hook] POMONA_SKIP_BUMP set; skipping"
+  exit 0
+fi
+
+# Validate every outgoing update before the bump script can modify this checkout.
+updates=$(cat)
+current_ref=$(git symbolic-ref -q HEAD) || exit 1
+current_sha=$(git rev-parse HEAD) || exit 1
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -n "$local_ref" ] || continue
+  case "$local_sha" in 000000000000*) continue ;; esac
+  if [ "$local_ref" != "$current_ref" ] || [ "$local_sha" != "$current_sha" ]; then
+    echo "[version-hook] Only the checked-out branch can be versioned; push branches separately" >&2
+    exit 1
+  fi
+done <<< "$updates"
+
+bumped="0"
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -n "$local_ref" ] || continue
+  # Skip branch deletions (local ref is all zeros)
+  if [ "${local_sha#000000000000}" = "${local_sha}" ]; then
+    # Feature branches carry one release bump relative to main, including review pushes.
+    # Later review commits keep that version until the feature reaches main.
+    # Direct main updates compare against the previous main tip.
+    base="origin/main"
+    if [ "$remote_ref" = "refs/heads/main" ] && [ -n "$remote_sha" ] && [ "${remote_sha#000000000000}" = "$remote_sha" ]; then
+      base="$remote_sha"
+    fi
+    # Do not fold an unfinished version edit into an automatic release commit.
+    if ! git diff --quiet HEAD -- apps/web/package.json; then
+      echo "[version-hook] Commit or stash apps/web/package.json changes before pushing" >&2
+      exit 1
+    fi
+    out=$(node scripts/version-bump.mjs --base "$base") || exit 1
+    echo "$out"
+    case "$out" in
+      *"[version] Bumped"*) bumped="1" ;;
+    esac
+  fi
+done <<< "$updates"
+
+if [ "$bumped" = "1" ]; then
+  NEXT_VERSION=$(node -p "require('./apps/web/package.json').version")
+  git commit --only apps/web/package.json -m "chore(release): bump version to v$NEXT_VERSION" || exit 1
+  echo "[version-hook] Committed version bump to v$NEXT_VERSION"
+  echo "[version-hook] Push stopped: run the same push again to include the version commit" >&2
+  exit 1
+fi
+
+exit 0
