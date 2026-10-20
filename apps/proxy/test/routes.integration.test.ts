@@ -73,7 +73,7 @@ describe("Hono Worker routes (/api/v1/quota & /api/v1/scan)", () => {
     expect(scanRes.status).toBe(200);
     const json = await scanRes.json();
     expect(json.status).toBe("ok");
-    expect(json.promptVersion).toBe("v2");
+    expect(json.promptVersion).toBe("v1");
     expect(scanRes.headers.get("X-Pomona-Remaining-Scans")).toBe("9");
   });
 

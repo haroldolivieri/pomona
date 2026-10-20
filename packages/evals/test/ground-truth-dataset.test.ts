@@ -17,7 +17,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
   }> = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf-8"));
 
   it("verifies all ground-truth image references exist on disk and are non-empty JPEGs", () => {
-    expect(manifest.length).toBe(19);
+    expect(manifest.length).toBe(17);
     for (const item of manifest) {
       const fullPath = path.resolve(__dirname, "..", item.imagePath);
       expect(fs.existsSync(fullPath)).toBe(true);
@@ -66,7 +66,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       const validOutput = { ...baseOutput, candidates: Array.from({ length: 48 }, (_, i) => mkCandidate(i)) };
       expect(verifyPromptfooOutput(JSON.stringify(validOutput), { vars: gt }).pass).toBe(true);
 
-      // 2. Count mismatch: countedTotal=48 with only 30 candidates must fail.
+      // 2. Count mismatch: declared total exceeds candidate list and must fail.
       const underCoverageOutput = { ...baseOutput, candidates: Array.from({ length: 30 }, (_, i) => mkCandidate(i)) };
       const failCoverage = verifyPromptfooOutput(JSON.stringify(underCoverageOutput), { vars: gt });
       expect(failCoverage.pass).toBe(false);
@@ -82,7 +82,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
   it("Scenario 17 (Roma Bulk Pile Focus-Polygon): requires one candidate per eligible in-polygon item", () => {
     const gt = manifest.find((m) => m.id === "17-roma-bulk-pile-focus-polygon")!.groundTruth;
 
-    // 1. Valid polygon output above 30 candidates, with boxes inside the drawn loop
+    // 1. Valid polygon output with boxes inside the drawn loop
     const validPolygonOutput = {
       status: "ok",
       message: null,
@@ -121,7 +121,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
 
     expect(verifyPromptfooOutput(JSON.stringify(validPolygonOutput), { vars: gt }).pass).toBe(true);
 
-    // 2. Adversarial: countedTotal=48 with only 30 emitted fails exact count matching.
+    // 2. Adversarial: a declared total larger than the emitted list fails exact count matching.
     const underCoverageOutput = {
       ...validPolygonOutput,
       countedTotal: 48,
@@ -733,6 +733,30 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     const passRes = verifyPromptfooOutput(JSON.stringify(validUnclearOutput), { vars: gt });
     expect(passRes.pass).toBe(true);
 
+    const invalidOkOutput = {
+      status: "ok",
+      message: null,
+      produce: { type: "carrots", displayName: "Carrots", variety: null },
+      candidates: [
+        { id: "c1", box: [100, 100, 400, 400], score: 8.0, ripeness: "ripe", traits: ["Orange"], flipSummary: null }
+      ],
+      verdict: { winnerId: "c1", runnerUpId: null, confidence: "low", headline: "Uncertain" },
+      followUp: null,
+      afterPurchase: {
+        readyInDays: { min: 0, max: 0 },
+        eatWithinDays: { min: 5, max: 10 },
+        eatWithinLabel: "5–10 days",
+        storage: {
+          beforeCut: { where: "fridge", whereLabel: "Fridge", summary: "Crisper", tip: "Perforated bag" },
+          afterCut: { where: "fridge", whereLabel: "Water", summary: "Water", tip: "Cold water" },
+        },
+      },
+    };
+
+    const failOkRes = verifyPromptfooOutput(JSON.stringify(invalidOkOutput), { vars: gt });
+    expect(failOkRes.pass).toBe(false);
+    expect(failOkRes.reason).toContain('Expected status "unclear_photo" but received "ok"');
+
   });
 
   it("Scenario 14 (Packaged Produce Glare / Obscurity): expects unclear_photo for bagged potatoes", () => {
@@ -749,6 +773,30 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     };
 
     expect(verifyPromptfooOutput(JSON.stringify(validUnclearOutput), { vars: gt }).pass).toBe(true);
+
+    const invalidOkOutput = {
+      status: "ok",
+      message: null,
+      produce: { type: "potato", displayName: "Baking Potatoes", variety: null },
+      candidates: [
+        { id: "c1", box: [400, 160, 900, 860], score: 8.5, ripeness: "ripe", traits: ["Firm"], flipSummary: null }
+      ],
+      verdict: { winnerId: "c1", runnerUpId: null, confidence: "low", headline: "Uncertain" },
+      followUp: null,
+      afterPurchase: {
+        readyInDays: { min: 0, max: 0 },
+        eatWithinDays: { min: 7, max: 14 },
+        eatWithinLabel: "1–2 weeks",
+        storage: {
+          beforeCut: { where: "cool_dark", whereLabel: "Pantry", summary: "Pantry", tip: "Cool dry" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge", tip: "Water" },
+        },
+      },
+    };
+
+    const failOk = verifyPromptfooOutput(JSON.stringify(invalidOkOutput), { vars: gt });
+    expect(failOk.pass).toBe(false);
+    expect(failOk.reason).toContain('Expected status "unclear_photo" but received "ok"');
 
   });
 

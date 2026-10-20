@@ -74,8 +74,8 @@ MULTI-ROUND FLIP WORKFLOW:
   - You MUST detect, bound, and grade ALL visible candidate produce items across the entire crate/pile/frame (detect EVERY visible produce item regardless of quantity, including partially visible or edge items, e.g. c1, c2, c3, c4, c5, c6, c7, c8...). There is NO maximum number of candidates!
   - SILENT-COUNT TELEMETRY: on Round 1, \`countedTotal\` is the exact number of eligible purchase units after applying foreground, produce-type, visibility, and focusPolygon rules. Count only distinct items you can identify and box. Count eligible partial edge items when their identity and boundaries are clear. Do not count second-plane items, other produce types, or hidden/ambiguous items. Emit exactly one candidate per counted item. There is no candidate cap. On Rounds 2/3 or error statuses, set \`countedTotal\` to null.
   - COUNT & COVER TECHNIQUE for piles/crates: if the image shows a dense bulk display of LOOSE individual produce, scan row by row (top to bottom, left to right), applying eligibility rules before counting. Set \`countedTotal\` to the number of eligible items and emit one distinct, tightly anchored candidate for each:
-    - Never stop candidate detection at 30; return every distinct item you can confidently identify.
-    - Emit exactly ONE candidate PER COUNTED ITEM when the item has a distinct, visibly identifiable instance — including when the count exceeds 30.
+    - Continue until every eligible item has been considered; do not stop early while identifiable items remain.
+    - Emit exactly ONE candidate PER COUNTED ITEM when the item has a distinct, visibly identifiable instance, regardless of how many are present.
     - countedTotal MUST equal candidates.length. Every candidate must map to one counted eligible item; every counted eligible item must have one candidate. Never omit eligible items or emit duplicates.
     - Do NOT merge a visible group of items into one giant box, and do NOT report only a handful of items! EXCEPTION: this applies to loose single items only — bunches, packs, punnets, and bags remain ONE candidate per unit as defined in UNIT OF PURCHASE (e.g. a bunch of bananas is ONE candidate no matter how many bananas are visible).
   - SECOND-PLANE EXCLUSION (FALSE-POSITIVE GUARD, CRITICAL):
@@ -129,7 +129,7 @@ export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[])
 CRITICAL: The user has isolated this specific produce! Do NOT return status = "multiple_types" for fruits/produce elsewhere in the photo. First apply foreground-only, dominant-type, visibility, and focusPolygon rules. Then set countedTotal to the exact number of remaining distinct items and emit exactly ONE candidate per counted item (e.g. c1, c2, c3...) with its own tight box, score, and ripeness tier. Do not merge a cluster into one giant box, duplicate an item, or box background items.
 POLYGON COUNT-FIRST (CRITICAL): FIRST classify the contents drawn inside the loop, then follow exactly ONE of the two rules:
   - (A) SHALLOW / ORGANIZED DISPLAY: emit exactly one candidate for every eligible item. Include every clearly visible, distinct item. Never pad with invented or duplicate boxes.
-  - (B) DENSE BULK HEAP: scan row by row. Count only distinct items in the primary foreground display that match its dominant produce type and have enough visible boundary to identify and box. Emit exactly one candidate per counted item, including when count exceeds 30.
+  - (B) DENSE BULK HEAP: scan row by row. Count only distinct items in the primary foreground display that match its dominant produce type and have enough visible boundary to identify and box. Emit exactly one candidate per counted item.
   - In both cases, countedTotal MUST equal candidates.length. Apply second-plane, single-type, visibility, and focusPolygon exclusions before counting. Never estimate hidden items.
 The deciding factor is CROWDING AND OVERLAP (are items stacked/partially buried?) — NOT container type. A bulk pile inside a crate or box is still case (B); an open basket whose items are all fully visible is still case (A). DE-DUPLICATION (both cases): each physical item gets exactly ONE box — never emit two boxes that cover the same item, and never box a mere sliver of an item cut off by the loop edge. If the items inside the loop are large and easy to count at a glance (you could count them on your fingers), that is always case (A).
 SILENT-COUNT TELEMETRY: report in \`countedTotal\` the number of eligible items you can identify and box inside the drawn loop, after applying foreground, single-type, visibility, and boundary rules. It must equal the number of emitted candidates.
@@ -141,7 +141,7 @@ EMISSION ORDER & SPREAD (CRITICAL): emit your boxes in READING ORDER over the wh
 SCENE-DEPENDENT COUNT-FIRST: First identify the primary foreground display and its dominant produce type. Exclude second-plane items, other produce types, and items too obscured to identify or box. Then count every remaining distinct item and emit exactly one candidate per item with its own tight box, score, and ripeness tier. Set \`countedTotal\` equal to candidates.length.
 - SPARSE displays: include every clearly identifiable eligible item. Never omit a clear item or add invented or duplicate boxes.
 - DENSE BULK PILES of loose small produce (e.g. tomatoes, potatoes, lemons in a big display): scan eligible foreground items row by row (top to bottom, left to right), then:
-  - Emit one candidate per distinct, visibly identifiable fruit, each tightly bound with its own score and ripeness tier. Do not stop at 30.
+  - Emit one candidate per distinct, visibly identifiable fruit, each tightly bound with its own score and ripeness tier. Continue through the full visible display; do not stop early while eligible items remain.
 
   - Set \`countedTotal\` to the exact number of eligible items and emit exactly one candidate per item. \`countedTotal\` MUST equal candidates.length.
   - Do not merge neighboring items into one box. Slight overlap between tight boxes is allowed, but each physical item gets exactly one box.
@@ -189,7 +189,7 @@ export function buildV1RepairPrompt(request: ScanRequest, repairErrors: string[]
 }
 
 export const v1PromptConfig: PromptConfig = {
-  version: "v2",
+  version: "v1",
   buildSystemPrompt: buildV1SystemPrompt,
   buildUserPrompt: buildV1UserPrompt,
   buildRepairPrompt: buildV1RepairPrompt,

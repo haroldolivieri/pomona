@@ -306,7 +306,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
       deviceDailyLimit: Number.isFinite(parsedDeviceLimitPost) ? parsedDeviceLimitPost : undefined,
     });
 
-    const promptVersion = c.env.ACTIVE_PROMPT_VERSION || "v2";
+    const promptVersion = c.env.ACTIVE_PROMPT_VERSION || "v1";
 
     if (!quotaResult.allowed) {
       c.header(REMAINING_SCANS_HEADER, quotaResult.remainingDeviceScans.toString());

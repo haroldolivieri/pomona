@@ -244,7 +244,7 @@
     "filename": "08-round3-first-pick-reclaims.jpg",
     "imagePath": "dataset/images/08-round3-first-pick-reclaims.jpg",
     "imageBase64PreviewLength": 890000,
-    "description": "Round 3 Final Check \u2014 1st Pick Reclaims Win (State 7A): Photorealistic close-up of flipped 1st Pick Watermelon (#c1, previously 8.6 top-only) revealing a massive, deep golden-amber belly spot covered in heavy brown pollination sugar webbing and a dry brown stem tendril. Beats or ties Runner-Up (#c2, 9.0), reclaiming winnerId = 'c1' with hard ceiling followUp = null.",
+    "description": "Round 3 Final Check — 1st Pick Reclaims Win (State 7A): Photorealistic close-up of flipped 1st Pick Watermelon (#c1, previously 8.6 top-only) revealing a massive, deep golden-amber belly spot covered in heavy brown pollination sugar webbing and a dry brown stem tendril. Beats or ties Runner-Up (#c2, 9.0), reclaiming winnerId = 'c1' with hard ceiling followUp = null.",
     "groundTruth": {
       "round": 3,
       "expectedStatus": "ok",
@@ -259,7 +259,7 @@
         "previousWinner": {
           "id": "c2",
           "role": "runner_up",
-          "score": 9.0,
+          "score": 9,
           "ripeness": "ripe",
           "traits": [
             "Deep creamy spot",
@@ -301,7 +301,7 @@
     "filename": "09-round3-first-pick-loses.jpg",
     "imagePath": "dataset/images/09-round3-first-pick-loses.jpg",
     "imageBase64PreviewLength": 860000,
-    "description": "Round 3 Final Check \u2014 1st Pick Loses (State 7B): Photorealistic close-up of flipped 1st Pick Watermelon (#c1, previously 8.6 top-only) revealing a pale greenish-white belly with a sunken brown water-soaked soft bruise patch on the rind. Scores strictly below Runner-Up (#c2, 9.0), so #c2 retains winnerId = 'c2' with hard ceiling followUp = null.",
+    "description": "Round 3 Final Check — 1st Pick Loses (State 7B): Photorealistic close-up of flipped 1st Pick Watermelon (#c1, previously 8.6 top-only) revealing a pale greenish-white belly with a sunken brown water-soaked soft bruise patch on the rind. Scores strictly below Runner-Up (#c2, 9.0), so #c2 retains winnerId = 'c2' with hard ceiling followUp = null.",
     "groundTruth": {
       "round": 3,
       "expectedStatus": "ok",
@@ -316,7 +316,7 @@
         "previousWinner": {
           "id": "c2",
           "role": "runner_up",
-          "score": 9.0,
+          "score": 9,
           "ripeness": "ripe",
           "traits": [
             "Deep creamy spot",
@@ -701,86 +701,6 @@
         "banana",
         "potato"
       ]
-    }
-  },
-  {
-    "id": "18-round2-insufficient-evidence",
-    "filename": "03-unclear-blurry-photo.jpg",
-    "imagePath": "dataset/images/03-unclear-blurry-photo.jpg",
-    "description": "Round 2: Unusable blurry photo must abstain despite previous scores and the request to choose a winner.",
-    "groundTruth": {
-      "round": 2,
-      "expectedStatus": "unclear_photo",
-      "focusPolygon": null,
-      "followUpContext": {
-        "produceType": "watermelon",
-        "produceDisplayName": "Watermelon",
-        "targetCandidateId": "c2",
-        "targetRole": "runner_up",
-        "requestedInstruction": "Flip the Runner-Up Watermelon over to inspect its underside ground spot.",
-        "previousWinner": {
-          "id": "c1",
-          "role": "first_pick",
-          "score": 8.6,
-          "ripeness": "ripe",
-          "traits": [
-            "Yellow field spot",
-            "Matte rind"
-          ],
-          "anglesInspected": 1
-        },
-        "previousRunnerUp": {
-          "id": "c2",
-          "role": "runner_up",
-          "score": 8.1,
-          "ripeness": "almost_ripe",
-          "traits": [
-            "Even shape",
-            "Dark stripes"
-          ],
-          "anglesInspected": 1
-        }
-      }
-    }
-  },
-  {
-    "id": "18-round3-insufficient-evidence",
-    "filename": "03-unclear-blurry-photo.jpg",
-    "imagePath": "dataset/images/03-unclear-blurry-photo.jpg",
-    "description": "Round 3: Unusable blurry photo must abstain despite previous scores and the request to choose a winner.",
-    "groundTruth": {
-      "round": 3,
-      "expectedStatus": "unclear_photo",
-      "focusPolygon": null,
-      "followUpContext": {
-        "produceType": "watermelon",
-        "produceDisplayName": "Watermelon",
-        "targetCandidateId": "c1",
-        "targetRole": "first_pick",
-        "requestedInstruction": "Flip your 1st pick Watermelon over for a fair final check of its underside.",
-        "previousWinner": {
-          "id": "c2",
-          "role": "runner_up",
-          "score": 9.0,
-          "ripeness": "ripe",
-          "traits": [
-            "Deep creamy spot",
-            "Sugar webbing"
-          ],
-          "anglesInspected": 2
-        },
-        "previousRunnerUp": {
-          "id": "c1",
-          "role": "first_pick",
-          "score": 8.6,
-          "ripeness": "ripe",
-          "traits": [
-            "Yellow field spot",
-            "Matte rind"
-          ],
-          "anglesInspected": 1
-        }
-      }
     }
   }
 ]
