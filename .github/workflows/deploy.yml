@@ -79,9 +79,20 @@ jobs:
         with:
           filters: |
             prompts:
-              - 'apps/proxy/src/prompts/**'
-              - 'packages/contract/src/schemas.ts'
+              - 'apps/proxy/src/**'
+              - 'apps/web/src/**'
+              - 'packages/contract/src/**'
               - 'packages/evals/**'
+            eval_coverage:
+              - 'packages/evals/dataset/ground-truth.json'
+              - 'packages/evals/assertions/**'
+              - 'packages/evals/test/**'
+
+      - name: Require eval coverage for behavior changes
+        if: steps.filter.outputs.prompts == 'true' && steps.filter.outputs.eval_coverage != 'true'
+        run: |
+          echo "::error::Behavior changes require an eval scenario, assertion, or regression test in packages/evals."
+          exit 1
 
   unit-tests:
     name: Typecheck & Unit Tests (all workspaces)
@@ -195,6 +206,7 @@ jobs:
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       github.ref == 'refs/heads/main' &&
       needs.version-gate.result == 'success' &&
+      needs.check-changes.result == 'success' &&
       needs.unit-tests.result == 'success' &&
       (needs.eval-gate.result == 'success' || needs.eval-gate.result == 'skipped') &&
       needs.e2e-web.result == 'success'

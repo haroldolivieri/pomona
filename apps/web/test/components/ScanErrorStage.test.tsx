@@ -6,6 +6,19 @@ import { ScanErrorStage } from "../../src/components/ScanErrorStage";
 import "../../src/i18n";
 
 describe("ScanErrorStage", () => {
+  it("shows a distinct evidence notice and another-angle action", () => {
+    const onRetake = vi.fn();
+    render(<ScanErrorStage status="insufficient_evidence" errorMessage="The field spots are hidden; I cannot confidently choose."
+      photoDataUrl="data:image/webp;base64,mock" onRetake={onRetake} onDrawFocus={vi.fn()} />);
+    expect(screen.getByText("Not enough evidence to choose")).toBeInTheDocument();
+    expect(screen.getByText("The field spots are hidden; I cannot confidently choose.")).toBeInTheDocument();
+    expect(screen.getByText("Another Look Needed")).toBeInTheDocument();
+    expect(screen.queryByTestId("error-draw-button")).not.toBeInTheDocument();
+    expect(screen.queryByText(/blurry/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try Another Angle" }));
+    expect(onRetake).toHaveBeenCalledOnce();
+  });
+
   it("renders unclear_photo error state with tailored copy, icon, and retake action", () => {
     const handleRetake = vi.fn();
     render(

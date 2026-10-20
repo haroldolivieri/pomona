@@ -63,6 +63,14 @@ describe("Prompt registry & vision adapters", () => {
     expect(openai.modelId).toBe("gpt-4o-mini");
 
     const result = await runVerifiedVisionScan(sampleRequest, gemini, getPromptConfig("v1"));
+    const generation = mockGenerate.mock.calls[0][0] as any;
+    expect(generation.providerOptions.google).toEqual({
+      mediaResolution: "MEDIA_RESOLUTION_HIGH",
+      thinkingConfig: { thinkingLevel: "medium" },
+    });
+    const fields = Object.keys(generation.schema.shape);
+    expect(fields.indexOf("countedTotal")).toBeLessThan(fields.indexOf("candidates"));
+    expect(generation.schema.shape.countedTotal.description).toContain("exactly candidates.length AFTER");
     expect(result.attempts).toBe(2);
     expect(result.response.status).toBe("ok");
     expect(result.response.produce?.displayName).toBe("Pineapple");

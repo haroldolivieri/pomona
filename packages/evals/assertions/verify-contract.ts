@@ -1,4 +1,5 @@
 import { verifyAndResolveScanResponse } from "@pomona/proxy";
+import { ErrorMessageSchema } from "@pomona/contract";
 import type { BoundingBox, ScanRequest, ScanResponse } from "@pomona/contract";
 
 export interface VerifyPromptfooOutputResult {
@@ -58,6 +59,21 @@ export function verifyPromptfooOutput(
     };
   }
 
+  // Grade the model's abstention itself, before server safeguards can sanitize it.
+  const raw = parsedJson as Record<string, any> | null;
+  if (typeof raw?.message === "string" && !ErrorMessageSchema.safeParse(raw.message).success) {
+    return { pass: false, score: 0, reason: "Error description exceeds 20 words or 140 characters" };
+  }
+  if ((raw?.status === "unclear_photo" || raw?.status === "insufficient_evidence") && (
+    raw.produce != null || !Array.isArray(raw.candidates) || raw.candidates.length > 0 ||
+    raw.verdict != null || raw.followUp != null || raw.afterPurchase != null || raw.countedTotal != null
+  )) {
+    return { pass: false, score: 0, reason: "Uncertain photos must abstain without scores, a verdict, follow-up, or purchase advice" };
+  }
+  if (raw?.status === "ok" && raw.verdict?.confidence === "low") {
+    return { pass: false, score: 0, reason: "Low-confidence selection must abstain with insufficient_evidence" };
+  }
+
   const vars = context.vars ?? {};
   const round = Number(vars.round ?? 1);
   const scanRequest: ScanRequest = {
@@ -94,6 +110,14 @@ export function verifyPromptfooOutput(
       score: 0.2,
       reason: `Expected status "${vars.expectedStatus}" but received "${response.status}"`,
     };
+  }
+
+  if (response.status === "insufficient_evidence") {
+    const message = response.message ?? "";
+    if (!/(cannot|can.t|not enough|insufficient|unsure|uncertain|unable|more|need|hidden|not visible|not shown|missing)/i.test(message) ||
+        !/(turn|flip|rotate|angle|underside|stem|retake|closer|show)/i.test(message)) {
+      return { pass: false, score: 0, reason: "Insufficient evidence must explain uncertainty and request a useful new view" };
+    }
   }
 
   // If expectedStatus is non-ok and matches, verify message is provided and return pass

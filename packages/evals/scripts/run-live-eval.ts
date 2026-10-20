@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { loadApiKeyFromEnvFiles } from "./env";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { v1PromptConfig, createGeminiVisionAdapter, createOpenAIVisionAdapter } from "@pomona/proxy";
@@ -16,39 +17,17 @@ interface GroundTruthEntry {
   groundTruth: Record<string, any>;
 }
 
-function loadApiKeyFromEnvFiles(): { geminiKey?: string; openaiKey?: string } {
-  const candidates = [
-    path.resolve(__dirname, "../../../.env"),
-    path.resolve(__dirname, "../../../apps/proxy/.dev.vars"),
-    path.resolve(__dirname, "../.env"),
-  ];
-  let geminiKey = process.env.GEMINI_API_KEY;
-  let openaiKey = process.env.OPENAI_API_KEY;
-
-  for (const filePath of candidates) {
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, "utf-8");
-      for (const line of content.split(/\r?\n/)) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith("#")) continue;
-        const eqIdx = trimmed.indexOf("=");
-        if (eqIdx === -1) continue;
-        const key = trimmed.slice(0, eqIdx).trim();
-        const val = trimmed.slice(eqIdx + 1).trim().replace(/^['"]|['"]$/g, "");
-        if (key === "GEMINI_API_KEY" && !geminiKey && val) geminiKey = val;
-        if (key === "OPENAI_API_KEY" && !openaiKey && val) openaiKey = val;
-      }
-    }
-  }
-  return { geminiKey, openaiKey };
-}
-
 async function runLiveBenchmark() {
-  const { geminiKey, openaiKey } = loadApiKeyFromEnvFiles();
+  const { geminiKey, openaiKey } = loadApiKeyFromEnvFiles(__dirname);
   const scenarioId = process.env.EVAL_SCENARIO_ID;
 
   if (scenarioId && !geminiKey) {
     console.error("A GEMINI_API_KEY is required when EVAL_SCENARIO_ID is set.");
+    process.exit(1);
+  }
+
+  if (!geminiKey && !openaiKey && (process.env.CI === "true" || process.argv.includes("--strict"))) {
+    console.error("Live eval gate requires GEMINI_API_KEY or OPENAI_API_KEY; refusing to skip.");
     process.exit(1);
   }
 
@@ -92,6 +71,7 @@ async function runLiveBenchmark() {
       : path.resolve(__dirname, "..", item.imagePath);
     const imageBase64 = fs.readFileSync(imgFullPath).toString("base64");
     const gt = item.groundTruth;
+    const imageMimeType = imgFullPath.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
 
     const req: ScanRequest = {
       schemaVersion: "1.0",
@@ -99,7 +79,7 @@ async function runLiveBenchmark() {
       round: (gt.round || 1) as 1 | 2 | 3,
       locale: "en-GB",
       imageBase64,
-      imageMimeType: "image/jpeg",
+      imageMimeType,
       focusPolygon: gt.focusPolygon ?? null,
       followUpContext: gt.followUpContext ?? null,
     };
@@ -113,7 +93,7 @@ async function runLiveBenchmark() {
         systemPrompt,
         userPrompt,
         imageBase64,
-        imageMimeType: "image/jpeg",
+        imageMimeType,
       });
 
       const latencyMs = Date.now() - startMs;

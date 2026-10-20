@@ -261,6 +261,13 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     runnerUpTagLabel = `1st Winner · ${score1}`;
   }
 
+  if (verdict?.confidence === "medium") {
+    eyebrow = "TENTATIVE PICK";
+    headline = "Looks promising.";
+    subtitle = "Medium confidence · visible appearance only. Check another angle before deciding.";
+    confirmationBanner = null;
+  }
+
   // Accessibility spatial speech
   const winnerA11y = activeWinner ? describeBoxPosition(activeWinner.box, "Winner", activeWinner.score) : "";
   const runnerUpA11y = activeRunnerUp ? describeBoxPosition(activeRunnerUp.box, "Runner-Up", activeRunnerUp.score) : "";

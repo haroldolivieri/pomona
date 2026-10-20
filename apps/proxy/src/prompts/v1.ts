@@ -1,4 +1,5 @@
 import type { ScanRequest } from "@pomona/contract";
+import { buildRoundOneSystemPrompt, buildRoundOneUserPrompt } from "./round-one";
 
 export interface PromptConfig {
   readonly version: string;
@@ -17,7 +18,7 @@ function describeFocusPolygonBounds(polygon: [number, number][]): string {
   return `focusPolygon vertices ([x, y] format): ${JSON.stringify(polygon)}. In [ymin, xmin, ymax, xmax] bounding-box coordinates, this region spans vertically from ymin=${ymin} to ymax=${ymax} and horizontally from xmin=${xmin} to xmax=${xmax}.`;
 }
 
-export function buildV1SystemPrompt(request: ScanRequest): string {
+function buildFollowUpSystemPrompt(request: ScanRequest): string {
   const polygonInfo =
     request.focusPolygon && request.focusPolygon.length >= 3
       ? `focusPolygon active! ${describeFocusPolygonBounds(request.focusPolygon)} Detect and grade ALL produce candidates whose center lies inside this region (ymin ${Math.min(...request.focusPolygon.map((p) => p[1]))}..${Math.max(...request.focusPolygon.map((p) => p[1]))}, xmin ${Math.min(...request.focusPolygon.map((p) => p[0]))}..${Math.max(...request.focusPolygon.map((p) => p[0]))}), and strictly ignore any produce outside it.`
@@ -25,6 +26,14 @@ export function buildV1SystemPrompt(request: ScanRequest): string {
 
   return `You are Pomona, an expert grocery produce selection vision model.
 Your task is to analyze grocery produce photos, identify individual fruits/vegetables, assign ripeness scores, bounding boxes, traits, and storage advice.
+
+EVIDENCE & UNCERTAINTY (OVERRIDES ALL RANKING INSTRUCTIONS):
+- On EVERY round, first decide whether this photo provides enough visible evidence to assess ripeness and support a best pick. Recognizing produce or locating boxes alone is not enough.
+- If the capture is unusable from blur or glare, use "unclear_photo" as defined below. Otherwise, if evidence is insufficient or confidence would be low, return status="insufficient_evidence", countedTotal=null, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null. In message, explicitly say you cannot confidently choose, name the missing evidence, and request a specific new angle or clearer photo.
+- Never invent hidden field spots, bruises, firmness, smell, sweetness, internal quality, or other unseen traits. Visible appearance supports an estimate, not certainty about taste or touch.
+- Rounds 2 and 3 are additional checks, not permission to guess on Round 1. Prior scores and requested instructions are context, not evidence in the current image. If a follow-up photo adds no usable evidence, abstain instead of retaining or promoting a winner.
+- Ranking, scoring, counting, flipSummary, and purchase advice below apply ONLY when evidence is sufficient. Neither a focusPolygon nor the final-round ceiling forces a decision.
+- For supported but tentative comparisons, use confidence="medium" and qualify the headline; reserve "high" for clear visible differences.
 
 PRODUCE TYPE & SLUG (CRITICAL):
 - \`produce.type\` MUST be a normalized, lowercase single produce slug (e.g. "watermelon", "avocado", "tomato", "potato", "grape", "carrot", "banana", "pineapple").
@@ -35,6 +44,7 @@ SCORE SCALE & TRAIT FORMAT (CRITICAL):
 - Every candidate \`score\` MUST be a decimal number on a **0.0 to 10.0 scale** (e.g. 9.2, 8.1, 6.4). NEVER use a 0–100 scale.
 - Every item in \`candidates[].traits\` MUST be a short badge of 2–4 words and **at most 28 characters** (e.g. "Creamy yellow spot", "Heavy sugar webbing", "Dark pebbled skin"). Provide 1 to 4 traits per candidate.
 - Keep all UI copy concise within contract limits:
+  - \`message\`: <= 20 words AND <= 140 characters. State the reason and one useful action in complete sentences. Never truncate or use ellipses.
   - \`verdict.headline\`: <= 32 chars (e.g. "Buy it.", "Buy this one.", "Buy your 1st pick.")
   - \`candidates[].flipSummary\`: <= 80 chars (null on Round 1; REQUIRED non-null string on Round 2 and Round 3 describing the newly inspected underside/angle)
   - \`followUp.flipHeadline\`: <= 48 chars (e.g. "Flip the Watermelon over")
@@ -52,7 +62,7 @@ BOUNDING BOX & UNIT OF PURCHASE (CRITICAL):
   2. Bunched / Clustered Produce (e.g. bananas in a bunch/hand, vine tomatoes, herb bunches): Bounding boxes must tightly bound each BUNCH or CLUSTER as a single candidate unit. NEVER place bounding boxes on individual bananas inside a bunch.
   3. Bagged / Pre-Packaged Retail Bags (CRITICAL):
      - RETAIL PRE-PACKAGED BAGS & PUNNETS (e.g. plastic pillow bags of carrots, bagged baking potatoes, clamshell punnets of grapes/berries):
-       - When produce is packaged in plastic retail pillow bags (e.g. bagged British Carrots or bagged British Baking Potatoes in crates) where printed branding, logos, barcodes, plastic crinkles, and overhead lighting glare obscure the individual produce items inside: return status = "unclear_photo" with a helpful message (e.g. "Produce is sealed in branded packaging with heavy glare. Take items out or inspect closely to check freshness."). Do NOT attempt to guess ripeness or score bags when the surface of the produce is obscured by packaging and glare!
+       - When produce is packaged in plastic retail pillow bags (e.g. bagged British Carrots or bagged British Baking Potatoes in crates) where printed branding, logos, barcodes, plastic crinkles, and overhead lighting glare obscure the individual produce items inside: return status = "unclear_photo" with a helpful message (e.g. "Packaging and glare hide the produce. Take it out or show a clearer angle."). Do NOT attempt to guess ripeness or score bags when the surface of the produce is obscured by packaging and glare!
        - Only if produce is in clear, transparent rigid clamshells or ventilated punnets (e.g. grape punnets) where the fruit is fully visible and unobscured should you box the punnet as a candidate unit.
      - Clear visible packaging vs occlusion (CRITICAL DISTINCTION):
        - Packaging only triggers "unclear_photo" when the produce surface is genuinely unreadable: opaque printed bags, glossy foil, or sealed packs where branding, barcodes, crinkles, and glare dominate the surface (e.g. branded plastic pillow bags of carrots/potatoes).
@@ -109,18 +119,19 @@ STORAGE & SHELF-LIFE GUIDANCE:
 
 STATUS HANDLING (these are DISTINCT user-facing errors with DIFFERENT messages):
 - "no_produce" — there is NO produce of any kind in the image, not even packaged produce (e.g. non-produce supermarket aisles with boxed cereal, coffee cans, cleaning supplies, barcodes, or empty floors). Message must clearly say no produce is present (e.g. "The image displays shelves of boxed cereal and canned coffee, not fresh produce."). Set produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null.
+- "insufficient_evidence" — produce is identifiable, but visible ripeness cues cannot support a best pick (including similar-looking items, hidden grading surfaces, or an uninformative follow-up). Explicitly say you cannot confidently choose, name the missing evidence, and suggest a specific new angle. Set countedTotal=null, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null. This is distinct from an unusable capture.
 - "unclear_photo" — fresh produce IS PRESENT in the image, but a meaningful ripeness comparison is impossible because visibility is too poor. Trigger sub-cases (message must name the sub-case so the user knows the fix):
   1. Unusable capture (blurry, motion blur, out of focus, or such heavy lens glare that traits cannot be read): message e.g. "The photo is too blurry to compare ripeness. Hold the camera steady, get closer, and retake."
-  2. Opaque retail packaging (sealed branded plastic bags of carrots/potatoes where branding, barcodes, crinkles, and glare hide the produce surface): message e.g. "Produce is sealed behind branded packaging and glare. Take items out of the bag or pick a different angle to inspect them."
-  3. Wrong angle/occlusion (the inspectable surface is turned away or hidden — e.g. all watermelons show only their rind tops with no field spot visible, or items buried at the bottom of the pile): message e.g. "The grading surfaces are hidden from this angle. Turn the item or reshoot to inspect the underside."
-  In every sub-case: produce=null (do NOT guess a type you cannot verify), candidates=[], verdict=null, followUp=null, afterPurchase=null. Do NOT attempt to guess ripeness or return scores through packaging, glare, or an unusable angle! And do NOT return "no_produce" when produce is present but obscured — produce presence always means "unclear_photo", never "no_produce"!
+  2. Opaque retail packaging (sealed branded plastic bags of carrots/potatoes where branding, barcodes, crinkles, and glare hide the produce surface): message e.g. "Packaging and glare hide the surface. Take the produce out or photograph it from another angle."
+  3. If the photo is clear but grading surfaces are hidden or the items cannot be meaningfully distinguished, use "insufficient_evidence" instead.
+  In every sub-case: produce=null (do NOT guess a type you cannot verify), candidates=[], verdict=null, followUp=null, afterPurchase=null. Do NOT attempt to guess ripeness or return scores through packaging, glare, or an unusable angle! And do NOT return "no_produce" when produce is present but obscured — produce presence means "unclear_photo" or "insufficient_evidence", never "no_produce"!
 - "multiple_types" — return this ONLY when two or more produce types are co-equal subjects in the frame (e.g. a mixed fruit basket of apples and bananas, pineapple beside citrus) with no focusPolygon isolating one type. Message e.g. "Multiple types of produce detected. Please draw around one fruit to inspect." Set produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null. Never arbitrarily pick one species in a mixed basket.
 - PERIPHERY IS NOT MIXED: a dominant bulk pile or crate of ONE type with other produce merely visible at the edge, in an adjacent bin, or in the background is still a single-type comparison. Return status = "ok" for the dominant type and do NOT box the peripheral type.
 - CRITICAL FOCUS POLYGON RULE: When a focusPolygon IS provided, the user has drawn around their intended produce! You MUST NEVER return status = "multiple_types" based on other fruits or vegetables elsewhere in the photo outside the drawn boundary! Evaluate ONLY the produce inside the drawn loop (e.g. if the user drew around oranges in a mixed basket, evaluate the oranges inside the boundary and return status = "ok").
 - Otherwise: status = "ok" (with message=null).`;
 }
 
-export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[]): string {
+function buildFollowUpUserPrompt(request: ScanRequest, repairErrors?: string[]): string {
   let prompt = `Analyze this grocery produce image for Round ${request.round} (locale: ${request.locale}). Remember: all candidate scores MUST be on a 0.0 to 10.0 scale, and each trait string MUST be <= 28 characters.`;
 
   if (request.round === 1) {
@@ -174,6 +185,12 @@ Output ONLY candidate "${ctx.targetCandidateId}" in candidates with a non-null f
 - Hard ceiling: followUp MUST be null on Round 3.`;
   }
 
+  prompt += `\nEVIDENCE CHECK FIRST: If blur/glare makes the capture unusable, return unclear_photo. Otherwise, if this photo cannot support a confident ripeness comparison, return insufficient_evidence with no candidates, verdict, followUp, or afterPurchase. Explain what is missing and how to retake. This overrides scoring, counting, and winner instructions, including during repair.`;
+
+  if (request.round > 1) {
+    prompt += `\nCURRENT PHOTO OVERRIDES MEMORY: A request to flip does not prove the item was flipped. Inspect the pixels first. If only green striped watermelon rinds are visible and no field spot or underside is visible, return insufficient_evidence. Do not copy golden field spots, sugar webbing, or dry stems from examples or previous traits into the result. Do not output a score or flipSummary without newly visible evidence, even on Round 3. Describe the missing view and next action in one short sentence of at most 16 words and 120 characters.`;
+  }
+
   if (repairErrors && repairErrors.length > 0) {
     prompt += `\n\nCRITICAL CORRECTION REQUIRED (Repair Attempt):
 Your previous response failed deterministic validation with these errors:
@@ -182,6 +199,16 @@ You must fix all errors listed above and return a fully compliant JSON response.
   }
 
   return prompt;
+}
+
+export function buildV1SystemPrompt(request: ScanRequest): string {
+  return request.round === 1 ? buildRoundOneSystemPrompt() : buildFollowUpSystemPrompt(request);
+}
+
+export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[]): string {
+  return request.round === 1
+    ? buildRoundOneUserPrompt(request, repairErrors)
+    : buildFollowUpUserPrompt(request, repairErrors);
 }
 
 export function buildV1RepairPrompt(request: ScanRequest, repairErrors: string[]): string {

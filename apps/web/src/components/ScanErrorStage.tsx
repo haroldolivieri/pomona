@@ -28,6 +28,15 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
   let showDrawButton = false;
 
   switch (status) {
+    case "insufficient_evidence":
+      icon = "🔎";
+      title = t("errors.insufficientEvidenceTitle");
+      explanation = errorMessage || t("errors.insufficientEvidence");
+      tip = t("errors.insufficientEvidenceTip");
+      primaryCtaLabel = t("errors.insufficientEvidenceCta");
+      primaryAction = onRetake;
+      break;
+
     case "unclear_photo":
       icon = "📷";
       title = t("errors.unclearPhotoTitle");
@@ -272,7 +281,9 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
             color: "#B45309",
           }}
         >
-          {status === "unclear_photo"
+          {status === "insufficient_evidence"
+            ? "Another Look Needed"
+            : status === "unclear_photo"
             ? "Camera Adjustment"
             : status === "no_produce"
             ? "Subject Not Found"

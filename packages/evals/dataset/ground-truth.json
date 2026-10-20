@@ -591,13 +591,13 @@
     "filename": "16-roma-tomatoes-bulk-pile.jpg",
     "imagePath": "dataset/images/16-roma-tomatoes-bulk-pile.jpg",
     "imageBase64PreviewLength": 75000,
-    "description": "Round 1 High-Density Bulk Pile: User supermarket photo of a dense display of loose Roma Tomatoes. Verifies that the model detects, bounds, and scores first-plane tomatoes across the pile (at least 20 candidates; second-plane crates and adjacent onions must be ignored), so the user can compare them across ripeness windows.",
+    "description": "Round 1 High-Density Bulk Pile: User supermarket photo of a dense display of loose Roma Tomatoes. Verifies that the model detects, bounds, and scores first-plane tomatoes across the pile (at least 30 candidates; second-plane crates and adjacent onions must be ignored), so the user can compare them across ripeness windows.",
     "groundTruth": {
       "round": 1,
       "expectedStatus": "ok",
       "expectedProduceType": "tomato",
       "focusPolygon": null,
-      "expectedCandidateCountMin": 31,
+      "expectedCandidateCountMin": 30,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
@@ -613,7 +613,7 @@
     "filename": "16-roma-tomatoes-bulk-pile.jpg",
     "imagePath": "dataset/images/16-roma-tomatoes-bulk-pile.jpg",
     "imageBase64PreviewLength": 75000,
-    "description": "Round 1 Focus-Polygon on Dense Bulk Pile: Same loose Roma tomato display as scenario 16, but the user drew a large loop around the whole pile. Verifies the polygon path detects 20-30 individual tomatoes WITH CENTERS INSIDE the drawn loop (no whole-cluster box, no background items, no count collapse).",
+    "description": "Round 1 Focus-Polygon on Dense Bulk Pile: Same loose Roma tomato display as scenario 16, but the user drew a large loop around the whole pile. Verifies the polygon path detects at least 30 individual tomatoes WITH CENTERS INSIDE the drawn loop (no whole-cluster box, no background items, no count collapse).",
     "groundTruth": {
       "round": 1,
       "expectedStatus": "ok",
@@ -692,7 +692,7 @@
           415
         ]
       ],
-      "expectedCandidateCountMin": 31,
+      "expectedCandidateCountMin": 30,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
@@ -701,6 +701,97 @@
         "banana",
         "potato"
       ]
+    }
+  },
+  {
+    "id": "18-round1-insufficient-evidence",
+    "filename": "18-watermelon-hidden-surfaces.png",
+    "imagePath": "dataset/images/18-watermelon-hidden-surfaces.png",
+    "description": "Round 1: Sharp photo of similar watermelons with only upper rind visible. No field spots or stems. Must explicitly abstain, even with previous scores.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "insufficient_evidence",
+      "focusPolygon": null
+    }
+  },
+  {
+    "id": "18-round2-insufficient-evidence",
+    "filename": "18-watermelon-hidden-surfaces.png",
+    "imagePath": "dataset/images/18-watermelon-hidden-surfaces.png",
+    "description": "Round 2: Sharp photo of similar watermelons with only upper rind visible. No field spots or stems. Must explicitly abstain, even with previous scores.",
+    "groundTruth": {
+      "round": 2,
+      "expectedStatus": "insufficient_evidence",
+      "focusPolygon": null,
+      "followUpContext": {
+        "produceType": "watermelon",
+        "produceDisplayName": "Watermelon",
+        "targetCandidateId": "c2",
+        "targetRole": "runner_up",
+        "requestedInstruction": "Flip the Runner-Up Watermelon over to inspect its underside ground spot.",
+        "previousWinner": {
+          "id": "c1",
+          "role": "first_pick",
+          "score": 8.6,
+          "ripeness": "ripe",
+          "traits": [
+            "Yellow field spot",
+            "Matte rind"
+          ],
+          "anglesInspected": 1
+        },
+        "previousRunnerUp": {
+          "id": "c2",
+          "role": "runner_up",
+          "score": 8.1,
+          "ripeness": "almost_ripe",
+          "traits": [
+            "Even shape",
+            "Dark stripes"
+          ],
+          "anglesInspected": 1
+        }
+      }
+    }
+  },
+  {
+    "id": "18-round3-insufficient-evidence",
+    "filename": "18-watermelon-hidden-surfaces.png",
+    "imagePath": "dataset/images/18-watermelon-hidden-surfaces.png",
+    "description": "Round 3: Sharp photo of similar watermelons with only upper rind visible. No field spots or stems. Must explicitly abstain, even with previous scores.",
+    "groundTruth": {
+      "round": 3,
+      "expectedStatus": "insufficient_evidence",
+      "focusPolygon": null,
+      "followUpContext": {
+        "produceType": "watermelon",
+        "produceDisplayName": "Watermelon",
+        "targetCandidateId": "c1",
+        "targetRole": "first_pick",
+        "requestedInstruction": "Flip your 1st pick Watermelon over for a fair final check of its underside.",
+        "previousWinner": {
+          "id": "c2",
+          "role": "runner_up",
+          "score": 9.0,
+          "ripeness": "ripe",
+          "traits": [
+            "Deep creamy spot",
+            "Sugar webbing"
+          ],
+          "anglesInspected": 2
+        },
+        "previousRunnerUp": {
+          "id": "c1",
+          "role": "first_pick",
+          "score": 8.6,
+          "ripeness": "ripe",
+          "traits": [
+            "Yellow field spot",
+            "Matte rind"
+          ],
+          "anglesInspected": 1
+        }
+      }
     }
   }
 ]

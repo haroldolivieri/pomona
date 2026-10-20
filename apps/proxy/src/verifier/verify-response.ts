@@ -1,4 +1,5 @@
 import {
+  ErrorMessageSchema,
   ScanResponseModelSchema,
   ScanResponseSchema,
   type ScanRequest,
@@ -32,7 +33,15 @@ function normalizeRawModelOutput(raw: unknown): unknown {
   const obj: Record<string, any> = { ...(raw as Record<string, any>) };
 
   if (typeof obj.message === "string") {
-    obj.message = trimMax(obj.message, 160);
+    if (!ErrorMessageSchema.safeParse(obj.message).success) {
+      const descriptions: Record<string, string> = {
+        insufficient_evidence: "I cannot confidently choose from this view. Turn the produce to show the underside or stem.",
+        unclear_photo: "The produce is obscured. Retake a clear photo with its surface visible.",
+        no_produce: "No produce found. Take a photo of the fruit or vegetables you want to compare.",
+        multiple_types: "Several produce types are visible. Draw around one type to compare it.",
+      };
+      obj.message = descriptions[obj.status] ?? "Analysis could not finish. Please take another photo and try again.";
+    }
   }
 
   if (Array.isArray(obj.candidates)) {
@@ -121,6 +130,20 @@ export function verifyAndResolveScanResponse(
   }
 
   const data = parseResult.data;
+
+  // Do not let deterministic ranking turn admitted uncertainty into a purchase recommendation.
+  if (data.status === "ok" && data.verdict?.confidence === "low") {
+    data.status = "insufficient_evidence";
+  }
+  if (data.status === "insufficient_evidence") {
+    data.message = data.message?.trim() || "I cannot confidently choose from this view. Turn the produce to show the underside or stem.";
+    data.countedTotal = null;
+    data.produce = null;
+    data.candidates = [];
+    data.verdict = null;
+    data.followUp = null;
+    data.afterPurchase = null;
+  }
 
   // For non-ok model statuses, construct response without candidates/verdict requirements
   if (data.status !== "ok") {
