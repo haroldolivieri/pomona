@@ -30,6 +30,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   # Skip branch deletions (local ref is all zeros)
   if [ "${local_sha#000000000000}" = "${local_sha}" ]; then
     # Feature branches carry one release bump relative to main, including review pushes.
+    # Later review commits keep that version until the feature reaches main.
     # Direct main updates compare against the previous main tip.
     base="origin/main"
     if [ "$remote_ref" = "refs/heads/main" ] && [ -n "$remote_sha" ] && [ "${remote_sha#000000000000}" = "$remote_sha" ]; then
