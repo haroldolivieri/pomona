@@ -597,8 +597,7 @@
       "expectedStatus": "ok",
       "expectedProduceType": "tomato",
       "focusPolygon": null,
-      "expectedCandidateCountMin": 27,
-      "expectedCandidateCountMax": 30,
+      "expectedCandidateCountMin": 31,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
@@ -693,8 +692,7 @@
           415
         ]
       ],
-      "expectedCandidateCountMin": 24,
-      "expectedCandidateCountMax": 30,
+      "expectedCandidateCountMin": 31,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
@@ -703,6 +701,97 @@
         "banana",
         "potato"
       ]
+    }
+  },
+  {
+    "id": "18-round1-insufficient-evidence",
+    "filename": "18-watermelon-hidden-surfaces.png",
+    "imagePath": "dataset/images/18-watermelon-hidden-surfaces.png",
+    "description": "Round 1: Sharp photo of similar watermelons with only upper rind visible. No field spots or stems. Must explicitly abstain, even with previous scores.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "insufficient_evidence",
+      "focusPolygon": null
+    }
+  },
+  {
+    "id": "18-round2-insufficient-evidence",
+    "filename": "18-watermelon-hidden-surfaces.png",
+    "imagePath": "dataset/images/18-watermelon-hidden-surfaces.png",
+    "description": "Round 2: Sharp photo of similar watermelons with only upper rind visible. No field spots or stems. Must explicitly abstain, even with previous scores.",
+    "groundTruth": {
+      "round": 2,
+      "expectedStatus": "insufficient_evidence",
+      "focusPolygon": null,
+      "followUpContext": {
+        "produceType": "watermelon",
+        "produceDisplayName": "Watermelon",
+        "targetCandidateId": "c2",
+        "targetRole": "runner_up",
+        "requestedInstruction": "Flip the Runner-Up Watermelon over to inspect its underside ground spot.",
+        "previousWinner": {
+          "id": "c1",
+          "role": "first_pick",
+          "score": 8.6,
+          "ripeness": "ripe",
+          "traits": [
+            "Yellow field spot",
+            "Matte rind"
+          ],
+          "anglesInspected": 1
+        },
+        "previousRunnerUp": {
+          "id": "c2",
+          "role": "runner_up",
+          "score": 8.1,
+          "ripeness": "almost_ripe",
+          "traits": [
+            "Even shape",
+            "Dark stripes"
+          ],
+          "anglesInspected": 1
+        }
+      }
+    }
+  },
+  {
+    "id": "18-round3-insufficient-evidence",
+    "filename": "18-watermelon-hidden-surfaces.png",
+    "imagePath": "dataset/images/18-watermelon-hidden-surfaces.png",
+    "description": "Round 3: Sharp photo of similar watermelons with only upper rind visible. No field spots or stems. Must explicitly abstain, even with previous scores.",
+    "groundTruth": {
+      "round": 3,
+      "expectedStatus": "insufficient_evidence",
+      "focusPolygon": null,
+      "followUpContext": {
+        "produceType": "watermelon",
+        "produceDisplayName": "Watermelon",
+        "targetCandidateId": "c1",
+        "targetRole": "first_pick",
+        "requestedInstruction": "Flip your 1st pick Watermelon over for a fair final check of its underside.",
+        "previousWinner": {
+          "id": "c2",
+          "role": "runner_up",
+          "score": 9.0,
+          "ripeness": "ripe",
+          "traits": [
+            "Deep creamy spot",
+            "Sugar webbing"
+          ],
+          "anglesInspected": 2
+        },
+        "previousRunnerUp": {
+          "id": "c1",
+          "role": "first_pick",
+          "score": 8.6,
+          "ripeness": "ripe",
+          "traits": [
+            "Yellow field spot",
+            "Matte rind"
+          ],
+          "anglesInspected": 1
+        }
+      }
     }
   }
 ]

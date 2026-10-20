@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+export const ERROR_MESSAGE_MAX_WORDS = 20;
+export const ERROR_MESSAGE_MAX_CHARS = 140;
+export const ErrorMessageSchema = z.string().max(ERROR_MESSAGE_MAX_CHARS).refine(
+  (message) => message.trim().split(/\s+/u).filter(Boolean).length <= ERROR_MESSAGE_MAX_WORDS,
+  `Error description must contain at most ${ERROR_MESSAGE_MAX_WORDS} words`
+);
+
 export const PointSchema = z.tuple([
   z.number().int().min(0).max(1000), // x (0-1000)
   z.number().int().min(0).max(1000), // y (0-1000)
@@ -127,6 +134,7 @@ export const ModelStatusSchema = z.enum([
   "ok",
   "no_produce",
   "unclear_photo",
+  "insufficient_evidence",
   "multiple_types",
   "analysis_failed",
 ]);
@@ -135,6 +143,7 @@ export const ScanStatusSchema = z.enum([
   "ok",
   "no_produce",
   "unclear_photo",
+  "insufficient_evidence",
   "multiple_types",
   "analysis_failed",
   "rate_limited",
@@ -143,7 +152,7 @@ export const ScanStatusSchema = z.enum([
 // Model schema: omits server-injected fields (schemaVersion, promptVersion, modelId, round) for LLM generateObject calls
 export const ScanResponseModelSchema = z.object({
   status: ModelStatusSchema,
-  message: z.string().max(160).nullable(),
+  message: ErrorMessageSchema.nullable(),
   countedTotal: z
     .number()
     .int()
@@ -166,7 +175,7 @@ export const ScanResponseSchema = z.object({
   modelId: z.string(),
   round: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   status: ScanStatusSchema,
-  message: z.string().max(160).nullable(),
+  message: ErrorMessageSchema.nullable(),
   countedTotal: z.number().int().min(0).max(500).nullable().optional(),
   produce: ProduceInfoSchema.nullable(),
   candidates: z.array(CandidateSchema),

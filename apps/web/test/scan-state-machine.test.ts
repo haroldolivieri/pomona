@@ -38,6 +38,20 @@ const makeRound1Response = (): ScanResponse => ({
 });
 
 describe("10-state ScanStateMachine", () => {
+  it.each([1, 2, 3] as const)("routes insufficient evidence on round %s to the notice instead of a winner", (round) => {
+    const state = scanMachineReducer(initialScanMachineState(), { type: "SCAN_SUCCEEDED", response: makeRound1Response() });
+    const response: ScanResponse = {
+      ...makeRound1Response(), round, status: "insufficient_evidence",
+      message: "I cannot confidently choose. Show the underside.",
+      produce: null, candidates: [], verdict: null, followUp: null, afterPurchase: null,
+    };
+    const next = scanMachineReducer(state, { type: "SCAN_SUCCEEDED", response });
+    expect(next.phase).toBe("S_ScanError");
+    expect(next.status).toBe("insufficient_evidence");
+    expect(next.errorMessage).toBe(response.message);
+    expect(next.lastResponse?.verdict).toBeNull();
+  });
+
   it("transitions S1 -> S2 -> S3 -> S4 -> S5A -> S5B1_RunnerUpBeaten when Runner-Up scores <= 1st Pick (7.2 vs 8.6)", () => {
     let s = initialScanMachineState();
     expect(s.phase).toBe("S1_LiveCamera");

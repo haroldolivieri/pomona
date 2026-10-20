@@ -63,6 +63,19 @@ describe("ResultStage (Mockup Parity)", () => {
     role: "runner_up" as const,
   };
 
+  it.each(["S4_InitialResult", "S5B1_RunnerUpBeaten", "S7A_FirstPickWonFinal"] as const)("shows tentative copy for medium confidence in %s", (phase) => {
+    const state = {
+      ...initialScanMachineState(), phase, firstPick: sampleFirstPick, runnerUp: sampleRunnerUp,
+      lastResponse: { ...baseResponse, verdict: { ...baseResponse.verdict, confidence: "medium" as const } },
+    };
+    render(<ResultStage state={state} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} />);
+    fireEvent.click(screen.getByTestId("sheet-drag-area"));
+    expect(screen.getByText("Looks promising.")).toBeInTheDocument();
+    expect(screen.getByText(/Medium confidence · visible appearance only/)).toBeInTheDocument();
+    expect(screen.queryByText(/High confidence/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Take your original winner/)).not.toBeInTheDocument();
+  });
+
   it("renders circular score badge on winner, produce chip in topbar, and 2-row storage cards with emoji in S4", () => {
     const onReset = vi.fn();
     const state = {

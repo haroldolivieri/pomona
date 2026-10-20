@@ -26,7 +26,7 @@ const GeminiStorageStageSchema = z.object({
 
 const GeminiProviderSchema = z.object({
   status: ModelStatusSchema,
-  message: z.string().nullable().describe("Null when status is ok; descriptive error message otherwise (max 160 chars)"),
+  message: z.string().nullable().describe("Null when status is ok; descriptive error message otherwise (max 20 words and 140 chars; complete sentences, no ellipsis)"),
   countedTotal: z
     .number()
     .int()

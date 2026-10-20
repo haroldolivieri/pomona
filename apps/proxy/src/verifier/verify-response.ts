@@ -1,4 +1,5 @@
 import {
+  ErrorMessageSchema,
   ScanResponseModelSchema,
   ScanResponseSchema,
   type ScanRequest,
@@ -32,7 +33,15 @@ function normalizeRawModelOutput(raw: unknown): unknown {
   const obj: Record<string, any> = { ...(raw as Record<string, any>) };
 
   if (typeof obj.message === "string") {
-    obj.message = trimMax(obj.message, 160);
+    if (!ErrorMessageSchema.safeParse(obj.message).success) {
+      const descriptions: Record<string, string> = {
+        insufficient_evidence: "I cannot confidently choose from this view. Turn the produce to show the underside or stem.",
+        unclear_photo: "The produce is obscured. Retake a clear photo with its surface visible.",
+        no_produce: "No produce found. Take a photo of the fruit or vegetables you want to compare.",
+        multiple_types: "Several produce types are visible. Draw around one type to compare it.",
+      };
+      obj.message = descriptions[obj.status] ?? "Analysis could not finish. Please take another photo and try again.";
+    }
   }
 
   if (Array.isArray(obj.candidates)) {
@@ -122,6 +131,20 @@ export function verifyAndResolveScanResponse(
 
   const data = parseResult.data;
 
+  // Do not let deterministic ranking turn admitted uncertainty into a purchase recommendation.
+  if (data.status === "ok" && data.verdict?.confidence === "low") {
+    data.status = "insufficient_evidence";
+  }
+  if (data.status === "insufficient_evidence") {
+    data.message = data.message?.trim() || "I cannot confidently choose from this view. Turn the produce to show the underside or stem.";
+    data.countedTotal = null;
+    data.produce = null;
+    data.candidates = [];
+    data.verdict = null;
+    data.followUp = null;
+    data.afterPurchase = null;
+  }
+
   // For non-ok model statuses, construct response without candidates/verdict requirements
   if (data.status !== "ok") {
     const fallbackResponse: ScanResponse = {
@@ -199,20 +222,12 @@ export function verifyAndResolveScanResponse(
     );
   }
 
-  // COUNT-COVERAGE INVARIANT (Round 1): the emitted candidates must cover at least 70% of
-  // the model's own silent count (countedTotal), capped at the 30-candidate UI limit.
-  // The model cannot game this report: inflating countedTotal only raises its own floor,
-  // and deflating it contradicts its own emitted boxes.
-  // Only enforced for dense scenes (countedTotal >= 10) — for sparse displays the
-  // GT bands and "every clearly visible item" rule already guarantee coverage, and
-  // small per-item count drift (e.g. counting an out-of-polygon item) would otherwise
-  // fail a scan that correctly covered the isolated region.
-  if (ctx.request.round === 1 && typeof data.countedTotal === "number" && data.countedTotal >= 10) {
-    const rawFloor = Math.ceil(data.countedTotal * 0.7);
-    const coverageFloor = Math.min(rawFloor, 30);
-    if (candidates.length < coverageFloor) {
+  // Round 1 count is defined after foreground, type, visibility, and polygon filtering.
+  // Each eligible item must have exactly one valid candidate.
+  if (ctx.request.round === 1 && typeof data.countedTotal === "number") {
+    if (candidates.length !== data.countedTotal) {
       errors.push(
-        `Count coverage violated: countedTotal=${data.countedTotal} requires at least ${rawFloor} candidates (70% of counted total${coverageFloor < rawFloor ? ", capped to UI limit 30" : ""}), but only ${candidates.length} valid candidates were emitted`
+        `Count mismatch: countedTotal=${data.countedTotal} requires exactly ${data.countedTotal} valid candidates, but ${candidates.length} remain after validation`
       );
     }
   }

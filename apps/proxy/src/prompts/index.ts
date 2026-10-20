@@ -4,9 +4,10 @@ export type { PromptConfig };
 
 const registries: Record<string, PromptConfig> = {
   v1: v1PromptConfig,
+  v2: v1PromptConfig,
 };
 
-export function getPromptConfig(version: string = "v1"): PromptConfig {
+export function getPromptConfig(version: string = "v2"): PromptConfig {
   const config = registries[version];
   if (!config) {
     return v1PromptConfig;

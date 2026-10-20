@@ -64,6 +64,10 @@
     "multipleTypesCta": "Draw Focus Area",
     "analysisFailedTitle": "Analysis interrupted",
     "analysisFailedTip": "We couldn't connect or complete produce vision analysis. Please check your network and try again.",
-    "analysisFailedCta": "Try Again"
+    "analysisFailedCta": "Try Again",
+    "insufficientEvidenceTitle": "Not enough evidence to choose",
+    "insufficientEvidence": "I can see the produce, but this view does not show enough ripeness detail to recommend a best pick.",
+    "insufficientEvidenceTip": "Turn the produce to show another side, including the underside or stem, then take a new photo.",
+    "insufficientEvidenceCta": "Try Another Angle"
   }
 }
