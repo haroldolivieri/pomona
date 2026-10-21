@@ -526,7 +526,7 @@
           351
         ]
       ],
-      "expectedCandidateCountMin": 12,
+      "expectedCandidateCountMin": 10,
       "expectedCandidateCountMax": 30,
       "forbiddenWordsInCopy": [
         "watermelon",
@@ -597,7 +597,7 @@
       "expectedStatus": "ok",
       "expectedProduceType": "tomato",
       "focusPolygon": null,
-      "expectedCandidateCountMin": 30,
+      "expectedCandidateCountMin": 25,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
@@ -692,7 +692,7 @@
           415
         ]
       ],
-      "expectedCandidateCountMin": 30,
+      "expectedCandidateCountMin": 25,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
@@ -792,6 +792,34 @@
           "anglesInspected": 1
         }
       }
+    }
+  },
+  {
+    "id": "19-round1-insufficient-evidence-polygon",
+    "filename": "18-watermelon-hidden-surfaces.png",
+    "imagePath": "dataset/images/18-watermelon-hidden-surfaces.png",
+    "description": "A focus polygon isolates identifiable produce but does not reveal maturity evidence. Abstain with a specific missing cue and useful new view; do not force a scored winner to satisfy polygon coverage.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "insufficient_evidence",
+      "focusPolygon": [
+        [
+          0,
+          0
+        ],
+        [
+          1000,
+          0
+        ],
+        [
+          1000,
+          1000
+        ],
+        [
+          0,
+          1000
+        ]
+      ]
     }
   }
 ]

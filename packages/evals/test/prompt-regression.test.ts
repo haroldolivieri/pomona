@@ -59,7 +59,12 @@ describe("Round-one prompt regression (CI flake fixes)", () => {
       [950, 950],
       [80, 950],
     ];
-    const user = v1PromptConfig.buildUserPrompt(makeRequest({ focusPolygon: polygon }));
+    const request = makeRequest({ focusPolygon: polygon });
+    const user = v1PromptConfig.buildUserPrompt(request);
+    const system = v1PromptConfig.buildSystemPrompt(request);
+    expect(system).toContain(JSON.stringify(polygon));
+    expect(system).toContain("x=80..950, y=460..950");
+    expect(system).toContain("USER SELECTION OVERRIDES FULL-DISPLAY DETECTION");
 
     // The polygon path shares the same system prompt and user coverage audit.
     expect(user).toContain("visible evidence within the selected region, never from an expected quantity");

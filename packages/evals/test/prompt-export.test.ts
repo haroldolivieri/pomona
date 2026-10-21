@@ -32,6 +32,7 @@ function makeRequest(overrides: Partial<ScanRequest> = {}): ScanRequest {
 
 const expectedFiles: Record<string, string> = {
   "round1-system.txt": v1PromptConfig.buildSystemPrompt(makeRequest({})),
+  "round1-system-with-polygon.txt": v1PromptConfig.buildSystemPrompt(makeRequest({ focusPolygon: templateFocusPolygon })),
   "round1-user-no-polygon.txt": v1PromptConfig.buildUserPrompt(makeRequest({})),
   "round1-user-with-polygon.txt": v1PromptConfig.buildUserPrompt(
     makeRequest({ focusPolygon: templateFocusPolygon })

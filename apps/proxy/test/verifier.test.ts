@@ -63,14 +63,26 @@ describe("geometry & semantic verifier", () => {
       expect(res.response.verdict?.winnerId).toBe("inside1");
       expect(res.response.verdict?.runnerUpId).toBe("inside2");
     }
+    const countedOutside = verifyAndResolveScanResponse({ ...rawOutput, countedTotal: 3 }, context);
+    expect(countedOutside.ok).toBe(true);
+    if (countedOutside.ok) {
+      expect(countedOutside.response.countedTotal).toBe(2);
+      expect(countedOutside.response.candidates).toHaveLength(2);
+    }
+    const invalidBox = verifyAndResolveScanResponse({
+      ...rawOutput,
+      countedTotal: 3,
+      candidates: [{ ...rawOutput.candidates[0], box: [10, 10, 20, 20] }, ...rawOutput.candidates.slice(1)],
+    }, context);
+    expect(invalidBox.ok).toBe(false);
     const countMismatch = verifyAndResolveScanResponse(
-      { ...rawOutput, countedTotal: 3 },
+      { ...rawOutput, countedTotal: 4 },
       context
     );
     expect(countMismatch.ok).toBe(false);
     if (!countMismatch.ok) {
       expect(countMismatch.errors).toContain(
-        "Count mismatch: countedTotal=3 requires exactly 3 valid candidates, but 2 remain after validation"
+        "Count mismatch: countedTotal=4 requires exactly 4 valid candidates, but 2 remain after validation"
       );
     }
   });
@@ -472,6 +484,106 @@ describe("geometry & semantic verifier", () => {
     if (res.ok) {
       expect(res.response.verdict?.winnerId).toBe("c2");
       expect(res.response.verdict?.runnerUpId).toBe("c1");
+    }
+  });
+
+  it("clamps eatWithinDays returned as 0 (rotten produce) to the contract floor of 1", () => {
+    const rawOutput = {
+      status: "ok",
+      message: null,
+      produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+      countedTotal: 1,
+      candidates: [
+        { id: "c1", box: [170, 200, 780, 800], score: 2, ripeness: "overripe", traits: ["Water-soaked bruise"], flipSummary: null },
+      ],
+      verdict: { winnerId: "c1", runnerUpId: null, confidence: "high", headline: "Avoid it." },
+      followUp: null,
+      afterPurchase: {
+        readyInDays: { min: 0, max: 0 },
+        eatWithinDays: { min: 0, max: 0 },
+        eatWithinLabel: "Immediately",
+        storage: {
+          beforeCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · discard soon", tip: "Do not eat" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · sealed", tip: "Wrap tightly" },
+        },
+      },
+    };
+    const context: Parameters<typeof verifyAndResolveScanResponse>[1] = {
+      promptVersion: "v1",
+      modelId: "gemini-3.1-flash-lite",
+      request: {
+        schemaVersion: "1.0",
+        sessionId: "550e8400-e29b-41d4-a716-446655440000",
+        round: 3,
+        locale: "en-GB",
+        imageBase64: "abc",
+        imageMimeType: "image/jpeg",
+        focusPolygon: null,
+        followUpContext: {
+          produceType: "watermelon",
+          produceDisplayName: "Watermelon",
+          targetCandidateId: "c1",
+          targetRole: "first_pick",
+          requestedInstruction: "Flip your 1st pick Watermelon over for a fair final check of its underside.",
+          previousWinner: { id: "c2", role: "runner_up", score: 9.0, ripeness: "ripe", traits: ["Deep creamy spot"], anglesInspected: 2 },
+          previousRunnerUp: { id: "c1", role: "first_pick", score: 8.6, ripeness: "ripe", traits: ["Yellow field spot"], anglesInspected: 1 },
+        },
+      },
+    };
+    const res = verifyAndResolveScanResponse(rawOutput, context);
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.response.verdict?.winnerId).toBe("c2"); // bruised 2.0 < 9.0 keeps c2
+      expect(res.response.afterPurchase?.eatWithinDays).toEqual({ min: 1, max: 1 });
+    }
+  });
+
+  it("keeps already-contract-valid eatWithinDays untouched by the clamp", () => {
+    const rawOutput = {
+      status: "ok",
+      message: null,
+      produce: { type: "tomato", displayName: "Tomatoes", variety: "Roma" },
+      countedTotal: 2,
+      candidates: [
+        { id: "c1", box: [200, 200, 400, 400], score: 9.0, ripeness: "ripe", traits: ["Deep red"], flipSummary: null },
+        { id: "c2", box: [500, 200, 700, 400], score: 8.2, ripeness: "almost_ripe", traits: ["Firm"], flipSummary: null },
+      ],
+      verdict: { winnerId: "c1", runnerUpId: "c2", confidence: "high", headline: "Buy it." },
+      followUp: {
+        targetCandidateId: "c2",
+        targetRole: "runner_up",
+        bannerText: "Compare firmness with candidate c2.",
+        flipHeadline: "Flip the Tomato",
+        instruction: "Inspect the stem end of the Tomato.",
+      },
+      afterPurchase: {
+        readyInDays: { min: 0, max: 1 },
+        eatWithinDays: { min: 3, max: 5 },
+        eatWithinLabel: "3–5 days",
+        storage: {
+          beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · room temp", tip: "Stem side down" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · container", tip: "Cover cut half" },
+        },
+      },
+    };
+    const context: Parameters<typeof verifyAndResolveScanResponse>[1] = {
+      promptVersion: "v1",
+      modelId: "gemini-3.1-flash-lite",
+      request: {
+        schemaVersion: "1.0",
+        sessionId: "550e8400-e29b-41d4-a716-446655440000",
+        round: 1,
+        locale: "en-GB",
+        imageBase64: "abc",
+        imageMimeType: "image/jpeg",
+        focusPolygon: null,
+        followUpContext: null,
+      },
+    };
+    const res = verifyAndResolveScanResponse(rawOutput, context);
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.response.afterPurchase?.eatWithinDays).toEqual({ min: 3, max: 5 });
     }
   });
 });

@@ -60,7 +60,7 @@ function buildFollowUpUserPrompt(request: ScanRequest, repairErrors?: string[]):
 }
 
 export function buildV1SystemPrompt(request: ScanRequest): string {
-  return request.round === 1 ? buildRoundOneSystemPrompt() : buildFollowUpSystemPrompt(request);
+  return request.round === 1 ? buildRoundOneSystemPrompt(request) : buildFollowUpSystemPrompt(request);
 }
 
 export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[]): string {

@@ -103,6 +103,14 @@ function normalizeRawModelOutput(raw: unknown): unknown {
       }
       ap.storage = st;
     }
+    // Even immediately spoiled produce is still edible-grade food: the contract
+    // floor for eatWithinDays is 1. Models occasionally return 0 there.
+    if (ap.eatWithinDays && typeof ap.eatWithinDays === "object") {
+      const ewd = { ...ap.eatWithinDays };
+      ewd.min = Math.max(1, Math.min(60, ewd.min));
+      ewd.max = Math.max(ewd.min, Math.min(60, ewd.max));
+      ap.eatWithinDays = ewd;
+    }
     obj.afterPurchase = ap;
   }
 
@@ -217,6 +225,11 @@ export function verifyAndResolveScanResponse(
       const inside = isBoxInPolygon(c.box, polygon, 80);
       return inside;
     });
+    // If the model counted its complete valid list, remove the excluded units from
+    // that count too. Do not repair missing candidates or invalid boxes this way.
+    if (data.countedTotal === rawCandidateCount && beforePoly === rawCandidateCount) {
+      data.countedTotal -= beforePoly - candidates.length;
+    }
     console.log(
       `[proxy:polygonFilter] Model returned ${rawCandidateCount} raw, ${beforePoly} valid boxes, ${candidates.length} inside polygon`
     );

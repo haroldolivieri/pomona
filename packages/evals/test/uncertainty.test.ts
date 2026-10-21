@@ -49,6 +49,21 @@ describe("insufficient evidence abstention eval", () => {
     expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, message }), { vars: scenarios[0].groundTruth }).pass).toBe(true);
   });
 
+  it.each([
+    "Watermelon ripeness requires a visible field spot; please provide a view of the underside.",
+    "Ripeness requires clear maturity cues. Please turn the fruit to show its underside.",
+  ])("accepts an explicit missing-evidence requirement: %s", (message) => {
+    expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, message }), { vars: scenarios[0].groundTruth }).pass).toBe(true);
+  });
+
+  it.each([
+    "Please provide another photo.",
+    "Ripeness requires care. Please turn the fruit.",
+    "The underside is hidden.",
+  ])("rejects abstention without both missing evidence and a useful view: %s", (message) => {
+    expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, message }), { vars: scenarios[0].groundTruth }).pass).toBe(false);
+  });
+
   it("accepts exactly 20 words without truncation", () => {
     const message = "I cannot confidently choose from this view. Please turn the fruit to show its underside and stem in clear light.";
     expect(message.split(/\s+/)).toHaveLength(20);
@@ -98,5 +113,14 @@ describe("insufficient evidence abstention eval", () => {
     });
     expect(result.pass).toBe(false);
     expect(result.reason).toContain("must abstain");
+  });
+});
+
+
+describe("polygon selection cannot force an unsupported winner", () => {
+  const scenario = manifest.find((entry) => entry.id === "19-round1-insufficient-evidence-polygon")!;
+  it("accepts an actionable abstention and rejects a scored selection", () => {
+    expect(verifyPromptfooOutput(JSON.stringify(abstention), { vars: scenario.groundTruth }).pass).toBe(true);
+    expect(verifyPromptfooOutput(JSON.stringify({ ...uncertainPick, verdict: { ...uncertainPick.verdict, confidence: "high" } }), { vars: scenario.groundTruth }).pass).toBe(false);
   });
 });
