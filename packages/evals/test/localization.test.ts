@@ -85,3 +85,14 @@ it("Portuguese produce copy includes vegetables and avoids ambiguous camera inst
   expect(catalog.camera.promptSubtitle).toContain("frutas, verduras e legumes");
   expect(JSON.stringify(catalog)).not.toMatch(/produtos frescos|fruta ou um grupo/i);
 });
+
+it("Portuguese ranking labels consistently use primeiro and segundo lugar", async () => {
+  const { readFileSync } = await import("node:fs");
+  const web = JSON.parse(readFileSync(new URL("../../../apps/web/src/i18n/locales/pt-BR.json", import.meta.url), "utf8"));
+  const shared = JSON.parse(readFileSync(new URL("../../contract/src/locales/pt-BR.json", import.meta.url), "utf8"));
+  expect(web.copy["1stWinner2"]).toBe("Primeiro lugar");
+  expect(web.copy.runnerUp).toBe("Segundo lugar");
+  expect(web.result.compareWithRunnerUp).toBe("Comparar com o segundo lugar");
+  expect(shared.verifier.finalHeadline).toContain("primeiro lugar");
+  expect(JSON.stringify([web, shared])).not.toMatch(/primeira opção|segunda opção/i);
+});

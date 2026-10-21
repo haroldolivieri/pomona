@@ -96,8 +96,8 @@
     "noProduce": "Nenhum hortifruti encontrado. Fotografe as frutas ou os legumes que deseja comparar.",
     "multiple": "Há vários tipos de frutas, verduras e legumes. Contorne apenas um tipo para comparar.",
     "failed": "Não foi possível concluir a análise. Tire outra foto e tente novamente.",
-    "finalBanner": "A primeira opção ({{score}}) só foi vista por cima. Vire {{produce}} para conferir.",
-    "finalHeadline": "Vire a primeira opção: {{produce}}",
-    "finalInstruction": "Vire a primeira opção, {{produce}}, para mostrar a parte de baixo."
+    "finalBanner": "O primeiro lugar ({{score}}) só foi visto por cima. Vire {{produce}} para conferir.",
+    "finalHeadline": "Vire o primeiro lugar: {{produce}}",
+    "finalInstruction": "Vire o primeiro lugar, {{produce}}, para mostrar a parte de baixo."
   }
 }

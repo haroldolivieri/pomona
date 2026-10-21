@@ -54,7 +54,7 @@ test("Portuguese UI and request locale survive all scan rounds", async ({page}) 
   for (const control of [page.getByTestId("target-tab-ready_now"), page.getByTestId("cta-compare-runner-up")]) {
     await expect(control).toHaveCSS("font-family", bodyFont);
   }
-  await expect(page.getByTestId("cta-compare-runner-up")).toHaveText("Comparar com a segunda opção");
+  await expect(page.getByTestId("cta-compare-runner-up")).toHaveText("Comparar com o segundo lugar");
   await expect(page.getByTestId("seasonality-badge")).toContainText("Pico da safra");
   for (const width of [320, 393]) {
     await page.setViewportSize({ width, height: 852 });
