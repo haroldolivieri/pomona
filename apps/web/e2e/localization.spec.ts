@@ -50,6 +50,10 @@ test("Portuguese UI and request locale survive all scan rounds", async ({page}) 
   await page.getByTestId("whole-photo-button").click();
   await expect(page.getByTestId("stage-S4_InitialResult")).toBeVisible();
   await page.getByTestId("sheet-drag-area").click();
+  const bodyFont = await page.locator("body").evaluate(node => getComputedStyle(node).fontFamily);
+  for (const control of [page.getByTestId("target-tab-ready_now"), page.getByTestId("cta-compare-runner-up")]) {
+    await expect(control).toHaveCSS("font-family", bodyFont);
+  }
   await expect(page.getByTestId("cta-compare-runner-up")).toHaveText("Comparar com a segunda opção");
   await expect(page.getByTestId("seasonality-badge")).toContainText("Pico da safra");
   for (const width of [320, 393]) {
