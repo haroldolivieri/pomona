@@ -5,6 +5,7 @@ import { bodyLimit } from "hono/body-limit";
 import { getCookie, setCookie } from "hono/cookie";
 import {
   ScanRequestSchema,
+  isSupportedLocale,
   lookupProduceSeasonality,
   type ScanRequest,
   type ScanResponse,
@@ -398,10 +399,10 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
         };
         const currentMonth = new Date().getUTCMonth() + 1;
         if (baseResponse.produce?.type) {
-          seasonality = lookupProduceSeasonality(baseResponse.produce.type, regionInput, currentMonth);
+          seasonality = lookupProduceSeasonality(baseResponse.produce.type, regionInput, currentMonth, isSupportedLocale(scanRequest.locale) ? scanRequest.locale : "en-GB");
         }
         if (!seasonality && baseResponse.produce?.displayName) {
-          seasonality = lookupProduceSeasonality(baseResponse.produce.displayName, regionInput, currentMonth);
+          seasonality = lookupProduceSeasonality(baseResponse.produce.displayName, regionInput, currentMonth, isSupportedLocale(scanRequest.locale) ? scanRequest.locale : "en-GB");
         }
       }
       console.log(`[proxy:seasonality] produce=${JSON.stringify(baseResponse.produce)}, seasonality=${seasonality ? seasonality.produceSlug + ' (' + seasonality.status + ')' : 'null'}`);

@@ -1,3 +1,5 @@
+import { translateShared } from "./copy";
+import type { SupportedLocale } from "./locale";
 /**
  * Deterministic produce seasonality engine.
  *
@@ -932,7 +934,7 @@ export function resolveShopperRegion(input: ShopperRegionInput): ResolvedShopper
 // Month helpers & copy
 // ---------------------------------------------------------------------------
 
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 
 function parseMonths(spec: string | undefined): number[] {
   if (!spec) return [];
@@ -951,15 +953,20 @@ function parseMonths(spec: string | undefined): number[] {
 }
 
 /** Contiguous circular windows, e.g. [10,11,12,1] -> "Oct–Jan"; 12 months -> "Year-round". */
-function formatWindows(months: number[]): string {
+const MONTH_LABELS: Record<SupportedLocale, readonly string[]> = Object.fromEntries(
+  (["en-GB", "pt-BR"] as const).map((locale) => [locale, Array.from({ length: 12 }, (_, index) => new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2020, index, 1))).replace(/\.$/, ""))]),
+) as Record<SupportedLocale, readonly string[]>;
+
+function formatWindows(months: number[], displayLocale: SupportedLocale): string {
+  const monthName = (month: number) => MONTH_LABELS[displayLocale][month - 1];
   if (months.length === 0) return "";
-  if (months.length >= 12) return "Year-round";
+  if (months.length >= 12) return translateShared(displayLocale, "copy.yearRound");
   const set = new Set(months);
   const starts = months.filter((m) => !set.has(m === 1 ? 12 : m - 1));
   const windows = starts.map((start) => {
     let end = start;
     while (set.has(end === 12 ? 1 : end + 1)) end = end === 12 ? 1 : end + 1;
-    return start === end ? MONTH_NAMES[start - 1] : `${MONTH_NAMES[start - 1]}–${MONTH_NAMES[end - 1]}`;
+    return start === end ? monthName(start) : `${monthName(start)}–${monthName(end)}`;
   });
   return windows.slice(0, 2).join(", ");
 }
@@ -974,11 +981,11 @@ interface ResolvedCal {
   label: string;
 }
 
-function resolveCal(cal: Cal): ResolvedCal | null {
+function resolveCal(cal: Cal, displayLocale: SupportedLocale): ResolvedCal | null {
   if (!cal) return null;
   const peak = parseMonths(cal[0]);
   const shoulder = parseMonths(cal[1]);
-  const label = formatWindows(peak.length > 0 ? peak : shoulder);
+  const label = formatWindows(peak.length > 0 ? peak : shoulder, displayLocale);
   return { peak, shoulder, label };
 }
 
@@ -989,27 +996,27 @@ function localStatus(cal: ResolvedCal | null, month: number): SeasonalityStatus 
   return "off_season";
 }
 
-function localCopy(status: SeasonalityStatus, label: string): { badgeText: string; noteText: string } {
+function localCopy(status: SeasonalityStatus, label: string, displayLocale: SupportedLocale): { badgeText: string; noteText: string } {
   switch (status) {
     case "peak":
       return {
-        badgeText: trimMax(`Peak season (${label})`, 48),
-        noteText: "In peak harvest locally, expect the best flavour.",
+        badgeText: trimMax(translateShared(displayLocale, "copy.peakSeason", { value1: label }), 48),
+        noteText: translateShared(displayLocale, "copy.inPeakHarvestLocallyExpectTheBest"),
       };
     case "in_season":
       return {
-        badgeText: trimMax(label === "Year-round" ? "In season year-round" : `In season (Peak: ${label})`, 48),
-        noteText: "Locally in season right now.",
+        badgeText: trimMax(label === translateShared(displayLocale, "copy.yearRound") ? translateShared(displayLocale, "copy.inSeasonYearRound") : translateShared(displayLocale, "copy.inSeasonPeak", { value1: label }), 48),
+        noteText: translateShared(displayLocale, "copy.locallyInSeasonRightNow"),
       };
     case "off_season":
       return {
-        badgeText: trimMax(`Off-season locally (Peak: ${label})`, 48),
-        noteText: "Even the top pick may be less sweet.",
+        badgeText: trimMax(translateShared(displayLocale, "copy.offSeasonLocallyPeak", { value1: label }), 48),
+        noteText: translateShared(displayLocale, "copy.evenTheTopPickMayBeLess"),
       };
     default:
       return {
-        badgeText: "Imported year-round",
-        noteText: "Not grown locally. Quality depends on the shipment.",
+        badgeText: translateShared(displayLocale, "copy.importedYearRound"),
+        noteText: translateShared(displayLocale, "copy.notGrownLocallyQualityDependsOnThe"),
       };
   }
 }
@@ -1017,23 +1024,24 @@ function localCopy(status: SeasonalityStatus, label: string): { badgeText: strin
 function originCopy(
   status: SeasonalityStatus,
   name: string,
-  label: string
+  label: string,
+  displayLocale: SupportedLocale,
 ): { badgeText: string; noteText: string } {
   if (status === "peak") {
     return {
-      badgeText: trimMax(`Peak in ${name} (${label})`, 48),
-      noteText: trimMax(`In peak harvest in ${name} right now, expect the best flavour.`, 90),
+      badgeText: trimMax(translateShared(displayLocale, "copy.peakIn", { value1: name, value2: label }), 48),
+      noteText: trimMax(translateShared(displayLocale, "copy.inPeakHarvestInRightNowExpect", { value1: name }), 90),
     };
   }
   if (status === "in_season") {
     return {
-      badgeText: trimMax(label === "Year-round" ? `In season in ${name} year-round` : `In season in ${name}`, 48),
-      noteText: trimMax(`Currently in season in ${name}.`, 90),
+      badgeText: trimMax(label === translateShared(displayLocale, "copy.yearRound") ? translateShared(displayLocale, "copy.inSeasonInYearRound", { value1: name }) : translateShared(displayLocale, "copy.inSeasonIn", { value1: name }), 48),
+      noteText: trimMax(translateShared(displayLocale, "copy.currentlyInSeasonIn", { value1: name }), 90),
     };
   }
   return {
-    badgeText: trimMax(`Off-season in ${name} (Peak: ${label})`, 48),
-    noteText: trimMax(`Out of season in ${name}, may be stored or flown in.`, 90),
+    badgeText: trimMax(translateShared(displayLocale, "copy.offSeasonInPeak", { value1: name, value2: label }), 48),
+    noteText: trimMax(translateShared(displayLocale, "copy.outOfSeasonInMayBeStored", { value1: name }), 90),
   };
 }
 
@@ -1044,7 +1052,8 @@ function originCopy(
 export function lookupProduceSeasonality(
   produceType: string,
   region: ShopperRegionInput,
-  month: number
+  month: number,
+  displayLocale: SupportedLocale = "en-GB",
 ): SeasonalityInfo | null {
   const slug = normalizeProduceSlug(produceType);
   const entry = DATASET[slug];
@@ -1053,23 +1062,23 @@ export function lookupProduceSeasonality(
   const { countryCode, zone } = resolveShopperRegion(region);
 
   const shopperOverride = entry.over?.[countryCode as OriginCode];
-  const shopperCal = resolveCal(shopperOverride !== undefined ? shopperOverride : entry[ZONE_KEY[zone]]);
+  const shopperCal = resolveCal(shopperOverride !== undefined ? shopperOverride : entry[ZONE_KEY[zone]], displayLocale);
   const status = localStatus(shopperCal, month);
   const label = shopperCal?.label ?? "";
-  const { badgeText, noteText } = localCopy(status, label);
+  const { badgeText, noteText } = localCopy(status, label, displayLocale);
 
   const origins: OriginSeasonOption[] = [];
   for (const code of entry.origins) {
     if (code === countryCode) continue;
     const meta = ORIGINS[code];
     const override = entry.over?.[code];
-    const cal = resolveCal(override !== undefined ? override : entry[ZONE_KEY[meta.zone]]);
+    const cal = resolveCal(override !== undefined ? override : entry[ZONE_KEY[meta.zone]], displayLocale);
     if (!cal) continue;
     const originStatus = localStatus(cal, month);
-    const copy = originCopy(originStatus, meta.name, cal.label);
+    const copy = originCopy(originStatus, translateShared(displayLocale, `countries.${code}`), cal.label, displayLocale);
     origins.push({
       code,
-      name: meta.name,
+      name: translateShared(displayLocale, `countries.${code}`),
       flag: meta.flag,
       status: originStatus,
       peakWindowLabel: cal.label,

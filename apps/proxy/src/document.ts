@@ -1,4 +1,4 @@
-import { resolveDisplayLocale, LOCALE_COOKIE } from "@pomona/contract";
+import { resolveDisplayLocale, LOCALE_COOKIE, translateShared } from "@pomona/contract";
 import type { Env } from "./types";
 
 export async function serveLocalizedDocument(request: Request, assets: NonNullable<Env["ASSETS"]>): Promise<Response> {
@@ -14,5 +14,6 @@ export async function serveLocalizedDocument(request: Request, assets: NonNullab
   return new HTMLRewriter().on("html", { element(element) {
     element.setAttribute("lang", locale);
     element.setAttribute("data-pomona-locale", locale);
-  } }).transform(response);
+  } }).on("title", { element(element) { element.setInnerContent(translateShared(locale, "metadata.title")); } })
+    .on('meta[name="description"]', { element(element) { element.setAttribute("content", translateShared(locale, "metadata.description")); } }).transform(response);
 }
