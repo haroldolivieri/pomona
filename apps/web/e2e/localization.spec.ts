@@ -52,6 +52,24 @@ test("Portuguese UI and request locale survive all scan rounds", async ({page}) 
   await page.getByTestId("sheet-drag-area").click();
   await expect(page.getByTestId("cta-compare-runner-up")).toHaveText("Comparar com a segunda opção");
   await expect(page.getByTestId("seasonality-badge")).toContainText("Pico da safra");
+  for (const width of [320, 393]) {
+    await page.setViewportSize({ width, height: 852 });
+    const tabs = page.getByRole("tab");
+    for (let selected = 0; selected < 3; selected++) {
+      await tabs.nth(selected).click();
+      const boxes = await tabs.evaluateAll(nodes => nodes.map(node => {
+        const box = node.getBoundingClientRect();
+        const label = node.children[0].getBoundingClientRect();
+        const sub = node.children[1].getBoundingClientRect();
+        return { x: box.x, right: box.right, width: box.width, labelY: label.y, subY: sub.y, fits: node.scrollWidth <= node.clientWidth };
+      }));
+      expect(Math.max(...boxes.map(box => box.width)) - Math.min(...boxes.map(box => box.width))).toBeLessThan(1);
+      expect(new Set(boxes.map(box => box.labelY)).size).toBe(1);
+      expect(new Set(boxes.map(box => box.subY)).size).toBe(1);
+      expect(boxes.every(box => box.fits && box.x >= 0 && box.right <= width)).toBe(true);
+    }
+  }
+  await page.getByTestId("target-tab-ready_now").click();
   await page.screenshot({path:"test-results/pt-br-result.png"});
   await page.getByTestId("cta-compare-runner-up").click();
   await expect(page.getByText("Vire a melancia",{exact:true})).toBeVisible();

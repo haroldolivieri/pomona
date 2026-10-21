@@ -935,7 +935,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   padding: "3.5px",
                   borderRadius: "13px",
                   display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                   gap: "4px",
                   border: "1px solid var(--surface-card-border)",
                   touchAction: "none",
@@ -969,13 +969,15 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                         cursor: "pointer",
                         display: "flex",
                         flexDirection: "column",
-                        alignItems: "center",
+                        alignItems: "stretch",
+                        minWidth: 0,
+                        textAlign: "center",
                         lineHeight: 1.15,
                         boxShadow: isActive ? "0 2px 6px rgba(0, 0, 0, 0.12)" : "none",
                         transition: "all 0.18s ease",
                       }}
                     >
-                      <span style={{ fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center" }}>
+                      <span style={{ fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "2.3em", position: "relative", paddingInline: "9px" }}>
                         {isActive && (
                           <span
                             style={{
@@ -983,7 +985,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                               height: "6px",
                               borderRadius: "50%",
                               backgroundColor: tab.dot,
-                              marginRight: "4px",
+                              position: "absolute",
+                              left: 0,
                               display: "inline-block",
                             }}
                           />

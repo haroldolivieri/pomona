@@ -9,7 +9,7 @@ afterEach(async () => { cleanup(); await i18n.changeLanguage("en-GB"); });
 it("renders Portuguese camera copy and accessible controls", async () => {
   await i18n.changeLanguage("pt-BR");
   render(<CameraViewfinder onCapture={vi.fn()} />);
-  expect(screen.getByText("Aponte para uma fruta ou um grupo")).toBeTruthy();
+  expect(screen.getByText("Fotografe o hortifruti que quer comparar")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Tirar foto" })).toBeTruthy();
 });
 it("renders Portuguese abstention and quota controls", async () => {

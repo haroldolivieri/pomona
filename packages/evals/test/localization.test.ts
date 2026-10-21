@@ -76,3 +76,12 @@ it("Portuguese success values retain canonical model identifiers and schema", ()
     expect(result.response.verdict?.headline).toBe("Leve este.");
   }
 });
+
+// Catalog acceptance: category wording stays natural and excludes literal product translations.
+it("Portuguese produce copy includes vegetables and avoids ambiguous camera instructions", async () => {
+  const { readFileSync } = await import("node:fs");
+  const catalog = JSON.parse(readFileSync(new URL("../../../apps/web/src/i18n/locales/pt-BR.json", import.meta.url), "utf8"));
+  expect(catalog.camera.promptTitle).toBe("Fotografe o hortifruti que quer comparar");
+  expect(catalog.camera.promptSubtitle).toContain("frutas, verduras e legumes");
+  expect(JSON.stringify(catalog)).not.toMatch(/produtos frescos|fruta ou um grupo/i);
+});
