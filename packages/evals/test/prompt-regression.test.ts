@@ -17,6 +17,17 @@ function makeRequest(overrides: Partial<ScanRequest> = {}): ScanRequest {
 }
 
 describe("Round-one prompt regression (CI flake fixes)", () => {
+  it("separates supported solo grading from unsupported comparisons", () => {
+    const system = v1PromptConfig.buildSystemPrompt(makeRequest());
+    expect(system).toContain("assess its visible maturity without requiring a second unit");
+    expect(system).toContain("abstain if those cues are missing");
+    expect(system).toContain("Minor variations within one apparent maturity stage are not distinct earlier and later stages");
+    expect(system).toContain("A solo unit needs supported maturity grading, not a comparison winner");
+    expect(system).toContain("Survey the ENTIRE eligible region before deciding");
+    expect(system).toContain("Assess the actual exposed surfaces, not the presence of plastic");
+    expect(system).toContain("every unit need not have a unique stage or score");
+  });
+
   it("requires ripeness-ordered ranking: underripe must never outrank almost_ripe/ripe", () => {
     const system = v1PromptConfig.buildSystemPrompt(makeRequest());
     const user = v1PromptConfig.buildUserPrompt(makeRequest());

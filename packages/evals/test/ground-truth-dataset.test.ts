@@ -678,7 +678,6 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
         { id: "c9", box: [560, 380, 660, 490], score: 8.2, ripeness: "ripe", traits: ["Deep red"], flipSummary: null },
         { id: "c10", box: [420, 200, 520, 310], score: 7.4, ripeness: "underripe", traits: ["Matte skin"], flipSummary: null },
         { id: "c11", box: [600, 500, 700, 620], score: 7.9, ripeness: "almost_ripe", traits: ["Orange blush"], flipSummary: null },
-        { id: "c12", box: [300, 260, 400, 370], score: 7.2, ripeness: "underripe", traits: ["Pale red"], flipSummary: null },
         { id: "c13", box: [460, 200, 570, 330], score: 7.7, ripeness: "almost_ripe", traits: ["Blush"], flipSummary: null },
         { id: "c14", box: [380, 560, 480, 680], score: 8.4, ripeness: "ripe", traits: ["Glossy"], flipSummary: null },
         { id: "c15", box: [520, 180, 630, 290], score: 7.5, ripeness: "underripe", traits: ["Green tint"], flipSummary: null },

@@ -53,6 +53,23 @@ const abstention = {
 };
 
 describe("reviewed scene expectations", () => {
+  it("allows case 12 to grade or abstain while keeping inventory guards", () => {
+    const vars = scene("12-tomato-basket-polygon-selection");
+    expect(verifyPromptfooOutput(JSON.stringify(abstention), { vars }).pass).toBe(true);
+    expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, status: "no_produce" }), { vars }).pass).toBe(false);
+    expect(verifyPromptfooOutput(JSON.stringify(readableOutput(1)), { vars }).pass).toBe(false);
+    expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, countedTotal: 12 }), { vars }).pass).toBe(false);
+  });
+
+  it.each(manifest)("$id: rejects mismatched totals before any normalization", ({ groundTruth }) => {
+    for (const countedTotal of [0, 2]) {
+      const output = { ...readableOutput(1), countedTotal };
+      const result = verifyPromptfooOutput(JSON.stringify(output), { vars: groundTruth });
+      expect(result.pass).toBe(false);
+      expect(result.reason).toContain("Count mismatch");
+    }
+  });
+
   it("accepts the observed 14 banana candidates and rejects more", () => {
     const vars = scene("15-banana-pack-bagged");
     expect(verifyPromptfooOutput(JSON.stringify(readableOutput(14, "banana")), { vars }).pass).toBe(true);

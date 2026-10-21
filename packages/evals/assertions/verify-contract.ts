@@ -61,6 +61,12 @@ export function verifyPromptfooOutput(
 
   // Grade the model's abstention itself, before server safeguards can sanitize it.
   const raw = parsedJson as Record<string, any> | null;
+  // Check the model's inventory before filtering or normalization can change it.
+  if (typeof raw?.countedTotal === "number" && (
+    !Array.isArray(raw.candidates) || raw.countedTotal !== raw.candidates.length
+  )) {
+    return { pass: false, score: 0, reason: "Count mismatch: countedTotal must equal the raw candidates.length" };
+  }
   if (typeof raw?.message === "string" && !ErrorMessageSchema.safeParse(raw.message).success) {
     return { pass: false, score: 0, reason: "Error description exceeds 20 words or 140 characters" };
   }
@@ -102,6 +108,10 @@ export function verifyPromptfooOutput(
   }
 
   const response: ScanResponse = result.response;
+
+  if (Array.isArray(vars.expectedStatuses) && !vars.expectedStatuses.includes(response.status)) {
+    return { pass: false, score: 0.2, reason: `Expected one of ${JSON.stringify(vars.expectedStatuses)} but received "${response.status}"` };
+  }
 
   // 1. Expected Status Check (e.g. "ok", "unclear_photo", "no_produce", "multiple_types")
   if (vars.expectedStatus && response.status !== vars.expectedStatus) {
