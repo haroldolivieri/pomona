@@ -17,6 +17,7 @@ const request = {
   focusPolygon: null, followUpContext: null,
 };
 const abstention = {
+  abstentionReason: "missing_evidence",
   status: "insufficient_evidence", message: "I cannot confidently choose. Turn the produce to show its hidden grading surface.",
   countedTotal: null, produce: null, candidates: [], verdict: null, followUp: null, afterPurchase: null,
 };
