@@ -144,3 +144,9 @@ All design sections map to tasks above. Country/language separation, cookie fail
 - Passed: `pnpm lint:copy`, `pnpm typecheck`, `pnpm -r test`, `pnpm build`, `POMONA_WEB_PORT=5175 pnpm --filter @pomona/web exec playwright test --config=playwright.config.ts`, and `pnpm --filter @pomona/web exec playwright test --config=playwright.production.config.ts`. All deterministic evals were rerun after adding the final Portuguese success fixture.
 - `node scripts/version-bump.mjs --base origin/main` confirmed version 0.4.0 already differs from origin/main 0.3.2; the repository requires no second bump on this branch.
 - Model prompt files and model schemas are unchanged. Live evals were not run, as requested. Real model Portuguese quality and deployed cache behavior are not claimed as verified. Nothing was deployed.
+
+## Debug-only language selector
+
+The selector now follows the existing `isDevMode && isLocalBuild` gate and remains hidden by default in the camera component. Normal and published builds retain automatic language selection and saved preferences. Local debug builds retain manual selection. The offline cache version was advanced so cached shells receive the same restriction.
+
+Regression proof: the normal/debug/published rendering scenarios first failed, then passed. All 312 deterministic tests passed with one worker, and all five affected browser journeys passed. Copy lint, typechecks, and the production build passed. A concurrent-build test run hit the existing five-second exhaustive seasonality limits; the serial rerun passed without changing those tests or seasonal logic. The running public tunnel was checked in a browser: no selector appears on either `/` or `/?debug=true` for the published build. No live model evals were run.

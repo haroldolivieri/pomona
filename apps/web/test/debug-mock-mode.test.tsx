@@ -23,6 +23,7 @@ describe("Debug mock mode and shake detection", () => {
     );
 
     expect(screen.queryByLabelText("Toggle Mock Mode")).toBeNull();
+    expect(screen.queryByRole("combobox")).toBeNull();
     expect(screen.queryByRole("status")).toBeNull();
   });
 
@@ -40,6 +41,7 @@ describe("Debug mock mode and shake detection", () => {
       />
     );
 
+    expect(screen.getByRole("combobox", {name:"Language"})).toBeTruthy();
     const toggleBtn = screen.getByLabelText("Toggle Mock Mode");
     expect(toggleBtn).toBeTruthy();
     expect(toggleBtn.textContent).toBe("🧪 MOCK");

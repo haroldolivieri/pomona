@@ -15,6 +15,7 @@ export interface CameraViewfinderProps {
   remainingScans?: number;
   onQuotaClick?: () => void;
   onBrandTap?: () => void;
+  showLanguageSelector?: boolean;
 }
 
 export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
@@ -25,6 +26,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   remainingScans = 10,
   onQuotaClick,
   onBrandTap,
+  showLanguageSelector = false,
 }) => {
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -174,9 +176,9 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         justifyContent: "space-between",
       }}
     >
-      <div style={{ position: "absolute", top: "max(72px, env(safe-area-inset-top))", right: "20px", zIndex: 11 }}>
+      {showLanguageSelector && <div style={{ position: "absolute", top: "max(72px, env(safe-area-inset-top))", right: "20px", zIndex: 11 }}>
         <LanguageSelector locale={isSupportedLocale(i18n.language) ? i18n.language : "en-GB"} onChange={(locale) => { saveLocalePreference(locale); void i18n.changeLanguage(locale); }} />
-      </div>
+      </div>}
       {/* Top bar with white chip pills */}
       <div
         style={{

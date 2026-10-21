@@ -405,6 +405,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             onToggleTheme={toggleTheme}
             theme={theme}
             onBrandTap={handleBrandTap}
+            showLanguageSelector={isDevMode && isLocalBuild}
           />
         );
 

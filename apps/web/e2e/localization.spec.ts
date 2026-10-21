@@ -22,6 +22,8 @@ test("browser language, explicit choice, persistence and narrow-screen copy", as
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("lang","pt-BR");
   await expect(page.getByRole("button",{name:"Tirar foto"})).toBeVisible();
+  await expect(page.getByRole("combobox")).toHaveCount(0);
+  await page.goto("/?debug=true");
   const selector=page.getByRole("combobox",{name:"Idioma"});
   await expect(selector).toHaveValue("pt-BR");
   await page.screenshot({path:"test-results/pt-br-camera.png"});
