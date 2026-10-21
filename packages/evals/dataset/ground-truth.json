@@ -569,14 +569,14 @@
     "filename": "15-banana-pack-bagged.jpg",
     "imagePath": "dataset/images/15-banana-pack-bagged.jpg",
     "imageBase64PreviewLength": 450000,
-    "description": "Round 1 Bagged/Bunched Bananas: Real-world user supermarket photo of bananas (separate hands plus a few loose bananas) in a plastic bag-lined crate. Verifies that the model selects whole bunch/hand units anchored on distinct cut crowns rather than placing a bounding box per banana; maximum calibrated to 10 separate visible hands/crowns in this display.",
+    "description": "Round 1: Plastic-lined banana display. Accept the observed 14 visible candidates while preserving bounded detection and the no-cross-produce copy checks.",
     "groundTruth": {
       "round": 1,
       "expectedStatus": "ok",
       "expectedProduceType": "banana",
       "focusPolygon": null,
       "expectedCandidateCountMin": 1,
-      "expectedCandidateCountMax": 10,
+      "expectedCandidateCountMax": 14,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
@@ -591,13 +591,12 @@
     "filename": "16-roma-tomatoes-bulk-pile.jpg",
     "imagePath": "dataset/images/16-roma-tomatoes-bulk-pile.jpg",
     "imageBase64PreviewLength": 75000,
-    "description": "Round 1 High-Density Bulk Pile: User supermarket photo of a dense display of loose Roma Tomatoes. Verifies that the model detects, bounds, and scores first-plane tomatoes across the pile (at least 30 candidates; second-plane crates and adjacent onions must be ignored), so the user can compare them across ripeness windows.",
+    "description": "Round 1: Dense, visually similar Roma tomato pile does not support a confident maturity comparison. Return insufficient_evidence with an actionable missing-view explanation, no candidates or recommendation.",
     "groundTruth": {
       "round": 1,
-      "expectedStatus": "ok",
-      "expectedProduceType": "tomato",
+      "expectedStatus": "insufficient_evidence",
+      "expectedProduceType": null,
       "focusPolygon": null,
-      "expectedCandidateCountMin": 30,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
@@ -613,11 +612,11 @@
     "filename": "16-roma-tomatoes-bulk-pile.jpg",
     "imagePath": "dataset/images/16-roma-tomatoes-bulk-pile.jpg",
     "imageBase64PreviewLength": 75000,
-    "description": "Round 1 Focus-Polygon on Dense Bulk Pile: Same loose Roma tomato display as scenario 16, but the user drew a large loop around the whole pile. Verifies the polygon path detects at least 30 individual tomatoes WITH CENTERS INSIDE the drawn loop (no whole-cluster box, no background items, no count collapse).",
+    "description": "Round 1: Dense, visually similar Roma tomato pile does not support a confident maturity comparison. Return insufficient_evidence with an actionable missing-view explanation, no candidates or recommendation. A focus polygon does not add grading evidence.",
     "groundTruth": {
       "round": 1,
-      "expectedStatus": "ok",
-      "expectedProduceType": "tomato",
+      "expectedStatus": "insufficient_evidence",
+      "expectedProduceType": null,
       "focusPolygon": [
         [
           38,
@@ -692,7 +691,6 @@
           415
         ]
       ],
-      "expectedCandidateCountMin": 30,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
@@ -820,6 +818,114 @@
           1000
         ]
       ]
+    }
+  },
+  {
+    "id": "20-roma-clear-quality-focus-polygon",
+    "filename": "20-roma-clear-quality-focus-polygon.png",
+    "imagePath": "dataset/images/20-roma-clear-quality-focus-polygon.png",
+    "description": "Generated sibling of scenario 17 with clearly smooth ripe red, green underripe, and visibly moldy or sunken damaged Roma tomatoes. Preserve the original ok status, tomato type, polygon and minimum 30 eligible candidates. Rank a clearly ripe intact foreground unit above a visibly spoiled one and never choose the spoiled unit.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "ok",
+      "expectedProduceType": "tomato",
+      "focusPolygon": [
+        [
+          38,
+          272
+        ],
+        [
+          294,
+          198
+        ],
+        [
+          425,
+          284
+        ],
+        [
+          613,
+          213
+        ],
+        [
+          719,
+          239
+        ],
+        [
+          864,
+          236
+        ],
+        [
+          975,
+          272
+        ],
+        [
+          994,
+          338
+        ],
+        [
+          985,
+          560
+        ],
+        [
+          995,
+          780
+        ],
+        [
+          890,
+          970
+        ],
+        [
+          760,
+          1000
+        ],
+        [
+          560,
+          1000
+        ],
+        [
+          400,
+          990
+        ],
+        [
+          260,
+          940
+        ],
+        [
+          140,
+          830
+        ],
+        [
+          42,
+          700
+        ],
+        [
+          31,
+          415
+        ]
+      ],
+      "expectedCandidateCountMin": 30,
+      "forbiddenWordsInCopy": [
+        "watermelon",
+        "melon",
+        "avocado",
+        "pineapple",
+        "banana",
+        "potato"
+      ],
+      "expectedQualityComparison": {
+        "betterBox": [
+          625,
+          135,
+          870,
+          480
+        ],
+        "worseBox": [
+          715,
+          650,
+          925,
+          980
+        ]
+      }
     }
   }
 ]

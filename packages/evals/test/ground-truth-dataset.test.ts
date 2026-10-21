@@ -17,7 +17,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
   }> = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf-8"));
 
   it("verifies all ground-truth image references exist on disk and are non-empty images", () => {
-    expect(manifest.length).toBe(21);
+    expect(manifest.length).toBe(22);
     for (const item of manifest) {
       const fullPath = path.resolve(__dirname, "..", item.imagePath);
       expect(fs.existsSync(fullPath)).toBe(true);
@@ -26,8 +26,9 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     }
   });
 
-  it("Scenario 16 (Roma Tomatoes Bulk Pile): requires one candidate per eligible counted item with no cap", () => {
-      const gt = manifest.find((m) => m.id === "16-roma-tomatoes-bulk-pile")!.groundTruth;
+  it("Readable bulk pile: requires one candidate per eligible counted item with no cap", () => {
+      const { expectedQualityComparison, ...readableGroundTruth } = manifest.find((m) => m.id === "20-roma-clear-quality-focus-polygon")!.groundTruth;
+      const gt = { ...readableGroundTruth, focusPolygon: null };
 
       const mkCandidate = (i: number, size = 110) => ({
         id: `c${i + 1}`,
@@ -83,8 +84,8 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       expect(failRes.reason).toContain("Expected at least 30 candidates");
   });
 
-  it("Scenario 17 (Roma Bulk Pile Focus-Polygon): requires one candidate per eligible in-polygon item", () => {
-    const gt = manifest.find((m) => m.id === "17-roma-bulk-pile-focus-polygon")!.groundTruth;
+  it("Readable polygon bulk pile: requires one candidate per eligible in-polygon item", () => {
+    const { expectedQualityComparison, ...gt } = manifest.find((m) => m.id === "20-roma-clear-quality-focus-polygon")!.groundTruth;
 
     // 1. Valid polygon output with boxes inside the drawn loop
     const validPolygonOutput = {

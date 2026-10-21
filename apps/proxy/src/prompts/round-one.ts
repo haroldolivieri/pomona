@@ -11,6 +11,10 @@ export function buildRoundOneSystemPrompt(request?: ScanRequest): string {
     xmax: Math.max(...request.focusPolygon.map(([x]) => x)),
     ymin: Math.min(...request.focusPolygon.map(([, y]) => y)),
     ymax: Math.max(...request.focusPolygon.map(([, y]) => y)),
+    excludedTopPercent: Math.min(...request.focusPolygon.map(([, y]) => y)) / 10,
+    excludedBottomPercent: (1000 - Math.max(...request.focusPolygon.map(([, y]) => y))) / 10,
+    excludedLeftPercent: Math.min(...request.focusPolygon.map(([x]) => x)) / 10,
+    excludedRightPercent: (1000 - Math.max(...request.focusPolygon.map(([x]) => x))) / 10,
   });
 }
 
