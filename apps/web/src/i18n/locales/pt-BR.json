@@ -44,7 +44,7 @@
     "winnerToBeat": "Melhor nota: {{score}} / 10",
     "compareWithRunnerUp": "Comparar com a segunda opção",
     "flipFinalCheckFirstPick": "Virar a primeira opção para conferir",
-    "scanAnother": "Analisar outro",
+    "scanAnother": "Nova comparação",
     "tryAgain": "Tentar novamente",
     "originLabel": "Origem:",
     "importedFrom": "Importado de onde?"
@@ -60,7 +60,7 @@
     "unclearPhotoCta": "Tirar outra foto",
     "noProduceTitle": "Nenhum hortifruti detectado",
     "noProduceTip": "A Pomona analisa frutas, verduras e legumes inteiros, como melões, abacates, tomates e abacaxis.",
-    "noProduceCta": "Analisar hortifruti",
+    "noProduceCta": "Nova comparação",
     "multipleTypesTitle": "Vários tipos de frutas, verduras e legumes detectados",
     "multipleTypesTip": "A Pomona compara uma variedade por vez. Contorne apenas um tipo de fruta ou legume.",
     "multipleTypesCta": "Marcar área de foco",
@@ -74,7 +74,7 @@
     "similarMaturityTitle": "Nenhuma opção se destaca",
     "similarMaturity": "Os itens parecem ter maturação semelhante, sem vantagem visível de um sobre os outros.",
     "similarMaturityTip": "Isso não confirma qualidade igual por dentro. Aproxime a câmera para comparar cada item.",
-    "similarMaturityCta": "Analisar outro grupo",
+    "similarMaturityCta": "Nova comparação",
     "similarMaturityEyebrow": "Maturação visível semelhante",
     "similarMaturityPill": "Comparação"
   },

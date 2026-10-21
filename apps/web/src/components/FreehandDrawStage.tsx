@@ -315,7 +315,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
               zIndex: 30,
             }}
           >
-            {errorMessage}
+            {t("errors.analysisFailed")}
           </div>
         )}
       </div>

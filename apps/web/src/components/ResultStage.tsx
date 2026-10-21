@@ -143,7 +143,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         }}
       >
         <p style={{ marginBottom: "16px", textAlign: "center" }}>
-          {state.errorMessage || t("errors.analysisFailed")}
+          {t("errors.analysisFailed")}
         </p>
         <button
           onClick={onReset}

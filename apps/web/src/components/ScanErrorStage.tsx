@@ -14,7 +14,6 @@ export interface ScanErrorStageProps {
 
 export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
   status,
-  errorMessage,
   abstentionReason,
   photoDataUrl,
   onRetake,
@@ -43,7 +42,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
       }
       icon = "🔎";
       title = t("errors.insufficientEvidenceTitle");
-      explanation = errorMessage || t("errors.insufficientEvidence");
+      explanation = t("errors.insufficientEvidence");
       tip = t("errors.insufficientEvidenceTip");
       primaryCtaLabel = t("errors.insufficientEvidenceCta");
       primaryAction = onRetake;
@@ -52,7 +51,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
     case "unclear_photo":
       icon = "📷";
       title = t("errors.unclearPhotoTitle");
-      explanation = errorMessage || t("errors.unclearPhoto");
+      explanation = t("errors.unclearPhoto");
       tip = t("errors.unclearPhotoTip");
       primaryCtaLabel = t("errors.unclearPhotoCta");
       primaryAction = onRetake;
@@ -62,7 +61,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
     case "no_produce":
       icon = "🍎";
       title = t("errors.noProduceTitle");
-      explanation = errorMessage || t("errors.noProduce");
+      explanation = t("errors.noProduce");
       tip = t("errors.noProduceTip");
       primaryCtaLabel = t("errors.noProduceCta");
       primaryAction = onRetake;
@@ -71,7 +70,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
     case "multiple_types":
       icon = "🧺";
       title = t("errors.multipleTypesTitle");
-      explanation = errorMessage || t("errors.multipleTypes");
+      explanation = t("errors.multipleTypes");
       tip = t("errors.multipleTypesTip");
       primaryCtaLabel = t("errors.multipleTypesCta");
       primaryAction = onDrawFocus || onRetake;
@@ -81,7 +80,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
     case "rate_limited":
       icon = "⏳";
       title = uiCopy("copy.scanLimitReached");
-      explanation = errorMessage || t("errors.rateLimited");
+      explanation = t("errors.rateLimited");
       tip = uiCopy("copy.youHaveUsedAllDailyScansFor");
       primaryCtaLabel = uiCopy("copy.backToCamera");
       primaryAction = onRetake;

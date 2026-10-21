@@ -75,7 +75,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         }
       } catch (err: any) {
         if (isMounted) {
-          setCameraError(err.message || uiCopy("copy.cameraAccessDenied"));
+          setCameraError(uiCopy("copy.cameraAccessDenied"));
           setStreamActive(false);
         }
       }

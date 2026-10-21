@@ -134,3 +134,24 @@ for (const theme of ["light", "dark"] as const) {
     }
   });
 }
+
+for (const status of ["no_produce", "unclear_photo", "multiple_types", "insufficient_evidence", "rate_limited"]) {
+  test(`Portuguese error ${status} rejects English model copy`, async ({page}) => {
+    const english = "No fresh produce is visible in this image. Please provide a photo of produce.";
+    await page.route("**/api/v1/scan", route => route.fulfill({json:{...successfulScan(1),status,abstentionReason:status === "insufficient_evidence" ? "missing_evidence" : null,message:english,produce:null,countedTotal:null,candidates:[],verdict:null,followUp:null,afterPurchase:null,seasonality:null}}));
+    await page.setViewportSize({width:375,height:812});
+    await page.goto("/");
+    await page.getByTestId("shutter-button").click();
+    await page.getByTestId("whole-photo-button").click();
+    await expect(page.getByTestId("stage-S_ScanError")).toBeVisible();
+    await expect(page.getByText(english)).toHaveCount(0);
+    await expect(page.getByTestId("error-primary-cta")).toBeInViewport();
+    if (status === "no_produce") {
+      await expect(page.getByTestId("error-primary-cta")).toHaveText("Nova comparação");
+      await page.getByTestId("error-primary-cta").click();
+      await expect(page.getByTestId("stage-S1_LiveCamera")).toBeVisible();
+    } else {
+      await page.screenshot({path:`test-results/pt-br-error-${status}.png`});
+    }
+  });
+}
