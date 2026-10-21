@@ -8,7 +8,14 @@ const webPkg = JSON.parse(
 ) as { version: string };
 
 export default defineConfig({
-  plugins: [react(), basicSsl()],
+  plugins: [react(), basicSsl(), {
+    name: "neutral-offline-shell",
+    enforce: "post",
+    generateBundle(_options, bundle) {
+      const shell = bundle["index.html"];
+      if (shell?.type === "asset") this.emitFile({ type: "asset", fileName: "offline.html", source: shell.source });
+    },
+  }],
   define: {
     __APP_VERSION__: JSON.stringify(webPkg.version),
   },

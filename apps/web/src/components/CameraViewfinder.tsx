@@ -1,3 +1,7 @@
+import i18n from "../i18n";
+import { saveLocalePreference } from "../i18n/bootstrap";
+import { isSupportedLocale } from "@pomona/contract";
+import { LanguageSelector } from "./LanguageSelector";
 import React, { useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { captureViewportCrop } from "../lib/image-pipeline";
@@ -169,6 +173,9 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         justifyContent: "space-between",
       }}
     >
+      <div style={{ position: "absolute", top: "max(72px, env(safe-area-inset-top))", right: "20px", zIndex: 11 }}>
+        <LanguageSelector locale={isSupportedLocale(i18n.language) ? i18n.language : "en-GB"} onChange={(locale) => { saveLocalePreference(locale); void i18n.changeLanguage(locale); }} />
+      </div>
       {/* Top bar with white chip pills */}
       <div
         style={{

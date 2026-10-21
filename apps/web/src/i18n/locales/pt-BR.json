@@ -1,0 +1,84 @@
+{
+  "app": {
+    "name": "Pomona",
+    "tagline": "Produce Picker"
+  },
+  "camera": {
+    "shutter": "Take Photo",
+    "uploadFallback": "Upload photo",
+    "permissionDenied": "Camera access denied. Please upload a photo instead.",
+    "switchCamera": "Switch Camera",
+    "flash": "Flash",
+    "scansLeftToday": "{{count}} scans left today",
+    "promptTitle": "Point at a pile or single fruit",
+    "promptSubtitle": "Works with any fruit, vegetable, or produce",
+    "offlineTitle": "You're offline",
+    "offlineSubtitle": "Connect to the internet to take a photo and scan produce"
+  },
+  "draw": {
+    "instruction": "Draw a loop around the produce to focus, or analyse whole photo",
+    "topBarChip": "Draw focus area (optional)",
+    "floatingPrompt": "✍️ Draw around the area to focus on",
+    "eyebrow": "Step 1 · Focus area",
+    "headline": "Draw around your picks",
+    "subtitle": "Trace with your finger so the AI only grades the produce inside your loop, or skip to scan the whole photo.",
+    "analyseDrawn": "Analyse Drawn Area",
+    "wholePhoto": "Whole Photo",
+    "retake": "Retake"
+  },
+  "analysing": {
+    "headline": "Inspecting produce...",
+    "subhead": "Grading ripeness, skin texture, and freshness traits",
+    "tips": [
+      "Heavy for its size usually means higher water content and juiciness.",
+      "Check the stem base for fresh green color rather than dry grey mold.",
+      "Uniform shape often indicates even pollination and sweetness."
+    ]
+  },
+  "result": {
+    "eatWithin": "🗓 Eat within",
+    "beforeCut": "🧺 Before cut",
+    "afterCut": "❄️ After cut",
+    "winnerToBeat": "Winner to beat: {{score}} / 10",
+    "compareWithRunnerUp": "Compare with Runner-Up",
+    "flipFinalCheckFirstPick": "Flip 1st Winner for Final Check",
+    "scanAnother": "Scan Another",
+    "tryAgain": "Try Again",
+    "originLabel": "Origin:",
+    "importedFrom": "Imported from?"
+  },
+  "errors": {
+    "noProduce": "Couldn't spot any produce clearly. Move closer and try again.",
+    "unclearPhoto": "Photo was too blurry or dim. Please hold steady and try again.",
+    "multipleTypes": "Multiple types of produce detected. Focus on one crate.",
+    "analysisFailed": "Produce analysis could not be completed. Please try again.",
+    "rateLimited": "Daily scan limit reached. Please come back tomorrow!",
+    "unclearPhotoTitle": "Photo isn't clear enough",
+    "unclearPhotoTip": "Hold your phone steady, tap to focus on the produce, and ensure good lighting without harsh glare.",
+    "unclearPhotoCta": "Retake Photo",
+    "noProduceTitle": "No fresh produce detected",
+    "noProduceTip": "Pomona inspects fresh whole produce like melons, avocados, citrus, tomatoes, and pineapples.",
+    "noProduceCta": "Scan Fresh Produce",
+    "multipleTypesTitle": "Multiple produce types spotted",
+    "multipleTypesTip": "Pomona compares one produce variety at a time. Trace a loop around just one type to grade it.",
+    "multipleTypesCta": "Draw Focus Area",
+    "analysisFailedTitle": "Analysis interrupted",
+    "analysisFailedTip": "We couldn't connect or complete produce vision analysis. Please check your network and try again.",
+    "analysisFailedCta": "Try Again",
+    "insufficientEvidenceTitle": "Not enough evidence to choose",
+    "insufficientEvidence": "I can see the produce, but this view does not show enough ripeness detail to recommend a best pick.",
+    "insufficientEvidenceTip": "Turn the produce to show another side, including the underside or stem, then take a new photo.",
+    "insufficientEvidenceCta": "Try Another Angle",
+    "similarMaturityTitle": "No clear standout",
+    "similarMaturity": "These items look similarly mature, with no visible ripeness advantage for one over another.",
+    "similarMaturityTip": "This does not confirm equal quality inside. Try a closer view to compare individual items.",
+    "similarMaturityCta": "Scan Another Selection",
+    "similarMaturityEyebrow": "Similar Visible Maturity",
+    "similarMaturityPill": "Comparison"
+  },
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "portuguese": "Português (Brasil)"
+  }
+}

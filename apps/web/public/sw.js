@@ -1,5 +1,5 @@
-const CACHE_NAME = "pomona-shell-v7";
-const PRECACHE_URLS = ["/", "/index.html", "/manifest.json", "/icon-192.png", "/icon-512.png", "/launch-screen.png"];
+const CACHE_NAME = "pomona-shell-v8";
+const PRECACHE_URLS = ["/offline.html", "/manifest.json", "/icon-192.png", "/icon-512.png", "/launch-screen.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -28,6 +28,11 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.pathname.startsWith("/api/")) return;
 
+  if (request.mode === "navigate") {
+    event.respondWith(fetch(request).catch(() => caches.match("/offline.html")));
+    return;
+  }
+
   event.respondWith(
     fetch(request)
       .then((response) => {
@@ -38,7 +43,7 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
       .catch(() =>
-        caches.match(request).then((cached) => cached || caches.match("/index.html"))
+        caches.match(request)
       )
   );
 });

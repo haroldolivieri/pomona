@@ -75,5 +75,10 @@
     "similarMaturityCta": "Scan Another Selection",
     "similarMaturityEyebrow": "Similar Visible Maturity",
     "similarMaturityPill": "Comparison"
+  },
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "portuguese": "Português (Brasil)"
   }
 }
