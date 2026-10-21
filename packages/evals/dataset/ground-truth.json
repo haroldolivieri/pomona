@@ -821,10 +821,10 @@
     }
   },
   {
-    "id": "20-roma-clear-quality-focus-polygon",
-    "filename": "20-roma-clear-quality-focus-polygon.png",
-    "imagePath": "dataset/images/20-roma-clear-quality-focus-polygon.png",
-    "description": "Generated sibling of scenario 17 with clearly smooth ripe red, green underripe, and visibly moldy or sunken damaged Roma tomatoes. Preserve the original ok status, tomato type, polygon and minimum 30 eligible candidates. Rank a clearly ripe intact foreground unit above a visibly spoiled one and never choose the spoiled unit.",
+    "id": "20-roma-clear-ripeness-focus-polygon",
+    "filename": "20-roma-clear-ripeness-focus-polygon-v2.png",
+    "imagePath": "dataset/images/20-roma-clear-ripeness-focus-polygon-v2.png",
+    "description": "Generated supermarket sibling of scenario 17: individually visible, intact Roma tomatoes in a shallow loose display, with clearly ripe red, pale green underripe and orange partly ripe units. No rot or damage is required. Preserve the original ok status, tomato type, polygon and minimum 30 eligible candidates. Rank the large ripe red lower-left unit above the pale green lower-right unit for ready_now.",
     "groundTruth": {
       "round": 1,
       "expectedStatus": "ok",
@@ -912,18 +912,18 @@
         "banana",
         "potato"
       ],
-      "expectedQualityComparison": {
-        "betterBox": [
-          625,
-          135,
-          870,
-          480
+      "expectedRipenessComparison": {
+        "ripeBox": [
+          685,
+          125,
+          915,
+          430
         ],
-        "worseBox": [
-          715,
-          650,
-          925,
-          980
+        "lessRipeBox": [
+          740,
+          580,
+          945,
+          910
         ]
       }
     }

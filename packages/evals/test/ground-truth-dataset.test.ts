@@ -27,7 +27,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
   });
 
   it("Readable bulk pile: requires one candidate per eligible counted item with no cap", () => {
-      const { expectedQualityComparison, ...readableGroundTruth } = manifest.find((m) => m.id === "20-roma-clear-quality-focus-polygon")!.groundTruth;
+      const { expectedRipenessComparison, ...readableGroundTruth } = manifest.find((m) => m.id === "20-roma-clear-ripeness-focus-polygon")!.groundTruth;
       const gt = { ...readableGroundTruth, focusPolygon: null };
 
       const mkCandidate = (i: number, size = 110) => ({
@@ -85,7 +85,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
   });
 
   it("Readable polygon bulk pile: requires one candidate per eligible in-polygon item", () => {
-    const { expectedQualityComparison, ...gt } = manifest.find((m) => m.id === "20-roma-clear-quality-focus-polygon")!.groundTruth;
+    const { expectedRipenessComparison, ...gt } = manifest.find((m) => m.id === "20-roma-clear-ripeness-focus-polygon")!.groundTruth;
 
     // 1. Valid polygon output with boxes inside the drawn loop
     const validPolygonOutput = {

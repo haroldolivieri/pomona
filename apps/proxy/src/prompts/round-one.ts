@@ -30,7 +30,7 @@ function describeSelectionBounds(polygon: [number, number][]): string {
 export function buildRoundOneUserPrompt(request: ScanRequest, repairErrors?: string[]): string {
   const polygon = request.focusPolygon;
   const bounds = polygon?.length
-    ? describeSelectionBounds(polygon)
+    ? ` ${describeSelectionBounds(polygon)}`
     : "";
   let prompt = renderPrompt("roundOneUser", {
     locale: request.locale,

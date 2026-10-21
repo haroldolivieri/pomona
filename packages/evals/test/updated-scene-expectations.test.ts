@@ -3,7 +3,7 @@ import manifest from "../dataset/ground-truth.json";
 import { verifyPromptfooOutput } from "../assertions/verify-contract";
 
 const scene = (id: string) => manifest.find((entry) => entry.id === id)!.groundTruth;
-const qualityScene = scene("20-roma-clear-quality-focus-polygon");
+const ripenessScene = scene("20-roma-clear-ripeness-focus-polygon");
 
 function readableOutput(count = 30, type = "tomato") {
   const displayName = type === "banana" ? "Banana" : "Roma Tomatoes";
@@ -35,14 +35,14 @@ function readableOutput(count = 30, type = "tomato") {
   };
 }
 
-function qualityOutput() {
+function ripenessOutput() {
   const output = readableOutput();
-  output.candidates[0].box = qualityScene.expectedQualityComparison!.betterBox;
+  output.candidates[0].box = ripenessScene.expectedRipenessComparison!.ripeBox;
   output.candidates[0].traits = ["Smooth intact red skin"];
-  output.candidates[1].box = qualityScene.expectedQualityComparison!.worseBox;
+  output.candidates[1].box = ripenessScene.expectedRipenessComparison!.lessRipeBox;
   output.candidates[1].score = 2;
-  output.candidates[1].ripeness = "overripe";
-  output.candidates[1].traits = ["Sunken moldy patch"];
+  output.candidates[1].ripeness = "underripe";
+  output.candidates[1].traits = ["Pale green skin"];
   return output;
 }
 
@@ -73,27 +73,38 @@ describe("reviewed scene expectations", () => {
     expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, message: "Please provide another photo." }), { vars }).pass).toBe(false);
   });
 
+  it.each([
+    "The Roma tomatoes are uniformly mature with no visible basis for a useful preference. Please provide a new view.",
+    "Watermelon ripeness cannot be determined from external rind appearance alone. Please provide a view of the field spot.",
+  ])("accepts an uncertainty explanation and a requested view: %s", (message) => {
+    expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, message }), { vars: scene("16-roma-tomatoes-bulk-pile") }).pass).toBe(true);
+  });
+
+  it("rejects a missing-surface statement without a retake action", () => {
+    expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, message: "The underside is hidden." }), { vars: scene("16-roma-tomatoes-bulk-pile") }).pass).toBe(false);
+  });
+
   it("keeps the original polygon and minimum count on the new readable scene", () => {
-    expect(qualityScene.expectedCandidateCountMin).toBe(30);
-    expect(qualityScene.focusPolygon).toEqual(scene("17-roma-bulk-pile-focus-polygon").focusPolygon);
-    expect(verifyPromptfooOutput(JSON.stringify(qualityOutput()), { vars: qualityScene }).pass).toBe(true);
-    expect(verifyPromptfooOutput(JSON.stringify(abstention), { vars: qualityScene }).pass).toBe(false);
+    expect(ripenessScene.expectedCandidateCountMin).toBe(30);
+    expect(ripenessScene.focusPolygon).toEqual(scene("17-roma-bulk-pile-focus-polygon").focusPolygon);
+    expect(verifyPromptfooOutput(JSON.stringify(ripenessOutput()), { vars: ripenessScene }).pass).toBe(true);
+    expect(verifyPromptfooOutput(JSON.stringify(abstention), { vars: ripenessScene }).pass).toBe(false);
   });
 
-  it("rejects promoting the visibly spoiled unit", () => {
-    const output = qualityOutput();
+  it("rejects promoting the visibly less-ripe unit", () => {
+    const output = ripenessOutput();
     output.candidates[1].score = 10;
-    const result = verifyPromptfooOutput(JSON.stringify(output), { vars: qualityScene });
+    const result = verifyPromptfooOutput(JSON.stringify(output), { vars: ripenessScene });
     expect(result.pass).toBe(false);
-    expect(result.reason).toContain("Visibly spoiled produce must rank below");
+    expect(result.reason).toContain("The less-ripe unit must rank below");
   });
 
-  it("rejects calling the visibly spoiled unit ripe or omitting it", () => {
-    const output = qualityOutput();
+  it("rejects calling the visibly less-ripe unit ripe or omitting it", () => {
+    const output = ripenessOutput();
     output.candidates[1].ripeness = "ripe";
-    expect(verifyPromptfooOutput(JSON.stringify(output), { vars: qualityScene }).pass).toBe(false);
+    expect(verifyPromptfooOutput(JSON.stringify(output), { vars: ripenessScene }).pass).toBe(false);
     output.candidates[1] = { ...output.candidates[2], id: "replacement" };
-    const result = verifyPromptfooOutput(JSON.stringify(output), { vars: qualityScene });
+    const result = verifyPromptfooOutput(JSON.stringify(output), { vars: ripenessScene });
     expect(result.pass).toBe(false);
     expect(result.reason).toContain("Expected separate candidates");
   });

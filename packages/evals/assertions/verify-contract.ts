@@ -114,8 +114,9 @@ export function verifyPromptfooOutput(
 
   if (response.status === "insufficient_evidence") {
     const message = response.message ?? "";
-    if (!/(cannot|can.t|not enough|insufficient|unsure|uncertain|unable|more|need|hidden|not visible|not shown|missing|obscur(?:e[sd]?|ing))/i.test(message) ||
-        !/(turn|flip|rotate|angle|underside|stem|retake|closer|show)/i.test(message)) {
+    const explainsUncertainty = /(cannot|can.t|not enough|insufficient|unsure|uncertain|unable|more|need|hidden|not visible|not shown|missing|obscur(?:e[sd]?|ing)|(?:similar|uniform|indistinguishable).{0,40}(?:ripe|matur)|no visible basis)/i.test(message);
+    const requestsNewView = /\b(turn|flip|rotate|retake|closer|show|(?:provide|take|capture).{0,60}(?:view|angle|photo))\b/i.test(message);
+    if (!explainsUncertainty || !requestsNewView) {
       return { pass: false, score: 0, reason: "Insufficient evidence must explain uncertainty and request a useful new view" };
     }
   }
@@ -181,24 +182,24 @@ export function verifyPromptfooOutput(
     };
   }
 
-  if (vars.expectedQualityComparison) {
-    const { betterBox, worseBox } = vars.expectedQualityComparison as {
-      betterBox: BoundingBox; worseBox: BoundingBox;
+  if (vars.expectedRipenessComparison) {
+    const { ripeBox, lessRipeBox } = vars.expectedRipenessComparison as {
+      ripeBox: BoundingBox; lessRipeBox: BoundingBox;
     };
     const matchRegion = (box: BoundingBox) => response.candidates
       .map((candidate) => ({ candidate, iou: computeBoxIoU(candidate.box, box) }))
       .filter(({ candidate, iou }) => iou >= 0.2 && isBoxCenterInside(candidate.box, box))
       .sort((a, b) => b.iou - a.iou)[0]?.candidate;
-    const better = matchRegion(betterBox);
-    const worse = matchRegion(worseBox);
+    const better = matchRegion(ripeBox);
+    const worse = matchRegion(lessRipeBox);
     if (!better || !worse || better.id === worse.id) {
-      return { pass: false, score: 0.4, reason: "Expected separate candidates in the visibly healthy and spoiled regions" };
+      return { pass: false, score: 0.4, reason: "Expected separate candidates in the visibly ripe and less-ripe regions" };
     }
-    if (better.ripeness !== "ripe" || worse.ripeness !== "overripe") {
-      return { pass: false, score: 0.4, reason: "Expected the intact red unit to be ripe and the visibly spoiled unit to be overripe" };
+    if (better.ripeness !== "ripe" || worse.ripeness !== "underripe") {
+      return { pass: false, score: 0.4, reason: "Expected the red unit to be ripe and the pale green unit to be underripe" };
     }
     if (better.score <= worse.score || response.verdict?.winnerId === worse.id) {
-      return { pass: false, score: 0.4, reason: "Visibly spoiled produce must rank below the healthy ripe unit and must not win" };
+      return { pass: false, score: 0.4, reason: "The less-ripe unit must rank below the ripe unit and must not win for ready_now" };
     }
   }
 
