@@ -27,17 +27,18 @@ describe("Round-one prompt regression (CI flake fixes)", () => {
     expect(user).toMatch(/runner-up must be the second-highest ripeness candidate/i);
   });
 
-  it("requires dense-pile early-stop audit with a 24-candidate floor scoped to loose produce only", () => {
+  it("requires evidence-based dense-pile coverage scoped to loose produce only", () => {
     const system = v1PromptConfig.buildSystemPrompt(makeRequest());
     const user = v1PromptConfig.buildUserPrompt(makeRequest());
 
     expect(system).toContain("DENSE-PILE COVERAGE (BLOCKING AUDIT)");
-    expect(system).toMatch(/fewer than 24 candidates|fewer than 24/i);
+    expect(system).toContain("never target a minimum or maximum count");
+    expect(`${system} ${user}`).not.toMatch(/(?:fewer than|below|at least|at most) \d+ (?:candidates|items)|tens of candidates/i);
     expect(system).toMatch(/ONLY to displays of loose individual produce/i);
     // the audit must never split bunches/packs or override status rules
     expect(system).toMatch(/NEVER splits? bunches, hands, packs or punnets/i);
     expect(system).toMatch(/multiple_types, unclear_photo or insufficient_evidence always win/i);
-    expect(user).toMatch(/EARLY-STOP AUDIT|stopping below 24 candidates/i);
+    expect(user).toContain("never from an expected quantity");
     expect(user).toMatch(/never splits? bunches, hands, packs or punnets/i);
   });
 
@@ -59,7 +60,7 @@ describe("Round-one prompt regression (CI flake fixes)", () => {
     const user = v1PromptConfig.buildUserPrompt(makeRequest({ focusPolygon: polygon }));
 
     // The polygon path shares the same system prompt and user coverage audit.
-    expect(user).toMatch(/stopping below 24 candidates/i);
+    expect(user).toContain("visible evidence within the selected region, never from an expected quantity");
     expect(user).toMatch(/runner-up must be the second-highest ripeness candidate/i);
   });
 });
