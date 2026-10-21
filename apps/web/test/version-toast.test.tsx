@@ -87,10 +87,8 @@ describe("Published build: 5-tap version toast only", () => {
         expect(client.getQuota).toHaveBeenCalledOnce();
         expect(client.overrideQuota).not.toHaveBeenCalled();
         expect((window as any).__setRemainingScans).toBeUndefined();
-        const pill = screen.getByTestId("scan-quota-pill");
-        expect(pill.getAttribute("role")).toBeNull();
-        expect(pill.getAttribute("title")).toBeNull();
-        fireEvent.click(pill);
+        expect(screen.queryByTestId("scan-quota-pill")).toBeNull();
+        expect(screen.queryByTestId("dev-set-scans-button")).toBeNull();
         expect(client.overrideQuota).not.toHaveBeenCalled();
       } finally {
         window.history.replaceState({}, "", "/");

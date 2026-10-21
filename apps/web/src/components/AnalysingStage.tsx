@@ -27,8 +27,6 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
   focusPolygon,
   cropRect,
   onCancel,
-  remainingScans = 10,
-  onQuotaClick,
 }) => {
   const { t } = useTranslation();
   const tips: string[] = (t("analysing.tips", { returnObjects: true }) as string[]) || [];
@@ -361,31 +359,7 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
           ✕
         </button>
 
-        <div
-          data-testid="scan-quota-pill"
-          onClick={onQuotaClick}
-          role={onQuotaClick ? "button" : undefined}
-          tabIndex={onQuotaClick ? 0 : undefined}
-          title={onQuotaClick ? uiCopy("copy.tapToOverrideScanQuotaTesting") : undefined}
-          style={{
-            background: "rgba(251,250,246,0.92)",
-            color: "#142117",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            fontFamily: "Inter, system-ui, sans-serif",
-            fontWeight: 600,
-            fontSize: "12px",
-            lineHeight: 1,
-            padding: "7px 12px",
-            borderRadius: "999px",
-            display: "inline-flex",
-            alignItems: "center",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.18)",
-            cursor: onQuotaClick ? "pointer" : "default",
-          }}
-        >
-          {t("camera.scansLeftToday", { count: remainingScans ?? 10 })}
-        </div>
+
 
         <div style={{ width: "30px" }} />
       </div>

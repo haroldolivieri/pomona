@@ -235,10 +235,10 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     expect(screen.getByTestId("brand-pill")).toHaveTextContent("Pomona");
     expect(screen.queryByTestId("scan-quota-pill")).toBeNull();
 
-    // Snap photo -> State 2: Top middle chip shows 10 scans left today
+    // Snap photo -> State 2: Top bar keeps the remaining-scan label hidden
     fireEvent.click(screen.getByTestId("shutter-button"));
     expect(await screen.findByTestId("stage-S2_DrawFocusArea")).toBeTruthy();
-    expect(screen.getByTestId("scan-quota-pill")).toHaveTextContent("10 scans left today");
+    expect(screen.queryByTestId("scan-quota-pill")).toBeNull();
 
     // Scan whole photo -> State 4: Top middle chip shows Alphonso Mango ONLY
     fireEvent.click(screen.getByTestId("whole-photo-button"));
