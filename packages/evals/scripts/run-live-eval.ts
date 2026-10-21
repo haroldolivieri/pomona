@@ -18,18 +18,6 @@ interface GroundTruthEntry {
   groundTruth: Record<string, any>;
 }
 
-async function retryNudge(attempt: number, prevReason: string | null): Promise<string> {
-  if (attempt < 2 || !prevReason) return "";
-  if (/at least \d+ candidates/.test(prevReason)) {
-    return (
-      "\nRETRY AUDIT: Your previous attempt undercounted the eligible units. Re-scan the whole selected region row by row, " +
-      "emit ONE tightly fitted box per visible unit (split any box that encloses several loose units into per-unit boxes), " +
-      "include clearly identifiable partially covered units at every edge, and set countedTotal to the final list length."
-    );
-  }
-  return `\nRETRY AUDIT: Your previous attempt failed verification: ${prevReason.split("\n")[0]}. Re-grade strictly from the current pixels, following your status instructions (no_produce, unclear_photo, insufficient_evidence, multiple_types, ok). Do not abstain when the required grading evidence is actually present in this photo; every status claim must match what the image really shows.`;
-}
-
 async function runLiveBenchmark() {
   const { geminiKey, openaiKey } = loadApiKeyFromEnvFiles(__dirname);
   const scenarioId = process.env.EVAL_SCENARIO_ID;
@@ -79,7 +67,7 @@ async function runLiveBenchmark() {
   let recoveredFlakes = 0;
   const results = [];
 
-  const maxAttempts = Math.max(1, Number(process.env.EVAL_MAX_ATTEMPTS ?? 3));
+  const maxAttempts = Math.max(1, Number(process.env.EVAL_MAX_ATTEMPTS ?? 2));
   for (const item of manifest) {
     const imgFullPath = process.env.EVAL_IMAGE_PATH
       ? path.resolve(process.env.EVAL_IMAGE_PATH)
@@ -108,16 +96,14 @@ async function runLiveBenchmark() {
     let latencyMs = 0;
     let usage: unknown = null;
     let rawObject: unknown = null;
-    let prevAttemptReason: string | null = null;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       attemptsUsed = attempt;
       const startMs = Date.now();
       try {
-        const retry = await retryNudge(attempt, prevAttemptReason);
         const raw = await adapter.analyzeProduce({
           systemPrompt,
-          userPrompt: `${userPrompt}${retry}`,
+          userPrompt,
           imageBase64,
           imageMimeType,
         });
@@ -130,7 +116,6 @@ async function runLiveBenchmark() {
           break;
         }
         attemptReasons.push(`attempt ${attemptsUsed}: ${evalResResult.reason.split("\n")[0]}`);
-        prevAttemptReason = evalResResult.reason;
         console.log(
           `🔁 [${item.id}] attempt ${attemptsUsed}/${maxAttempts} scored ${evalResResult.score} — retrying ` +
             `(${attemptReasons.join(" | ")})\n`

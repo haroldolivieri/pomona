@@ -526,7 +526,7 @@
           351
         ]
       ],
-      "expectedCandidateCountMin": 10,
+      "expectedCandidateCountMin": 12,
       "expectedCandidateCountMax": 30,
       "forbiddenWordsInCopy": [
         "watermelon",
@@ -597,7 +597,7 @@
       "expectedStatus": "ok",
       "expectedProduceType": "tomato",
       "focusPolygon": null,
-      "expectedCandidateCountMin": 25,
+      "expectedCandidateCountMin": 30,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
@@ -692,7 +692,7 @@
           415
         ]
       ],
-      "expectedCandidateCountMin": 25,
+      "expectedCandidateCountMin": 30,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",

@@ -7,6 +7,10 @@ export function buildRoundOneSystemPrompt(request?: ScanRequest): string {
   return system + renderPrompt("roundOneSelection", {
     polygon: JSON.stringify(request.focusPolygon),
     bounds: describeSelectionBounds(request.focusPolygon),
+    xmin: Math.min(...request.focusPolygon.map(([x]) => x)),
+    xmax: Math.max(...request.focusPolygon.map(([x]) => x)),
+    ymin: Math.min(...request.focusPolygon.map(([, y]) => y)),
+    ymax: Math.max(...request.focusPolygon.map(([, y]) => y)),
   });
 }
 

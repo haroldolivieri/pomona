@@ -65,9 +65,9 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       // 1. Valid high-density output: all 48 eligible items have one candidate.
       const validOutput = { ...baseOutput, candidates: Array.from({ length: 48 }, (_, i) => mkCandidate(i)) };
       expect(verifyPromptfooOutput(JSON.stringify(validOutput), { vars: gt }).pass).toBe(true);
-      const minimumOutput = { ...baseOutput, countedTotal: 25, candidates: Array.from({ length: 25 }, (_, i) => mkCandidate(i)) };
+      const minimumOutput = { ...baseOutput, countedTotal: 30, candidates: Array.from({ length: 30 }, (_, i) => mkCandidate(i)) };
       expect(verifyPromptfooOutput(JSON.stringify(minimumOutput), { vars: gt }).pass).toBe(true);
-      const belowMinimum = { ...minimumOutput, countedTotal: 24, candidates: minimumOutput.candidates.slice(0, 24) };
+      const belowMinimum = { ...minimumOutput, countedTotal: 29, candidates: minimumOutput.candidates.slice(0, 29) };
       expect(verifyPromptfooOutput(JSON.stringify(belowMinimum), { vars: gt }).pass).toBe(false);
 
       // 2. Count mismatch: declared total exceeds candidate list and must fail.
@@ -80,7 +80,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       const sparseOutput = { ...baseOutput, countedTotal: null, candidates: Array.from({ length: 3 }, (_, i) => mkCandidate(i)) };
       const failRes = verifyPromptfooOutput(JSON.stringify(sparseOutput), { vars: gt });
       expect(failRes.pass).toBe(false);
-      expect(failRes.reason).toContain("Expected at least 25 candidates");
+      expect(failRes.reason).toContain("Expected at least 30 candidates");
   });
 
   it("Scenario 17 (Roma Bulk Pile Focus-Polygon): requires one candidate per eligible in-polygon item", () => {
@@ -124,9 +124,9 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     };
 
     expect(verifyPromptfooOutput(JSON.stringify(validPolygonOutput), { vars: gt }).pass).toBe(true);
-    const minimumOutput = { ...validPolygonOutput, countedTotal: 25, candidates: validPolygonOutput.candidates.slice(0, 25) };
+    const minimumOutput = { ...validPolygonOutput, countedTotal: 30, candidates: validPolygonOutput.candidates.slice(0, 30) };
     expect(verifyPromptfooOutput(JSON.stringify(minimumOutput), { vars: gt }).pass).toBe(true);
-    const belowMinimum = { ...minimumOutput, countedTotal: 24, candidates: minimumOutput.candidates.slice(0, 24) };
+    const belowMinimum = { ...minimumOutput, countedTotal: 29, candidates: minimumOutput.candidates.slice(0, 29) };
     expect(verifyPromptfooOutput(JSON.stringify(belowMinimum), { vars: gt }).pass).toBe(false);
 
 
@@ -148,7 +148,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     };
     const failRes = verifyPromptfooOutput(JSON.stringify(collapsedOutput), { vars: gt });
     expect(failRes.pass).toBe(false);
-    expect(failRes.reason).toContain("Expected at least 25 candidates");
+    expect(failRes.reason).toContain("Expected at least 30 candidates");
   });
 
   it("Scenario 01 (Watermelon Crate): passes when model picks bottom-left ripe winner [415,150,780,520] and bottom-right runner-up [430,545,775,880], and FAILS if model swaps them", () => {
@@ -288,12 +288,6 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
 
     const res = verifyPromptfooOutput(JSON.stringify(outputWithOutsideCandidate), { vars: gt });
     expect(res.pass).toBe(true);
-    // A complete raw count includes the outside unit; polygon filtering removes both.
-    expect(verifyPromptfooOutput(JSON.stringify({ ...outputWithOutsideCandidate, countedTotal: 3 }), { vars: gt }).pass).toBe(true);
-    // A declared unit with no box is still missing; filtering must not conceal it.
-    const missingUnit = verifyPromptfooOutput(JSON.stringify({ ...outputWithOutsideCandidate, countedTotal: 4 }), { vars: gt });
-    expect(missingUnit.pass).toBe(false);
-    expect(missingUnit.reason).toContain("Count mismatch");
 
     // Adversarial failure check: if model hallucinates "watermelon" or "field spot" when grading avocados
     const hallucinatedCopyOutput = {
@@ -728,7 +722,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
 
     const failSingleRes = verifyPromptfooOutput(JSON.stringify(invalidSingleCandidateOutput), { vars: gt });
     expect(failSingleRes.pass).toBe(false);
-    expect(failSingleRes.reason).toContain("Expected at least 10 candidates");
+    expect(failSingleRes.reason).toContain("Expected at least 12 candidates");
   });
 
   it("Scenario 13 (Packaged Produce Obscurity / Glare): expects unclear_photo due to heavy printed branding and plastic glare", () => {

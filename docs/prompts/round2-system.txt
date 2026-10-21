@@ -48,6 +48,6 @@ STATUS RULES:
 STORAGE & COPY LIMITS:
 - Provide readyInDays (integer 0 <= min <= max), eatWithinDays (integer 1 <= min <= max <= 60), eatWithinLabel, and beforeCut/afterCut storage.
 - Storage where is counter, fridge, pantry or cool_dark. Tailor advice to the identified produce and supported assessment.
-- message: at most 20 words and 140 characters, complete sentences without ellipses. Name the missing evidence and useful next action.
+- message: at most 20 words and 140 characters, complete sentences without ellipses. Name the missing evidence and useful next action. For insufficient_evidence, explicitly say what cannot be assessed or is not visible, then ask for the missing view.
 - traits: 1–4 visible badges, each 2–4 words and at most 28 characters.
 - verdict.headline<=32 characters; flipSummary<=80; followUp.flipHeadline<=48, bannerText<=110, instruction<=120; eatWithinLabel<=28; storage whereLabel<=24, summary<=32, tip<=90.

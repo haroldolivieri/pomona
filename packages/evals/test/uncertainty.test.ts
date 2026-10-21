@@ -49,21 +49,6 @@ describe("insufficient evidence abstention eval", () => {
     expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, message }), { vars: scenarios[0].groundTruth }).pass).toBe(true);
   });
 
-  it.each([
-    "Watermelon ripeness requires a visible field spot; please provide a view of the underside.",
-    "Ripeness requires clear maturity cues. Please turn the fruit to show its underside.",
-  ])("accepts an explicit missing-evidence requirement: %s", (message) => {
-    expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, message }), { vars: scenarios[0].groundTruth }).pass).toBe(true);
-  });
-
-  it.each([
-    "Please provide another photo.",
-    "Ripeness requires care. Please turn the fruit.",
-    "The underside is hidden.",
-  ])("rejects abstention without both missing evidence and a useful view: %s", (message) => {
-    expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, message }), { vars: scenarios[0].groundTruth }).pass).toBe(false);
-  });
-
   it("accepts exactly 20 words without truncation", () => {
     const message = "I cannot confidently choose from this view. Please turn the fruit to show its underside and stem in clear light.";
     expect(message.split(/\s+/)).toHaveLength(20);

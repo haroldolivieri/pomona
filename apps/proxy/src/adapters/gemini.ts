@@ -104,9 +104,7 @@ export function createGeminiVisionAdapter(options: GeminiVisionAdapterOptions): 
       const result = await generateFn({
         model: model as any,
         schema: GeminiProviderSchema as any,
-        // Gemini 3 reasoning is optimized for the provider default temperature.
-        // https://ai.google.dev/gemini-api/docs/gemini-3#temperature
-        temperature: modelId.startsWith("gemini-3") ? 1 : 0.1,
+        temperature: 0.1,
         system: input.systemPrompt,
         messages: [
           {
@@ -127,7 +125,7 @@ export function createGeminiVisionAdapter(options: GeminiVisionAdapterOptions): 
           google: {
             mediaResolution: "MEDIA_RESOLUTION_HIGH",
             ...(modelId.startsWith("gemini-3.1-flash-lite")
-              ? { thinkingConfig: { thinkingLevel: "high" } }
+              ? { thinkingConfig: { thinkingLevel: "medium" } }
               : modelId.includes("lite") ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
           },
         },

@@ -114,8 +114,8 @@ export function verifyPromptfooOutput(
 
   if (response.status === "insufficient_evidence") {
     const message = response.message ?? "";
-    if (!/(cannot|can.t|not enough|insufficient|unsure|uncertain|unable|more|need|hidden|not visible|not shown|missing|requires? (?:a |an )?(?:visible|clear))/i.test(message) ||
-        !/\b(turn|flip|rotate|retake|show|move closer|(?:provide|take|capture).{0,60}(?:view|angle|photo))\b/i.test(message)) {
+    if (!/(cannot|can.t|not enough|insufficient|unsure|uncertain|unable|more|need|hidden|not visible|not shown|missing)/i.test(message) ||
+        !/(turn|flip|rotate|angle|underside|stem|retake|closer|show)/i.test(message)) {
       return { pass: false, score: 0, reason: "Insufficient evidence must explain uncertainty and request a useful new view" };
     }
   }

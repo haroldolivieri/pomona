@@ -66,9 +66,9 @@ describe("Prompt registry & vision adapters", () => {
     const generation = mockGenerate.mock.calls[0][0] as any;
     expect(generation.providerOptions.google).toEqual({
       mediaResolution: "MEDIA_RESOLUTION_HIGH",
-      thinkingConfig: { thinkingLevel: "high" },
+      thinkingConfig: { thinkingLevel: "medium" },
     });
-    expect(generation.temperature).toBe(1);
+    expect(generation.temperature).toBe(0.1);
     const fields = Object.keys(generation.schema.shape);
     expect(fields.indexOf("countedTotal")).toBeLessThan(fields.indexOf("candidates"));
     expect(generation.schema.shape.countedTotal.description).toContain("exactly candidates.length AFTER");
