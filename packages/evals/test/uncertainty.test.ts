@@ -88,7 +88,7 @@ describe("insufficient evidence abstention eval", () => {
     expect(v1PromptConfig.buildSystemPrompt(request)).not.toMatch(/\b30\b/);
     if (request.round === 1) {
       expect(v1PromptConfig.buildUserPrompt(request)).toContain("FINAL COVERAGE AUDIT");
-      expect(v1PromptConfig.buildSystemPrompt(request)).toContain("Readable tomato color");
+      expect(v1PromptConfig.buildSystemPrompt(request)).toContain("visible traits relevant to the identified produce type and variety");
     }
   });
 

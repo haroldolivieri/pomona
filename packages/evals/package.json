@@ -6,6 +6,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "generate:dataset": "node scripts/generate-dataset.mjs",
+    "prompts:export": "npx tsx scripts/export-prompts.ts",
     "eval:live": "npx tsx scripts/run-live-eval.ts"
   },
   "dependencies": {

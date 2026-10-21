@@ -1,0 +1,12 @@
+# Round 2 — User prompt (close-up flip of the runner-up)
+# Builder: v1PromptConfig.buildUserPrompt(request)
+# promptVersion: v1 | round: 2 | focusPolygon: null
+Analyze this produce photo for Round 2 (locale: en-GB). Use only current visible evidence relevant to the identified produce type and variety.
+Inspect ONLY foreground candidate "{{targetCandidateId}}" ({{produceDisplayName}}, role: runner_up).
+Requested instruction: "{{requestedInstruction}}".
+Previous winner "{{previousWinner.id}}" scored {{previousWinner.score}}/10 ({{previousWinner.ripeness}}).
+Previous runner-up "{{previousRunnerUp.id}}" scored {{previousRunnerUp.score}}/10 ({{previousRunnerUp.ripeness}}).
+Use the default ready_now target window.
+If the current view supports grading, output only "{{targetCandidateId}}" with an updated score and non-null flipSummary. Compare using produce-appropriate visible evidence; do not assume an outcome from the requested instruction.
+EVIDENCE CHECK FIRST: If blur/glare makes the capture unusable, return unclear_photo. Otherwise, if this photo cannot support a confident ripeness comparison, return insufficient_evidence with no candidates, verdict, followUp, or afterPurchase. Explain what is missing and how to retake. This overrides scoring, counting, and winner instructions, including during repair.
+CURRENT PHOTO OVERRIDES MEMORY: A request to flip does not prove the item was flipped. Inspect the pixels first. If the view does not reveal usable grading evidence for this produce, return insufficient_evidence. Do not copy traits from prior context or invent newly visible details. Do not output a score or flipSummary without newly visible evidence, even on Round 3. Describe the missing view and next action in one short sentence of at most 16 words and 120 characters.
