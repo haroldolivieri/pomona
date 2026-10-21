@@ -30,6 +30,7 @@ describe("Prompt registry & vision adapters", () => {
       status: "ok",
       message: null,
       produce: { type: "pineapple", displayName: "Pineapple", variety: null },
+      countedTotal: 1,
       candidates: [
         { id: "c1", box: [250, 300, 750, 700], score: 8.8, ripeness: "ripe", traits: ["Golden base", "Fragrant crown"], flipSummary: null },
       ],
@@ -68,8 +69,9 @@ describe("Prompt registry & vision adapters", () => {
       mediaResolution: "MEDIA_RESOLUTION_HIGH",
       thinkingConfig: { thinkingLevel: "medium" },
     });
+    expect(generation.temperature).toBe(0.1);
     const fields = Object.keys(generation.schema.shape);
-    expect(fields.indexOf("countedTotal")).toBeLessThan(fields.indexOf("candidates"));
+    expect(fields.indexOf("countedTotal")).toBeGreaterThan(fields.indexOf("candidates"));
     expect(generation.schema.shape.countedTotal.description).toContain("exactly candidates.length AFTER");
     expect(result.attempts).toBe(2);
     expect(result.response.status).toBe("ok");
@@ -79,7 +81,8 @@ describe("Prompt registry & vision adapters", () => {
 
   it("returns a contract-valid analysis_failed response when both initial and repair attempts fail", async () => {
     const alwaysBad = vi.fn().mockResolvedValue({
-      object: { status: "ok", message: null, produce: null, candidates: [], verdict: null, followUp: null, afterPurchase: null },
+      object: { status: "ok", message: null, produce: null, countedTotal: 0,
+      candidates: [], verdict: null, followUp: null, afterPurchase: null },
       usage: { promptTokens: 300, completionTokens: 100, totalTokens: 400 },
     });
     const gemini = createGeminiVisionAdapter({ apiKey: "test-key", generateObjectFn: alwaysBad as any });

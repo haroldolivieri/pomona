@@ -41,9 +41,11 @@ function buildFollowUpUserPrompt(request: ScanRequest, repairErrors?: string[]):
       previousWinnerId: ctx.previousWinner.id,
       previousWinnerScore: ctx.previousWinner.score,
       previousWinnerRipeness: ctx.previousWinner.ripeness,
+      previousWinnerTraits: JSON.stringify(ctx.previousWinner.traits),
       previousRunnerUpId: ctx.previousRunnerUp.id,
       previousRunnerUpScore: ctx.previousRunnerUp.score,
       previousRunnerUpRipeness: ctx.previousRunnerUp.ripeness,
+      previousRunnerUpTraits: JSON.stringify(ctx.previousRunnerUp.traits),
       targetWindow: ctx.targetRipeness
         ? renderPrompt("targetWindow", { targetRipeness: ctx.targetRipeness })
         : renderPrompt("defaultTargetWindow"),
@@ -58,7 +60,7 @@ function buildFollowUpUserPrompt(request: ScanRequest, repairErrors?: string[]):
 }
 
 export function buildV1SystemPrompt(request: ScanRequest): string {
-  return request.round === 1 ? buildRoundOneSystemPrompt() : buildFollowUpSystemPrompt(request);
+  return request.round === 1 ? buildRoundOneSystemPrompt(request) : buildFollowUpSystemPrompt(request);
 }
 
 export function buildV1UserPrompt(request: ScanRequest, repairErrors?: string[]): string {

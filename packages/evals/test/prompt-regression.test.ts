@@ -17,6 +17,22 @@ function makeRequest(overrides: Partial<ScanRequest> = {}): ScanRequest {
 }
 
 describe("Round-one prompt regression (CI flake fixes)", () => {
+  it("separates supported solo grading from unsupported comparisons", () => {
+    const system = v1PromptConfig.buildSystemPrompt(makeRequest());
+    expect(system).toContain("assess its visible maturity without requiring a second unit");
+    expect(system).toContain("abstain if those cues are missing");
+    expect(system).toContain("Minor variations within one apparent maturity stage are not distinct earlier and later stages");
+    expect(system).toContain("A solo unit needs supported maturity grading, not a comparison winner");
+    expect(system).toContain("Only when every unit can be graded from visible cues, and those cues establish the same stage");
+    expect(system).toContain("Matching outward appearance is NOT an assessed tie");
+    expect(system).toContain("missing_evidence when a solo item could not be graded from the shown surfaces");
+    expect(system).toContain("name the visible maturity stage shared by the items");
+    expect(system).toContain("Similar appearance or no visible difference alone never proves a tie");
+    expect(system).toContain("Survey the ENTIRE eligible region before deciding");
+    expect(system).toContain("Assess the actual exposed surfaces, not the presence of plastic");
+    expect(system).toContain("every unit need not have a unique stage or score");
+  });
+
   it("requires ripeness-ordered ranking: underripe must never outrank almost_ripe/ripe", () => {
     const system = v1PromptConfig.buildSystemPrompt(makeRequest());
     const user = v1PromptConfig.buildUserPrompt(makeRequest());
@@ -39,6 +55,7 @@ describe("Round-one prompt regression (CI flake fixes)", () => {
     expect(system).toMatch(/ONLY to displays of loose individual produce/i);
     // the audit must never split bunches/packs or override status rules
     expect(system).toMatch(/NEVER splits? bunches, hands, packs or punnets/i);
+    expect(system).toContain("groups with separate attachments remain separate candidates");
     expect(system).toMatch(/multiple_types, unclear_photo or insufficient_evidence always win/i);
     expect(user).toContain("never from an expected quantity");
     expect(user).toMatch(/never splits? bunches, hands, packs or punnets/i);
@@ -59,10 +76,57 @@ describe("Round-one prompt regression (CI flake fixes)", () => {
       [950, 950],
       [80, 950],
     ];
-    const user = v1PromptConfig.buildUserPrompt(makeRequest({ focusPolygon: polygon }));
+    const request = makeRequest({ focusPolygon: polygon });
+    const user = v1PromptConfig.buildUserPrompt(request);
+    const system = v1PromptConfig.buildSystemPrompt(request);
+    expect(system).toContain(JSON.stringify(polygon));
+    expect(system).toContain("x=80..950, y=460..950");
+    expect(system).toContain("USER SELECTION OVERRIDES FULL-DISPLAY DETECTION");
+    expect(system.startsWith("USER SELECTION OVERRIDES FULL-DISPLAY DETECTION")).toBe(true);
 
     // The polygon path shares the same system prompt and user coverage audit.
     expect(user).toContain("visible evidence within the selected region, never from an expected quantity");
     expect(user).toMatch(/runner-up must be the second-highest ripeness candidate/i);
+  });
+});
+
+
+describe("Post-merge live-eval regressions", () => {
+  it("separates actual produce presence, readable contents and maturity evidence before scoring", () => {
+    const system = v1PromptConfig.buildSystemPrompt(makeRequest());
+    expect(system).toContain("Printed food photographs");
+    expect(system).toContain("never multiple_types or insufficient_evidence for a non-produce subject");
+    expect(system).toContain("count sealed packs does not establish readable quality");
+    expect(system).toContain("Shape, size, uniform appearance and absence of visible damage alone do not establish ripeness");
+    const user = v1PromptConfig.buildUserPrompt(makeRequest());
+    expect(user.indexOf("actual fresh produce presence")).toBeLessThan(user.indexOf("FINAL COVERAGE AUDIT"));
+    expect(system).toContain("For produce varieties with established peel-color maturity cues, compare exposed peel across units");
+    expect(system).toContain("When retail bands bind bunches, treat each separately banded bunch as one purchase unit");
+    expect(system).toContain("if both boxes cover the same fruit, keep one");
+  });
+
+  it.each([2, 3] as const)("preserves comparison observations on round %i without using them as current-photo evidence", (round) => {
+    const request = makeRequest({
+      round,
+      followUpContext: {
+        produceType: "avocado",
+        produceDisplayName: "Avocado",
+        targetCandidateId: "c2",
+        targetRole: "runner_up",
+        requestedInstruction: "Inspect the Avocado stem end.",
+        previousWinner: { id: "c1", role: "first_pick", score: 8.6, ripeness: "ripe", traits: ["Even skin", "Intact stem"], anglesInspected: 1 },
+        previousRunnerUp: { id: "c2", role: "runner_up", score: 8.1, ripeness: "almost_ripe", traits: ["Uneven skin"], anglesInspected: 1 },
+      },
+    });
+    const user = v1PromptConfig.buildUserPrompt(request);
+    expect(user).toContain('Previous winner "c1" scored 8.6/10 (ripe). Recorded observations: ["Even skin","Intact stem"]');
+    expect(user).toContain('Previous runner-up "c2" scored 8.1/10 (almost_ripe). Recorded observations: ["Uneven skin"]');
+    const system = v1PromptConfig.buildSystemPrompt(request);
+    expect(system).toContain("those observations describe the earlier view");
+    expect(system).toContain("An inspected underripe target cannot outrank a previously ripe");
+    expect(system).toContain("A new angle does not itself improve ripeness");
+    expect(system).toContain("A visible defect or maturity cue that clearly makes the target worse is sufficient evidence");
+    expect(system).toContain("do not ask for an undamaged replacement");
+    expect(user).toContain("CURRENT PHOTO OVERRIDES MEMORY");
   });
 });

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { ScanRequest } from "@pomona/contract";
+import { resolveAbstentionReason } from "@pomona/contract";
 import { v1PromptConfig, verifyAndResolveScanResponse } from "@pomona/proxy";
 import manifest from "../dataset/ground-truth.json";
 import { verifyPromptfooOutput } from "../assertions/verify-contract";
 
 const abstention = {
+  abstentionReason: "missing_evidence",
   status: "insufficient_evidence", countedTotal: null, produce: null, candidates: [],
   verdict: null, followUp: null, afterPurchase: null,
   message: "I cannot confidently choose: the underside is hidden. Turn the fruit and show the field spot.",
@@ -30,6 +32,12 @@ describe("insufficient evidence abstention eval", () => {
 
   it("covers all three rounds with runnable image scenarios", () => {
     expect(scenarios.map((entry) => entry.groundTruth.round)).toEqual([1, 2, 3]);
+  });
+
+  it.each(scenarios)("$id: resolves an unsupported tie claim to missing_evidence", ({ groundTruth }) => {
+    const output = { ...abstention, abstentionReason: "assessed_tie" as const };
+    expect(resolveAbstentionReason(output.abstentionReason, output.message)).toBe("missing_evidence");
+    expect(verifyPromptfooOutput(JSON.stringify(output), { vars: groundTruth }).pass).toBe(true);
   });
 
   it.each([
@@ -98,5 +106,14 @@ describe("insufficient evidence abstention eval", () => {
     });
     expect(result.pass).toBe(false);
     expect(result.reason).toContain("must abstain");
+  });
+});
+
+
+describe("polygon selection cannot force an unsupported winner", () => {
+  const scenario = manifest.find((entry) => entry.id === "19-round1-insufficient-evidence-polygon")!;
+  it("accepts an actionable abstention and rejects a scored selection", () => {
+    expect(verifyPromptfooOutput(JSON.stringify(abstention), { vars: scenario.groundTruth }).pass).toBe(true);
+    expect(verifyPromptfooOutput(JSON.stringify({ ...uncertainPick, verdict: { ...uncertainPick.verdict, confidence: "high" } }), { vars: scenario.groundTruth }).pass).toBe(false);
   });
 });

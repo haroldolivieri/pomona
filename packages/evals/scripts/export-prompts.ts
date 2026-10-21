@@ -40,10 +40,17 @@ interface ExportedPrompt {
 const exports: ExportedPrompt[] = [
   {
     file: "round1-system.txt",
-    title: "Round 1 — System prompt (shared by all Round 1 scans)",
+    title: "Round 1 — System prompt (no focus polygon)",
     source: "v1PromptConfig.buildSystemPrompt(request)",
     request: makeRequest({}),
     body: v1PromptConfig.buildSystemPrompt(makeRequest({})),
+  },
+  {
+    file: "round1-system-with-polygon.txt",
+    title: "Round 1 — System prompt (user-drawn focus polygon)",
+    source: "v1PromptConfig.buildSystemPrompt(request)",
+    request: makeRequest({ focusPolygon: templateFocusPolygon }),
+    body: v1PromptConfig.buildSystemPrompt(makeRequest({ focusPolygon: templateFocusPolygon })),
   },
   {
     file: "round1-user-no-polygon.txt",

@@ -432,6 +432,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
         return (
           <ScanErrorStage
             status={state.status}
+            abstentionReason={state.lastResponse?.abstentionReason}
             errorMessage={state.errorMessage}
             photoDataUrl={state.currentPhotoDataUrl || state.round1PhotoDataUrl}
             onRetake={() => dispatch({ type: "DISMISS_ERROR" })}

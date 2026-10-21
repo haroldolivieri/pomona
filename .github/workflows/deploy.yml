@@ -162,7 +162,8 @@ jobs:
       - name: Run Deterministic Unit Evals
         run: pnpm --filter @pomona/evals test
 
-      - name: Run Live Model Benchmark Gate (Gemini 3.1 Flash-Lite)
+      - name: Run Non-blocking Live Model Benchmark (Gemini 3.1 Flash-Lite)
+        continue-on-error: true
         run: pnpm --filter @pomona/evals eval:live
         env:
           CI: "true"

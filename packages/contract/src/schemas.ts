@@ -149,9 +149,12 @@ export const ScanStatusSchema = z.enum([
   "rate_limited",
 ]);
 
+export const AbstentionReasonSchema = z.enum(["missing_evidence", "assessed_tie"]);
+
 // Model schema: omits server-injected fields (schemaVersion, promptVersion, modelId, round) for LLM generateObject calls
 export const ScanResponseModelSchema = z.object({
   status: ModelStatusSchema,
+  abstentionReason: AbstentionReasonSchema.nullable().optional(),
   message: ErrorMessageSchema.nullable(),
   countedTotal: z
     .number()
@@ -175,6 +178,7 @@ export const ScanResponseSchema = z.object({
   modelId: z.string(),
   round: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   status: ScanStatusSchema,
+  abstentionReason: AbstentionReasonSchema.nullable().optional(),
   message: ErrorMessageSchema.nullable(),
   countedTotal: z.number().int().min(0).max(500).nullable().optional(),
   produce: ProduceInfoSchema.nullable(),
@@ -198,6 +202,7 @@ export type SeasonalityStatus = z.infer<typeof SeasonalityStatusSchema>;
 export type OriginSeasonOption = z.infer<typeof OriginSeasonOptionSchema>;
 export type SeasonalityInfo = z.infer<typeof SeasonalityInfoSchema>;
 export type ModelStatus = z.infer<typeof ModelStatusSchema>;
+export type AbstentionReason = z.infer<typeof AbstentionReasonSchema>;
 export type ScanStatus = z.infer<typeof ScanStatusSchema>;
 export type ScanRequest = z.infer<typeof ScanRequestSchema>;
 export type ScanResponse = z.infer<typeof ScanResponseSchema>;

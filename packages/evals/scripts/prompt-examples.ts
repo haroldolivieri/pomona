@@ -22,7 +22,7 @@ function context(targetRole: "runner_up" | "first_pick"): NonNullable<ScanReques
       role: "first_pick",
       score: placeholder<number>("previousWinner.score"),
       ripeness: placeholder<"ripe">("previousWinner.ripeness"),
-      traits: [],
+      traits: ["{{previousWinner.traits}}"],
       anglesInspected: 1,
     },
     previousRunnerUp: {
@@ -30,7 +30,7 @@ function context(targetRole: "runner_up" | "first_pick"): NonNullable<ScanReques
       role: "runner_up",
       score: placeholder<number>("previousRunnerUp.score"),
       ripeness: placeholder<"ripe">("previousRunnerUp.ripeness"),
-      traits: [],
+      traits: ["{{previousRunnerUp.traits}}"],
       anglesInspected: 1,
     },
   };

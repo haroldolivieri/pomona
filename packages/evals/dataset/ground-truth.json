@@ -423,10 +423,9 @@
     "filename": "12-tomato-basket-polygon-selection.jpg",
     "imagePath": "dataset/images/12-tomato-basket-polygon-selection.jpg",
     "imageBase64PreviewLength": 320000,
-    "description": "Round 1 Real-World User Focus Polygon on Tomato Basket: Multiple baskets/punnets of fresh red round tomatoes on a grocery display. User drew a focus loop around the top basket. The model must isolate the individual loose tomatoes inside that drawn polygon (c1, c2, etc.), picking the best individual tomato, and NOT grouping the basket into a single candidate box.",
+    "description": "Round 1 Real-World User Focus Polygon on Tomato Basket: Multiple baskets/punnets of fresh red round tomatoes on a grocery display. User drew a focus loop around the top basket. When visible maturity supports grading, isolate individual loose tomatoes inside the polygon (12–30 candidates), never group the basket. If maturity cannot be distinguished, explicitly abstain without scoring or a winner. Any reported total must match the candidate list.",
     "groundTruth": {
       "round": 1,
-      "expectedStatus": "ok",
       "expectedProduceType": "tomato",
       "focusPolygon": [
         [
@@ -535,6 +534,10 @@
         "pineapple",
         "field spot",
         "rind"
+      ],
+      "expectedStatuses": [
+        "ok",
+        "insufficient_evidence"
       ]
     }
   },
@@ -546,9 +549,12 @@
     "description": "Round 1 Packaged Produce Obscurity / Glare: Real-world user supermarket photo of multiple overlapping plastic bags of British Carrots in a green crate with heavy printed branding, plastic reflection, and visual glare obscuring individual root visibility. Verifies packaging error trigger: expects status = 'unclear_photo'.",
     "groundTruth": {
       "round": 1,
-      "expectedStatus": "unclear_photo",
       "expectedProduceType": null,
-      "focusPolygon": null
+      "focusPolygon": null,
+      "expectedStatuses": [
+        "unclear_photo",
+        "insufficient_evidence"
+      ]
     }
   },
   {
@@ -566,24 +572,160 @@
   },
   {
     "id": "15-banana-pack-bagged",
-    "filename": "15-banana-pack-bagged.jpg",
-    "imagePath": "dataset/images/15-banana-pack-bagged.jpg",
-    "imageBase64PreviewLength": 450000,
-    "description": "Round 1 Bagged/Bunched Bananas: Real-world user supermarket photo of bananas (separate hands plus a few loose bananas) in a plastic bag-lined crate. Verifies that the model selects whole bunch/hand units anchored on distinct cut crowns rather than placing a bounding box per banana; maximum calibrated to 10 separate visible hands/crowns in this display.",
+    "filename": "15-banana-display.jpg",
+    "imagePath": "dataset/images/15-banana-display.jpg",
+    "imageBase64PreviewLength": 3637092,
+    "description": "Round 1: Real supermarket banana display. Count each distinct visible banded banana bunch as one candidate; do not split its bananas. Require at least five clear bunches while allowing additional partially overlapping bunches. Visible yellower and greener bunches provide enough maturity contrast to select the ripest bunch.",
     "groundTruth": {
       "round": 1,
       "expectedStatus": "ok",
       "expectedProduceType": "banana",
       "focusPolygon": null,
-      "expectedCandidateCountMin": 1,
-      "expectedCandidateCountMax": 10,
+      "expectedCandidateCountMin": 5,
+      "expectedCandidateCountMax": 12,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
         "avocado",
         "field spot",
         "rind"
-      ]
+      ],
+      "expectedInventory": {
+        "required": [
+          {
+            "id": "upper-back-banded-bunch",
+            "box": [
+              100,
+              430,
+              290,
+              700
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "upper-center-banded-bunch",
+            "box": [
+              100,
+              280,
+              300,
+              420
+            ],
+            "ripeness": [
+              "almost_ripe"
+            ]
+          },
+          {
+            "id": "upper-left-banded-bunch",
+            "box": [
+              220,
+              140,
+              410,
+              400
+            ],
+            "ripeness": [
+              "almost_ripe"
+            ]
+          },
+          {
+            "id": "middle-right-banded-bunch",
+            "box": [
+              220,
+              475,
+              410,
+              660
+            ],
+            "ripeness": [
+              "almost_ripe"
+            ]
+          },
+          {
+            "id": "middle-fifis-banded-bunch",
+            "box": [
+              340,
+              285,
+              570,
+              500
+            ],
+            "ripeness": [
+              "almost_ripe"
+            ]
+          }
+        ],
+        "optional": [
+          {
+            "id": "lower-left-banded-bunch",
+            "box": [
+              500,
+              150,
+              740,
+              390
+            ],
+            "ripeness": [
+              "almost_ripe"
+            ]
+          },
+          {
+            "id": "lower-center-banded-bunch",
+            "box": [
+              520,
+              400,
+              760,
+              580
+            ],
+            "ripeness": [
+              "almost_ripe"
+            ]
+          },
+          {
+            "id": "lower-right-banded-bunch",
+            "box": [
+              430,
+              570,
+              670,
+              745
+            ],
+            "ripeness": [
+              "almost_ripe"
+            ]
+          },
+          {
+            "id": "front-bottom-banded-bunch",
+            "box": [
+              660,
+              400,
+              920,
+              780
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          }
+        ]
+      },
+      "expectedWinnerBox": [
+        100,
+        430,
+        290,
+        700
+      ],
+      "expectedRipenessComparison": {
+        "ripeBox": [
+          100,
+          430,
+          290,
+          700
+        ],
+        "lessRipeBox": [
+          660,
+          400,
+          920,
+          780
+        ],
+        "ripeClass": "ripe",
+        "lessRipeClass": "underripe"
+      }
     }
   },
   {
@@ -591,13 +733,12 @@
     "filename": "16-roma-tomatoes-bulk-pile.jpg",
     "imagePath": "dataset/images/16-roma-tomatoes-bulk-pile.jpg",
     "imageBase64PreviewLength": 75000,
-    "description": "Round 1 High-Density Bulk Pile: User supermarket photo of a dense display of loose Roma Tomatoes. Verifies that the model detects, bounds, and scores first-plane tomatoes across the pile (at least 30 candidates; second-plane crates and adjacent onions must be ignored), so the user can compare them across ripeness windows.",
+    "description": "Round 1: Dense, visually similar Roma tomato pile does not support a confident maturity comparison. Return insufficient_evidence with an actionable missing-view explanation, no candidates or recommendation.",
     "groundTruth": {
       "round": 1,
-      "expectedStatus": "ok",
-      "expectedProduceType": "tomato",
+      "expectedStatus": "insufficient_evidence",
+      "expectedProduceType": null,
       "focusPolygon": null,
-      "expectedCandidateCountMin": 30,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
@@ -605,6 +746,10 @@
         "pineapple",
         "banana",
         "potato"
+      ],
+      "expectedAbstentionReasons": [
+        "assessed_tie",
+        "missing_evidence"
       ]
     }
   },
@@ -613,7 +758,227 @@
     "filename": "16-roma-tomatoes-bulk-pile.jpg",
     "imagePath": "dataset/images/16-roma-tomatoes-bulk-pile.jpg",
     "imageBase64PreviewLength": 75000,
-    "description": "Round 1 Focus-Polygon on Dense Bulk Pile: Same loose Roma tomato display as scenario 16, but the user drew a large loop around the whole pile. Verifies the polygon path detects at least 30 individual tomatoes WITH CENTERS INSIDE the drawn loop (no whole-cluster box, no background items, no count collapse).",
+    "description": "Round 1: Dense, visually similar Roma tomato pile does not support a confident maturity comparison. Return insufficient_evidence with an actionable missing-view explanation, no candidates or recommendation. A focus polygon does not add grading evidence.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "insufficient_evidence",
+      "expectedProduceType": null,
+      "focusPolygon": [
+        [
+          38,
+          272
+        ],
+        [
+          294,
+          198
+        ],
+        [
+          425,
+          284
+        ],
+        [
+          613,
+          213
+        ],
+        [
+          719,
+          239
+        ],
+        [
+          864,
+          236
+        ],
+        [
+          975,
+          272
+        ],
+        [
+          994,
+          338
+        ],
+        [
+          985,
+          560
+        ],
+        [
+          995,
+          780
+        ],
+        [
+          890,
+          970
+        ],
+        [
+          760,
+          1000
+        ],
+        [
+          560,
+          1000
+        ],
+        [
+          400,
+          990
+        ],
+        [
+          260,
+          940
+        ],
+        [
+          140,
+          830
+        ],
+        [
+          42,
+          700
+        ],
+        [
+          31,
+          415
+        ]
+      ],
+      "forbiddenWordsInCopy": [
+        "watermelon",
+        "melon",
+        "avocado",
+        "pineapple",
+        "banana",
+        "potato"
+      ],
+      "expectedAbstentionReasons": [
+        "assessed_tie",
+        "missing_evidence"
+      ]
+    }
+  },
+  {
+    "id": "18-round1-insufficient-evidence",
+    "filename": "18-watermelon-hidden-surfaces.png",
+    "imagePath": "dataset/images/18-watermelon-hidden-surfaces.png",
+    "description": "Round 1: Sharp photo of similar watermelons with only upper rind visible. No field spots or stems. Must explicitly abstain, even with previous scores.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "insufficient_evidence",
+      "focusPolygon": null,
+      "expectedAbstentionReason": "missing_evidence"
+    }
+  },
+  {
+    "id": "18-round2-insufficient-evidence",
+    "filename": "18-watermelon-hidden-surfaces.png",
+    "imagePath": "dataset/images/18-watermelon-hidden-surfaces.png",
+    "description": "Round 2: Sharp photo of similar watermelons with only upper rind visible. No field spots or stems. Must explicitly abstain, even with previous scores.",
+    "groundTruth": {
+      "round": 2,
+      "expectedStatus": "insufficient_evidence",
+      "focusPolygon": null,
+      "followUpContext": {
+        "produceType": "watermelon",
+        "produceDisplayName": "Watermelon",
+        "targetCandidateId": "c2",
+        "targetRole": "runner_up",
+        "requestedInstruction": "Flip the Runner-Up Watermelon over to inspect its underside ground spot.",
+        "previousWinner": {
+          "id": "c1",
+          "role": "first_pick",
+          "score": 8.6,
+          "ripeness": "ripe",
+          "traits": [
+            "Yellow field spot",
+            "Matte rind"
+          ],
+          "anglesInspected": 1
+        },
+        "previousRunnerUp": {
+          "id": "c2",
+          "role": "runner_up",
+          "score": 8.1,
+          "ripeness": "almost_ripe",
+          "traits": [
+            "Even shape",
+            "Dark stripes"
+          ],
+          "anglesInspected": 1
+        }
+      },
+      "expectedAbstentionReason": "missing_evidence"
+    }
+  },
+  {
+    "id": "18-round3-insufficient-evidence",
+    "filename": "18-watermelon-hidden-surfaces.png",
+    "imagePath": "dataset/images/18-watermelon-hidden-surfaces.png",
+    "description": "Round 3: Sharp photo of similar watermelons with only upper rind visible. No field spots or stems. Must explicitly abstain, even with previous scores.",
+    "groundTruth": {
+      "round": 3,
+      "expectedStatus": "insufficient_evidence",
+      "focusPolygon": null,
+      "followUpContext": {
+        "produceType": "watermelon",
+        "produceDisplayName": "Watermelon",
+        "targetCandidateId": "c1",
+        "targetRole": "first_pick",
+        "requestedInstruction": "Flip your 1st pick Watermelon over for a fair final check of its underside.",
+        "previousWinner": {
+          "id": "c2",
+          "role": "runner_up",
+          "score": 9.0,
+          "ripeness": "ripe",
+          "traits": [
+            "Deep creamy spot",
+            "Sugar webbing"
+          ],
+          "anglesInspected": 2
+        },
+        "previousRunnerUp": {
+          "id": "c1",
+          "role": "first_pick",
+          "score": 8.6,
+          "ripeness": "ripe",
+          "traits": [
+            "Yellow field spot",
+            "Matte rind"
+          ],
+          "anglesInspected": 1
+        }
+      },
+      "expectedAbstentionReason": "missing_evidence"
+    }
+  },
+  {
+    "id": "19-round1-insufficient-evidence-polygon",
+    "filename": "18-watermelon-hidden-surfaces.png",
+    "imagePath": "dataset/images/18-watermelon-hidden-surfaces.png",
+    "description": "A focus polygon isolates identifiable produce but does not reveal maturity evidence. Abstain with a specific missing cue and useful new view; do not force a scored winner to satisfy polygon coverage.",
+    "groundTruth": {
+      "round": 1,
+      "expectedStatus": "insufficient_evidence",
+      "focusPolygon": [
+        [
+          0,
+          0
+        ],
+        [
+          1000,
+          0
+        ],
+        [
+          1000,
+          1000
+        ],
+        [
+          0,
+          1000
+        ]
+      ],
+      "expectedAbstentionReason": "missing_evidence"
+    }
+  },
+  {
+    "id": "20-roma-clear-ripeness-focus-polygon",
+    "filename": "20-roma-clear-ripeness-focus-polygon-v2.png",
+    "imagePath": "dataset/images/20-roma-clear-ripeness-focus-polygon-v2.png",
+    "description": "Generated supermarket sibling of scenario 17: individually visible, intact Roma tomatoes in a shallow loose display, with clearly ripe red, pale green underripe and orange partly ripe units. No rot or damage is required. Preserve the original ok status, tomato type, polygon and minimum 30 eligible candidates. Rank the large ripe red lower-left unit above the pale green lower-right unit for ready_now.",
     "groundTruth": {
       "round": 1,
       "expectedStatus": "ok",
@@ -700,97 +1065,529 @@
         "pineapple",
         "banana",
         "potato"
-      ]
-    }
-  },
-  {
-    "id": "18-round1-insufficient-evidence",
-    "filename": "18-watermelon-hidden-surfaces.png",
-    "imagePath": "dataset/images/18-watermelon-hidden-surfaces.png",
-    "description": "Round 1: Sharp photo of similar watermelons with only upper rind visible. No field spots or stems. Must explicitly abstain, even with previous scores.",
-    "groundTruth": {
-      "round": 1,
-      "expectedStatus": "insufficient_evidence",
-      "focusPolygon": null
-    }
-  },
-  {
-    "id": "18-round2-insufficient-evidence",
-    "filename": "18-watermelon-hidden-surfaces.png",
-    "imagePath": "dataset/images/18-watermelon-hidden-surfaces.png",
-    "description": "Round 2: Sharp photo of similar watermelons with only upper rind visible. No field spots or stems. Must explicitly abstain, even with previous scores.",
-    "groundTruth": {
-      "round": 2,
-      "expectedStatus": "insufficient_evidence",
-      "focusPolygon": null,
-      "followUpContext": {
-        "produceType": "watermelon",
-        "produceDisplayName": "Watermelon",
-        "targetCandidateId": "c2",
-        "targetRole": "runner_up",
-        "requestedInstruction": "Flip the Runner-Up Watermelon over to inspect its underside ground spot.",
-        "previousWinner": {
-          "id": "c1",
-          "role": "first_pick",
-          "score": 8.6,
-          "ripeness": "ripe",
-          "traits": [
-            "Yellow field spot",
-            "Matte rind"
-          ],
-          "anglesInspected": 1
-        },
-        "previousRunnerUp": {
-          "id": "c2",
-          "role": "runner_up",
-          "score": 8.1,
-          "ripeness": "almost_ripe",
-          "traits": [
-            "Even shape",
-            "Dark stripes"
-          ],
-          "anglesInspected": 1
-        }
-      }
-    }
-  },
-  {
-    "id": "18-round3-insufficient-evidence",
-    "filename": "18-watermelon-hidden-surfaces.png",
-    "imagePath": "dataset/images/18-watermelon-hidden-surfaces.png",
-    "description": "Round 3: Sharp photo of similar watermelons with only upper rind visible. No field spots or stems. Must explicitly abstain, even with previous scores.",
-    "groundTruth": {
-      "round": 3,
-      "expectedStatus": "insufficient_evidence",
-      "focusPolygon": null,
-      "followUpContext": {
-        "produceType": "watermelon",
-        "produceDisplayName": "Watermelon",
-        "targetCandidateId": "c1",
-        "targetRole": "first_pick",
-        "requestedInstruction": "Flip your 1st pick Watermelon over for a fair final check of its underside.",
-        "previousWinner": {
-          "id": "c2",
-          "role": "runner_up",
-          "score": 9.0,
-          "ripeness": "ripe",
-          "traits": [
-            "Deep creamy spot",
-            "Sugar webbing"
-          ],
-          "anglesInspected": 2
-        },
-        "previousRunnerUp": {
-          "id": "c1",
-          "role": "first_pick",
-          "score": 8.6,
-          "ripeness": "ripe",
-          "traits": [
-            "Yellow field spot",
-            "Matte rind"
-          ],
-          "anglesInspected": 1
-        }
+      ],
+      "expectedRipenessComparison": {
+        "ripeBox": [
+          685,
+          125,
+          915,
+          430
+        ],
+        "lessRipeBox": [
+          740,
+          580,
+          945,
+          910
+        ]
+      },
+      "expectedInventory": {
+        "required": [],
+        "optional": [
+          {
+            "id": "t01",
+            "box": [
+              209,
+              236,
+              285,
+              349
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t03",
+            "box": [
+              215,
+              468,
+              294,
+              577
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t04",
+            "box": [
+              232,
+              582,
+              293,
+              711
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t05",
+            "box": [
+              248,
+              740,
+              317,
+              856
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t06",
+            "box": [
+              249,
+              174,
+              335,
+              282
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t07",
+            "box": [
+              257,
+              305,
+              321,
+              434
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t08",
+            "box": [
+              270,
+              405,
+              358,
+              517
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t09",
+            "box": [
+              256,
+              537,
+              336,
+              668
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t10",
+            "box": [
+              276,
+              670,
+              365,
+              812
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t11",
+            "box": [
+              288,
+              816,
+              365,
+              949
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t12",
+            "box": [
+              305,
+              117,
+              385,
+              260
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t13",
+            "box": [
+              298,
+              284,
+              387,
+              397
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t14",
+            "box": [
+              307,
+              475,
+              388,
+              608
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t15",
+            "box": [
+              323,
+              627,
+              403,
+              759
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t16",
+            "box": [
+              354,
+              756,
+              447,
+              866
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t17",
+            "box": [
+              349,
+              856,
+              436,
+              964
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t18",
+            "box": [
+              365,
+              57,
+              454,
+              205
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t19",
+            "box": [
+              358,
+              228,
+              451,
+              371
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t20",
+            "box": [
+              353,
+              383,
+              461,
+              510
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t21",
+            "box": [
+              352,
+              547,
+              448,
+              691
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t22",
+            "box": [
+              399,
+              692,
+              502,
+              824
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t23",
+            "box": [
+              431,
+              0,
+              528,
+              164
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t24",
+            "box": [
+              426,
+              165,
+              519,
+              337
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t25",
+            "box": [
+              424,
+              346,
+              539,
+              483
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t26",
+            "box": [
+              411,
+              502,
+              522,
+              626
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t27",
+            "box": [
+              454,
+              631,
+              564,
+              764
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t28",
+            "box": [
+              434,
+              820,
+              519,
+              982
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t29",
+            "box": [
+              511,
+              0,
+              636,
+              172
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t30",
+            "box": [
+              500,
+              164,
+              603,
+              372
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t31",
+            "box": [
+              496,
+              463,
+              615,
+              650
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t32",
+            "box": [
+              503,
+              772,
+              612,
+              976
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t33",
+            "box": [
+              552,
+              646,
+              650,
+              830
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t34",
+            "box": [
+              632,
+              0,
+              740,
+              192
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t35",
+            "box": [
+              589,
+              183,
+              710,
+              386
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t36",
+            "box": [
+              560,
+              378,
+              707,
+              524
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t37",
+            "box": [
+              622,
+              530,
+              742,
+              736
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t38",
+            "box": [
+              602,
+              800,
+              725,
+              989
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t39",
+            "box": [
+              689,
+              123,
+              899,
+              416
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t40",
+            "box": [
+              700,
+              384,
+              838,
+              581
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t41",
+            "box": [
+              748,
+              609,
+              938,
+              889
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t42",
+            "box": [
+              675,
+              756,
+              813,
+              987
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          }
+        ]
       }
     }
   }

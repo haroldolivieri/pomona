@@ -1,5 +1,7 @@
 import {
   ErrorMessageSchema,
+  getAbstentionContradiction,
+  resolveAbstentionReason,
   ScanResponseModelSchema,
   ScanResponseSchema,
   type ScanRequest,
@@ -8,7 +10,7 @@ import {
   type Verdict,
   type FollowUp,
 } from "@pomona/contract";
-import { isPointInPolygon, isBoxInPolygon, isValidBoundingBox } from "./geometry";
+import { isPointInPolygon, isBoxInPolygon, isValidBoundingBox, boxIoU } from "./geometry";
 
 /**
  * Deterministic 2-stage verifier and multi-round score resolution engine.
@@ -32,10 +34,18 @@ function normalizeRawModelOutput(raw: unknown): unknown {
   if (!raw || typeof raw !== "object") return raw;
   const obj: Record<string, any> = { ...(raw as Record<string, any>) };
 
+  if (obj.status === "insufficient_evidence" && obj.abstentionReason === "assessed_tie" &&
+      resolveAbstentionReason(obj.abstentionReason, typeof obj.message === "string" ? obj.message : null) === "missing_evidence") {
+    obj.abstentionReason = "missing_evidence";
+    obj.message = "Visible cues do not establish individual maturity. Please provide a clearer view.";
+  }
+
   if (typeof obj.message === "string") {
     if (!ErrorMessageSchema.safeParse(obj.message).success) {
       const descriptions: Record<string, string> = {
-        insufficient_evidence: "I cannot confidently choose from this view. Turn the produce to show the underside or stem.",
+        insufficient_evidence: obj.abstentionReason === "assessed_tie"
+          ? "These look similarly mature. Please show a closer individual view."
+          : "I cannot confidently choose from this view. Turn the produce to show the underside or stem.",
         unclear_photo: "The produce is obscured. Retake a clear photo with its surface visible.",
         no_produce: "No produce found. Take a photo of the fruit or vegetables you want to compare.",
         multiple_types: "Several produce types are visible. Draw around one type to compare it.",
@@ -130,12 +140,20 @@ export function verifyAndResolveScanResponse(
   }
 
   const data = parseResult.data;
+  const raw = rawModelOutput as Record<string, unknown>;
+  const contradiction = getAbstentionContradiction(data.abstentionReason, typeof raw.message === "string" ? raw.message : null);
+  if (data.status === "insufficient_evidence" && contradiction) {
+    return { ok: false, errors: [contradiction] };
+  }
 
   // Do not let deterministic ranking turn admitted uncertainty into a purchase recommendation.
   if (data.status === "ok" && data.verdict?.confidence === "low") {
     data.status = "insufficient_evidence";
+    data.abstentionReason = "missing_evidence";
   }
   if (data.status === "insufficient_evidence") {
+    // Older providers may omit the reason. Never infer equal maturity from missing metadata.
+    data.abstentionReason = data.abstentionReason ?? "missing_evidence";
     data.message = data.message?.trim() || "I cannot confidently choose from this view. Turn the produce to show the underside or stem.";
     data.countedTotal = null;
     data.produce = null;
@@ -153,6 +171,7 @@ export function verifyAndResolveScanResponse(
       modelId: ctx.modelId,
       round: ctx.request.round,
       status: data.status,
+      abstentionReason: data.status === "insufficient_evidence" ? data.abstentionReason : null,
       message: data.message,
       countedTotal: data.countedTotal ?? null,
       produce: data.produce,
@@ -175,6 +194,29 @@ export function verifyAndResolveScanResponse(
 
   // Stage 2: Semantic Invariant Verifier
   const errors: string[] = [];
+
+  if (ctx.request.round === 1) {
+    if (!Number.isInteger(data.countedTotal)) {
+      errors.push("Round 1 ok responses require an integer countedTotal equal to candidates.length");
+    } else if (data.countedTotal !== data.candidates.length) {
+      errors.push("Count mismatch: countedTotal must equal the raw candidates.length");
+    }
+    const matureScores = data.candidates.filter((c) => c.ripeness === "ripe" || c.ripeness === "almost_ripe").map((c) => c.score);
+    if (matureScores.length && data.candidates.some((c) => c.ripeness === "underripe" && c.score >= Math.min(...matureScores))) {
+      errors.push("An underripe candidate must score below every ripe or almost_ripe candidate");
+    }
+  }
+  const ids = new Set<string>();
+  for (let i = 0; i < data.candidates.length; i++) {
+    const candidate = data.candidates[i];
+    if (ids.has(candidate.id)) errors.push(`Duplicate candidate ID: ${candidate.id}`);
+    ids.add(candidate.id);
+    for (let j = 0; j < i; j++) {
+      if (boxIoU(candidate.box, data.candidates[j].box) >= 0.9) {
+        errors.push(`Duplicate detection: ${candidate.id} and ${data.candidates[j].id} cover the same unit`);
+      }
+    }
+  }
 
   if (!data.produce) {
     errors.push("produce must not be null when status is ok");
@@ -369,6 +411,7 @@ export function verifyAndResolveScanResponse(
     modelId: ctx.modelId,
     round: ctx.request.round,
     status: data.status,
+    abstentionReason: null,
     message: data.message,
     countedTotal: data.countedTotal ?? null,
     produce: data.produce,
