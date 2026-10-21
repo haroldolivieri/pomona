@@ -1369,14 +1369,15 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 border: "1px solid var(--surface-card-border)",
                 borderRadius: "13px",
                 padding: "8px 12px",
-                display: "flex",
-                justifyContent: "space-between",
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1fr)",
+                gap: "4px",
                 alignItems: "center",
               }}
             >
               <span
                 style={{
-                  fontSize: "10.5px",
+                  fontSize: "10px",
                   fontWeight: 700,
                   letterSpacing: "0.06em",
                   color: "var(--text-muted)",
@@ -1385,7 +1386,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               >
                 {t("result.eatWithin")}
               </span>
-              <strong style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-primary)" }}>
+              <strong style={{ fontSize: "12px", fontWeight: 600, lineHeight: 1.35, overflowWrap: "anywhere", color: "var(--text-primary)" }}>
                 {targetResolution?.eatWithinOverride || afterPurchase.eatWithinLabel}
               </strong>
             </div>

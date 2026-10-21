@@ -1,4 +1,4 @@
-const CACHE_NAME = "pomona-shell-v14";
+const CACHE_NAME = "pomona-shell-v15";
 const PRECACHE_URLS = ["/offline", "/manifest.json", "/icon-192.png", "/icon-512.png", "/launch-screen.png"];
 
 self.addEventListener("install", (event) => {
