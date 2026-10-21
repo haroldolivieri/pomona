@@ -10,6 +10,9 @@ describe("display language acceptance", () => {
     [null, "pt;q=0,en;q=1", "en-GB"], [null, "en;q=0,pt;q=0.4", "pt-BR"],
     [null, "pt;q=no,en", "en-GB"], [null, "pt;q=2,en", "en-GB"],
     [null, "pt;q=0.8,en;q=0.8", "pt-BR"],
+    [null, "pt-BR;q=0,pt;q=0.8,en;q=0.5", "en-GB"],
+    [null, "en-GB;q=0,en;q=1,pt;q=0.5", "pt-BR"],
+    [null, "pt;q=0,pt-BR;q=1,en;q=0.5", "pt-BR"],
     [null, "*", "en-GB"], [null, "", "en-GB"], [null, null, "en-GB"],
     ["<script>", "pt", "pt-BR"], ["pt-PT", "en", "en-GB"],
   ])("saved=%s browser=%s resolves %s", (saved, browser, expected) => {

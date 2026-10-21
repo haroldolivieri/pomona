@@ -1,5 +1,8 @@
 import {
   ErrorMessageSchema,
+  isSupportedLocale,
+  translateShared,
+  type SupportedLocale,
   getAbstentionContradiction,
   resolveAbstentionReason,
   ScanResponseModelSchema,
@@ -30,27 +33,27 @@ function trimMax(val: unknown, maxLen: number): unknown {
   return val.slice(0, Math.max(1, maxLen - 1)).trimEnd() + "…";
 }
 
-function normalizeRawModelOutput(raw: unknown): unknown {
+function normalizeRawModelOutput(raw: unknown, displayLocale: SupportedLocale): unknown {
   if (!raw || typeof raw !== "object") return raw;
   const obj: Record<string, any> = { ...(raw as Record<string, any>) };
 
   if (obj.status === "insufficient_evidence" && obj.abstentionReason === "assessed_tie" &&
       resolveAbstentionReason(obj.abstentionReason, typeof obj.message === "string" ? obj.message : null) === "missing_evidence") {
     obj.abstentionReason = "missing_evidence";
-    obj.message = "Visible cues do not establish individual maturity. Please provide a clearer view.";
+    obj.message = translateShared(displayLocale, "verifier.unsupportedTie");
   }
 
   if (typeof obj.message === "string") {
     if (!ErrorMessageSchema.safeParse(obj.message).success) {
       const descriptions: Record<string, string> = {
         insufficient_evidence: obj.abstentionReason === "assessed_tie"
-          ? "These look similarly mature. Please show a closer individual view."
-          : "I cannot confidently choose from this view. Turn the produce to show the underside or stem.",
-        unclear_photo: "The produce is obscured. Retake a clear photo with its surface visible.",
-        no_produce: "No produce found. Take a photo of the fruit or vegetables you want to compare.",
-        multiple_types: "Several produce types are visible. Draw around one type to compare it.",
+          ? translateShared(displayLocale, "verifier.similar")
+          : translateShared(displayLocale, "verifier.missing"),
+        unclear_photo: translateShared(displayLocale, "verifier.unclear"),
+        no_produce: translateShared(displayLocale, "verifier.noProduce"),
+        multiple_types: translateShared(displayLocale, "verifier.multiple"),
       };
-      obj.message = descriptions[obj.status] ?? "Analysis could not finish. Please take another photo and try again.";
+      obj.message = descriptions[obj.status] ?? translateShared(displayLocale, "verifier.failed");
     }
   }
 
@@ -128,7 +131,8 @@ export function verifyAndResolveScanResponse(
   }
 ): { ok: true; response: ScanResponse } | { ok: false; errors: string[] } {
   // Stage 1: Deterministic Self-Healing Normalization + Syntactic Check
-  const normalizedOutput = normalizeRawModelOutput(rawModelOutput);
+  const displayLocale = isSupportedLocale(ctx.request.locale) ? ctx.request.locale : "en-GB";
+  const normalizedOutput = normalizeRawModelOutput(rawModelOutput, displayLocale);
   const parseResult = ScanResponseModelSchema.safeParse(normalizedOutput);
   if (!parseResult.success) {
     return {
@@ -154,7 +158,7 @@ export function verifyAndResolveScanResponse(
   if (data.status === "insufficient_evidence") {
     // Older providers may omit the reason. Never infer equal maturity from missing metadata.
     data.abstentionReason = data.abstentionReason ?? "missing_evidence";
-    data.message = data.message?.trim() || "I cannot confidently choose from this view. Turn the produce to show the underside or stem.";
+    data.message = data.message?.trim() || translateShared(displayLocale, "verifier.missing");
     data.countedTotal = null;
     data.produce = null;
     data.candidates = [];
@@ -350,15 +354,15 @@ export function verifyAndResolveScanResponse(
           targetCandidateId: prevWinner.id,
           targetRole: "first_pick",
           bannerText: trimMax(
-            `1st Pick (${prevWinner.score}) was only graded from the top. Flip the ${followUpContext.produceDisplayName} for a final check.`,
+            translateShared(displayLocale, "verifier.finalBanner", {score:prevWinner.score, produce:followUpContext.produceDisplayName}),
             110
           ),
           flipHeadline: trimMax(
-            `Flip your 1st pick ${followUpContext.produceDisplayName} over`,
+            translateShared(displayLocale, "verifier.finalHeadline", {produce:followUpContext.produceDisplayName}),
             48
           ),
           instruction: trimMax(
-            `Turn your 1st pick ${followUpContext.produceDisplayName} over to show its underside.`,
+            translateShared(displayLocale, "verifier.finalInstruction", {produce:followUpContext.produceDisplayName}),
             120
           ),
         };

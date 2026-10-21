@@ -1,3 +1,6 @@
+import type { HTMLRewriter as WorkerHTMLRewriter } from "@cloudflare/workers-types";
+// Scope the edge API to this module; keep Node's Response types in Node-based tests.
+declare const HTMLRewriter: new () => Pick<WorkerHTMLRewriter, "on"> & { transform(response: Response): Response };
 import { resolveDisplayLocale, LOCALE_COOKIE, translateShared } from "@pomona/contract";
 import type { Env } from "./types";
 
@@ -11,9 +14,11 @@ export async function serveLocalizedDocument(request: Request, assets: NonNullab
   headers.delete("etag");
   headers.delete("content-length");
   const response = new Response(source.body, { status: source.status, headers });
-  return new HTMLRewriter().on("html", { element(element) {
+  const rewriter = new HTMLRewriter();
+  rewriter.on("html", { element(element) {
     element.setAttribute("lang", locale);
     element.setAttribute("data-pomona-locale", locale);
   } }).on("title", { element(element) { element.setInnerContent(translateShared(locale, "metadata.title")); } })
-    .on('meta[name="description"]', { element(element) { element.setAttribute("content", translateShared(locale, "metadata.description")); } }).transform(response);
+    .on('meta[name="description"]', { element(element) { element.setAttribute("content", translateShared(locale, "metadata.description")); } });
+  return rewriter.transform(response);
 }

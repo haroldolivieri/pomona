@@ -50,21 +50,21 @@ export interface ResolvedShopperRegion {
 // Origins
 // ---------------------------------------------------------------------------
 
-const ORIGINS: Record<OriginCode, { name: string; flag: string; zone: SeasonalityZone }> = {
-  BR: { name: "Brazil", flag: "🇧🇷", zone: "BR" },
-  ES: { name: "Spain", flag: "🇪🇸", zone: "MEDITERRANEAN" },
-  PE: { name: "Peru", flag: "🇵🇪", zone: "TROPICAL_EQUATORIAL" },
-  CL: { name: "Chile", flag: "🇨🇱", zone: "SOUTH_TEMPERATE" },
-  MX: { name: "Mexico", flag: "🇲🇽", zone: "TROPICAL_EQUATORIAL" },
-  ZA: { name: "South Africa", flag: "🇿🇦", zone: "SOUTH_TEMPERATE" },
-  MA: { name: "Morocco", flag: "🇲🇦", zone: "MEDITERRANEAN" },
-  CR: { name: "Costa Rica", flag: "🇨🇷", zone: "TROPICAL_EQUATORIAL" },
-  IT: { name: "Italy", flag: "🇮🇹", zone: "MEDITERRANEAN" },
-  US: { name: "USA", flag: "🇺🇸", zone: "NA_TEMPERATE" },
-  NZ: { name: "New Zealand", flag: "🇳🇿", zone: "SOUTH_TEMPERATE" },
-  IN: { name: "India", flag: "🇮🇳", zone: "TROPICAL_EQUATORIAL" },
-  EG: { name: "Egypt", flag: "🇪🇬", zone: "MEDITERRANEAN" },
-  CO: { name: "Colombia", flag: "🇨🇴", zone: "TROPICAL_EQUATORIAL" },
+const ORIGINS: Record<OriginCode, { flag: string; zone: SeasonalityZone }> = {
+  BR: { flag: "🇧🇷", zone: "BR" },
+  ES: { flag: "🇪🇸", zone: "MEDITERRANEAN" },
+  PE: { flag: "🇵🇪", zone: "TROPICAL_EQUATORIAL" },
+  CL: { flag: "🇨🇱", zone: "SOUTH_TEMPERATE" },
+  MX: { flag: "🇲🇽", zone: "TROPICAL_EQUATORIAL" },
+  ZA: { flag: "🇿🇦", zone: "SOUTH_TEMPERATE" },
+  MA: { flag: "🇲🇦", zone: "MEDITERRANEAN" },
+  CR: { flag: "🇨🇷", zone: "TROPICAL_EQUATORIAL" },
+  IT: { flag: "🇮🇹", zone: "MEDITERRANEAN" },
+  US: { flag: "🇺🇸", zone: "NA_TEMPERATE" },
+  NZ: { flag: "🇳🇿", zone: "SOUTH_TEMPERATE" },
+  IN: { flag: "🇮🇳", zone: "TROPICAL_EQUATORIAL" },
+  EG: { flag: "🇪🇬", zone: "MEDITERRANEAN" },
+  CO: { flag: "🇨🇴", zone: "TROPICAL_EQUATORIAL" },
 };
 
 // ---------------------------------------------------------------------------
@@ -953,9 +953,14 @@ function parseMonths(spec: string | undefined): number[] {
 }
 
 /** Contiguous circular windows, e.g. [10,11,12,1] -> "Oct–Jan"; 12 months -> "Year-round". */
-const MONTH_LABELS: Record<SupportedLocale, readonly string[]> = Object.fromEntries(
-  (["en-GB", "pt-BR"] as const).map((locale) => [locale, Array.from({ length: 12 }, (_, index) => new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2020, index, 1))).replace(/\.$/, ""))]),
-) as Record<SupportedLocale, readonly string[]>;
+const makeMonthLabels = (locale: SupportedLocale): readonly string[] => Array.from({ length: 12 }, (_, index) => {
+  const label = new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2020, index, 1))).replace(/\.$/, "");
+  return locale === "en-GB" ? label.slice(0, 3) : label;
+});
+const MONTH_LABELS: Record<SupportedLocale, readonly string[]> = {
+  "en-GB": makeMonthLabels("en-GB"),
+  "pt-BR": makeMonthLabels("pt-BR"),
+};
 
 function formatWindows(months: number[], displayLocale: SupportedLocale): string {
   const monthName = (month: number) => MONTH_LABELS[displayLocale][month - 1];

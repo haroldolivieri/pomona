@@ -1,3 +1,4 @@
+import { isSupportedLocale, translateShared } from "@pomona/contract";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import en from "./locales/en.json";
@@ -21,5 +22,11 @@ i18n.use(initReactI18next).init({
 
 export default i18n;
 
-i18n.on("languageChanged", (locale) => { if (typeof document !== "undefined") document.documentElement.lang = locale; });
-if (typeof document !== "undefined") document.documentElement.lang = i18n.language;
+function updateDocument(locale: string): void {
+  if (typeof document === "undefined" || !isSupportedLocale(locale)) return;
+  document.documentElement.lang = locale;
+  document.title = translateShared(locale, "metadata.title");
+  document.querySelector('meta[name="description"]')?.setAttribute("content", translateShared(locale, "metadata.description"));
+}
+i18n.on("languageChanged", updateDocument);
+updateDocument(i18n.language);

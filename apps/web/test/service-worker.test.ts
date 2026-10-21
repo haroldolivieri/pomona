@@ -10,7 +10,7 @@ it("does not store online navigation and uses a neutral offline shell", async ()
   runInNewContext(readFileSync(new URL("../public/sw.js", import.meta.url), "utf8"), {
     self: { addEventListener: (name: string, handler: any) => listeners[name] = handler, location: { origin: "https://app.test" } }, URL,
     fetch: async () => { if (offline) throw new Error("offline"); return new Response("personalized"); },
-    caches: { open: async () => ({ put }), match: async (key: any) => key === "/offline.html" ? shell : undefined },
+    caches: { open: async () => ({ put }), match: async (key: any) => key === "/offline" ? shell : undefined },
   });
   let response!: Promise<Response>;
   const event = { request: { method: "GET", mode: "navigate", url: "https://app.test/" }, respondWith: (value: Promise<Response>) => response = value };

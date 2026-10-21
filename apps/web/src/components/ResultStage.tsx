@@ -1,3 +1,5 @@
+import { currentDisplayLocale } from "../i18n/copy";
+import { uiCopy } from "../i18n/copy";
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -168,16 +170,16 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   let activeWinner: Candidate | null = null;
   let activeRunnerUp: Candidate | null = null;
   let eyebrow = "";
-  let headline = verdict?.headline || "Buy it.";
+  let headline = verdict?.headline || uiCopy("copy.buyIt");
   let subtitle = "";
   let confirmationBanner: string | null = null;
   let followUpHint: string | null = null;
   let prevMarkScore: number | null = null;
-  let runnerUpTagLabel = "Runner-Up";
+  let runnerUpTagLabel = uiCopy("copy.runnerUp");
 
   let targetResolution = null;
   if (phase === "S4_InitialResult" && state.allCandidatesRound1 && state.allCandidatesRound1.length > 0) {
-    targetResolution = resolveCandidatesForTarget(state.allCandidatesRound1, targetRipeness);
+    targetResolution = resolveCandidatesForTarget(state.allCandidatesRound1, targetRipeness, currentDisplayLocale());
   }
 
   const isMismatch = targetResolution ? !targetResolution.isExactMatch : false;
@@ -199,78 +201,78 @@ export const ResultStage: React.FC<ResultStageProps> = ({
     activeRunnerUp = runnerUp;
     if (targetResolution) {
       eyebrow = targetResolution.eyebrow;
-      headline = targetResolution.headline === "Buy it." ? "Best available." : targetResolution.headline;
+      headline = targetResolution.headlineKind === "buy" ? uiCopy("copy.bestAvailable") : targetResolution.headline;
       subtitle = targetResolution.subtitle;
       if (targetRipeness === "ready_now") {
-        followUpHint = state.round1FollowUp?.bannerText || followUp?.bannerText || targetResolution.followUpHintOverride || "The blue one could be sweeter. Flip it and snap.";
+        followUpHint = state.round1FollowUp?.bannerText || followUp?.bannerText || targetResolution.followUpHintOverride || uiCopy("copy.theBlueOneCouldBeSweeterFlip");
       } else {
-        followUpHint = targetResolution.followUpHintOverride || followUp?.bannerText || "Check underside before storing.";
+        followUpHint = targetResolution.followUpHintOverride || followUp?.bannerText || uiCopy("copy.checkUndersideBeforeStoring");
       }
     } else {
-      eyebrow = "BEST IN VIEW";
-      headline = "Best available.";
-      subtitle = `High confidence · ${candidateCount} compared in view`;
-      followUpHint = state.round1FollowUp?.bannerText || followUp?.bannerText || "The blue one could be sweeter. Flip it and snap.";
+      eyebrow = uiCopy("copy.bestInView");
+      headline = uiCopy("copy.bestAvailable");
+      subtitle = uiCopy("copy.highConfidenceComparedInView", { count: candidateCount });
+      followUpHint = state.round1FollowUp?.bannerText || followUp?.bannerText || uiCopy("copy.theBlueOneCouldBeSweeterFlip");
     }
-    runnerUpTagLabel = "Runner-Up";
+    runnerUpTagLabel = uiCopy("copy.runnerUp");
   } else if (phase === "S5B1_RunnerUpBeaten") {
     activeWinner = firstPick;
     activeRunnerUp = runnerUp;
     const score1 = winnerScoreStr(firstPick?.score);
     const score2 = winnerScoreStr(runnerUp?.score);
-    eyebrow = `✓ 1ST WINNER WINS · BEATS RUNNER-UP (${score1} VS ${score2})`;
-    headline = "Best available.";
-    subtitle = "Your initial winner in the yellow box remains the best produce.";
-    confirmationBanner = `Runner-Up scored ${score2} after flip (${runnerUp?.flipSummary || "inspected"}). Stick with your initial 1st winner in the yellow box.`;
+    eyebrow = uiCopy("copy.1stWinnerWinsBeatsRunnerUpVs", { value1: score1, value2: score2 });
+    headline = uiCopy("copy.bestAvailable");
+    subtitle = uiCopy("copy.yourInitialWinnerInTheYellowBox");
+    confirmationBanner = uiCopy("copy.runnerUpScoredAfterFlipStickWith", { value1: score2, value2: runnerUp?.flipSummary || uiCopy("copy.inspected") });
     prevMarkScore = runnerUp?.score ?? null;
-    runnerUpTagLabel = `Runner-Up · ${score2}`;
+    runnerUpTagLabel = uiCopy("copy.runnerUp2", { value1: score2 });
   } else if (phase === "S5B2_RunnerUpTookLead") {
     activeWinner = runnerUp;
     activeRunnerUp = firstPick;
     const score1 = winnerScoreStr(firstPick?.score);
     const score2 = winnerScoreStr(runnerUp?.score);
-    eyebrow = `★ NEW WINNER · BEATS 1ST WINNER (${score2} VS ${score1})`;
-    headline = "Buy this Runner-Up.";
-    subtitle = `The flipped fruit scored ${score2} and took the lead over your 1st winner (${score1}).`;
+    eyebrow = uiCopy("copy.newWinnerBeats1stWinnerVs", { value1: score2, value2: score1 });
+    headline = uiCopy("copy.buyThisRunnerUp");
+    subtitle = uiCopy("copy.theFlippedFruitScoredAndTookThe", { value1: score2, value2: score1 });
     followUpHint = (followUp?.bannerText
-      ? followUp.bannerText.replace(/1st\s*pick/gi, "1st Winner").replace(/first\s*pick/gi, "first winner")
-      : null) || `Your 1st Winner (${score1}) was only inspected from the top. Flip it too for a fair final check, or take this new winner now.`;
+      ? followUp.bannerText.replace(/1st\s*pick/gi, uiCopy("copy.1stWinner2")).replace(/first\s*pick/gi, uiCopy("copy.firstWinner"))
+      : null) || uiCopy("copy.your1stWinnerWasOnlyInspectedFrom", { value1: score1 });
     prevMarkScore = firstPick?.score ?? null;
-    runnerUpTagLabel = `1st Winner · ${score1}`;
+    runnerUpTagLabel = uiCopy("copy.1stWinner3", { value1: score1 });
   } else if (phase === "S7A_FirstPickWonFinal") {
     activeWinner = firstPick;
     activeRunnerUp = runnerUp;
     const score1 = winnerScoreStr(firstPick?.score);
     const score2 = winnerScoreStr(runnerUp?.score);
-    eyebrow = `★ FINAL VERDICT · 1ST WINNER RECLAIMS THE WIN (${score1} VS ${score2})`;
-    headline = "Best available.";
-    subtitle = `After checking both sides, your original 1st winner won overall (${score1} vs ${score2}).`;
-    confirmationBanner = `After flipping your 1st winner, its final score reached ${score1}, beating the Runner-Up (${score2}). Take your original winner!`;
+    eyebrow = uiCopy("copy.finalVerdict1stWinnerReclaimsTheWin", { value1: score1, value2: score2 });
+    headline = uiCopy("copy.bestAvailable");
+    subtitle = uiCopy("copy.afterCheckingBothSidesYourOriginal1st", { value1: score1, value2: score2 });
+    confirmationBanner = uiCopy("copy.afterFlippingYour1stWinnerItsFinal", { value1: score1, value2: score2 });
     prevMarkScore = runnerUp?.score ?? null;
-    runnerUpTagLabel = `Runner-Up · ${score2}`;
+    runnerUpTagLabel = uiCopy("copy.runnerUp2", { value1: score2 });
   } else if (phase === "S7B_FirstPickLostFinal") {
     activeWinner = runnerUp;
     activeRunnerUp = firstPick;
     const score1 = winnerScoreStr(firstPick?.score);
     const score2 = winnerScoreStr(runnerUp?.score);
-    eyebrow = `★ FINAL VERDICT · RUNNER-UP WINS (${score2} VS ${score1})`;
-    headline = "Buy the Runner-Up.";
-    subtitle = `Both checked from both sides · The fruit flipped in Round 2 won (${score2} vs ${score1}).`;
-    confirmationBanner = `Your 1st Winner scored ${score1} after flip. The Runner-Up you flipped in Round 2 (${score2}) is confirmed as the best pick.`;
+    eyebrow = uiCopy("copy.finalVerdictRunnerUpWinsVs", { value1: score2, value2: score1 });
+    headline = uiCopy("copy.buyTheRunnerUp");
+    subtitle = uiCopy("copy.bothCheckedFromBothSidesTheFruit", { value1: score2, value2: score1 });
+    confirmationBanner = uiCopy("copy.your1stWinnerScoredAfterFlipThe", { value1: score1, value2: score2 });
     prevMarkScore = firstPick?.score ?? null;
-    runnerUpTagLabel = `1st Winner · ${score1}`;
+    runnerUpTagLabel = uiCopy("copy.1stWinner3", { value1: score1 });
   }
 
   if (verdict?.confidence === "medium") {
-    eyebrow = "TENTATIVE PICK";
-    headline = "Looks promising.";
-    subtitle = "Medium confidence · visible appearance only. Check another angle before deciding.";
+    eyebrow = uiCopy("copy.tentativePick");
+    headline = uiCopy("copy.looksPromising");
+    subtitle = uiCopy("copy.mediumConfidenceVisibleAppearanceOnlyCheckAnother");
     confirmationBanner = null;
   }
 
   // Accessibility spatial speech
-  const winnerA11y = activeWinner ? describeBoxPosition(activeWinner.box, "Winner", activeWinner.score) : "";
-  const runnerUpA11y = activeRunnerUp ? describeBoxPosition(activeRunnerUp.box, "Runner-Up", activeRunnerUp.score) : "";
+  const winnerA11y = activeWinner ? describeBoxPosition(activeWinner.box, uiCopy("copy.winner"), activeWinner.score) : "";
+  const runnerUpA11y = activeRunnerUp ? describeBoxPosition(activeRunnerUp.box, uiCopy("copy.runnerUp"), activeRunnerUp.score) : "";
 
   // Helper to convert candidate box [top, left, bottom, right] in 0..1000 scale to style percentages
   const boxToStyle = (box: [number, number, number, number]) => {
@@ -286,7 +288,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
   const denseCandidatesNote =
     (lastResponse.candidates?.length ?? 0) >= 15
-      ? ` Top ${lastResponse.candidates.length} picks shown from all visible items.`
+      ? uiCopy("copy.topPicksShownFromAllVisibleItems", { count: lastResponse.candidates.length })
       : "";
   const fullSubtitle = subtitle + denseCandidatesNote;
 
@@ -461,7 +463,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
         <button
           onClick={onReset}
           data-testid="close-button"
-          aria-label="Reset and scan again"
+          aria-label={uiCopy("copy.resetAndScanAgain")}
           style={{
             width: "36px",
             height: "36px",
@@ -501,14 +503,14 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
           }}
         >
-          {produce?.displayName || "Produce"}
+          {produce?.displayName || uiCopy("copy.produce")}
         </div>
 
         {/* Retake button */}
         <button
           onClick={onReset}
           data-testid="retake-button"
-          aria-label="Retake photo"
+          aria-label={uiCopy("copy.retakePhoto")}
           style={{
             width: "36px",
             height: "36px",
@@ -589,7 +591,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           <img
             ref={imgRef}
             src={round1PhotoDataUrl}
-            alt="Produce crate"
+            alt={uiCopy("copy.produceCrate")}
             onLoad={updateCoverRect}
             style={{
               width: "100%",
@@ -703,7 +705,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 }}
               >
                 {phase === "S4_InitialResult" && activeRunnerUp.score !== undefined
-                  ? `Runner-Up · ${activeRunnerUp.score.toFixed(1)}`
+                  ? uiCopy("copy.runnerUp2", { value1: activeRunnerUp.score.toFixed(1) })
                   : runnerUpTagLabel}
               </span>
             </div>
@@ -838,7 +840,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               data-testid="sheet-drag-area"
               role="button"
               tabIndex={0}
-              aria-label={sheetMode === "expanded" ? "Collapse results sheet" : "Expand results sheet"}
+              aria-label={sheetMode === "expanded" ? uiCopy("copy.collapseResultsSheet") : uiCopy("copy.expandResultsSheet")}
               aria-expanded={sheetMode === "expanded"}
               onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
               onTouchMove={(e) => {
@@ -902,7 +904,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               <div
                 data-testid="ripeness-target-switch"
                 role="tablist"
-                aria-label="Target ripeness window"
+                aria-label={uiCopy("copy.targetRipenessWindow")}
                 onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
                 onTouchMove={(e) => {
                   if (dragStartY.current !== null) {
@@ -941,9 +943,9 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               >
                 {(
                   [
-                    { id: "ready_now", label: "Ready now", sub: "Peak ripe", dot: "#16A34A" },
-                    { id: "in_2_3_days", label: "In 2–3 days", sub: "Almost ripe", dot: "#D97706" },
-                    { id: "later_this_week", label: "Later this week", sub: "Firm / Unripe", dot: "#2563EB" },
+                    { id: "ready_now", label: uiCopy("copy.readyNow"), sub: uiCopy("copy.peakRipe"), dot: "#16A34A" },
+                    { id: "in_2_3_days", label: uiCopy("copy.in23Days"), sub: uiCopy("copy.almostRipe"), dot: "#D97706" },
+                    { id: "later_this_week", label: uiCopy("copy.laterThisWeek"), sub: uiCopy("copy.firmUnripe"), dot: "#2563EB" },
                   ] as const
                 ).map((tab) => {
                   const isActive = targetRipeness === tab.id;
@@ -1025,13 +1027,13 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 }}
               >
                 <span>
-                  🎯 Shopping for:{" "}
+                  {uiCopy("copy.shoppingFor")}{" "}
                   <strong>
                     {targetRipeness === "in_2_3_days"
-                      ? "In 2–3 days"
+                      ? uiCopy("copy.in23Days")
                       : targetRipeness === "later_this_week"
-                      ? "Later this week"
-                      : "Ready now"}
+                      ? uiCopy("copy.laterThisWeek")
+                      : uiCopy("copy.readyNow")}
                   </strong>
                 </span>
                 <span
@@ -1046,10 +1048,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   }}
                 >
                   {targetRipeness === "in_2_3_days"
-                    ? "Almost ripe"
+                    ? uiCopy("copy.almostRipe")
                     : targetRipeness === "later_this_week"
-                    ? "Firm & unripe"
-                    : "Peak ripe"}
+                    ? uiCopy("copy.firmUnripe2")
+                    : uiCopy("copy.peakRipe")}
                 </span>
               </div>
             )}
@@ -1098,7 +1100,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             data-testid="sheet-header-summary"
             role="button"
             tabIndex={0}
-            aria-label={sheetMode === "expanded" ? "Collapse results sheet" : "Expand results sheet"}
+            aria-label={sheetMode === "expanded" ? uiCopy("copy.collapseResultsSheet") : uiCopy("copy.expandResultsSheet")}
             aria-expanded={sheetMode === "expanded"}
             onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
             onTouchMove={(e) => {

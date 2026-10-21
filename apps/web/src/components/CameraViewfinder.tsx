@@ -1,3 +1,4 @@
+import { uiCopy } from "../i18n/copy";
 import i18n from "../i18n";
 import { saveLocalePreference } from "../i18n/bootstrap";
 import { isSupportedLocale } from "@pomona/contract";
@@ -55,7 +56,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
     async function initCamera() {
       try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("getUserMedia not supported");
+          throw new Error(uiCopy("copy.getusermediaNotSupported"));
         }
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -72,7 +73,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         }
       } catch (err: any) {
         if (isMounted) {
-          setCameraError(err.message || "Camera access denied");
+          setCameraError(err.message || uiCopy("copy.cameraAccessDenied"));
           setStreamActive(false);
         }
       }
@@ -224,8 +225,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
               color: "#142117",
             }}
           >
-            Pomona
-          </span>
+            {uiCopy("copy.pomona")}</span>
         </div>
 
         {/* Right action buttons: Flash toggle, Theme toggle, Close button */}
@@ -257,7 +257,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              aria-label="Close"
+              aria-label={uiCopy("copy.close")}
               data-testid="close-button"
               style={{
                 background: "rgba(251,250,246,0.92)",

@@ -17,7 +17,7 @@ The user explicitly excluded live evals. Deterministic acceptance scenarios and 
 
 ## Language and region
 
-Recommended implementation choices below are the author's calls, pending design approval.
+The following choices implement the approved preference-based design.
 
 Resolve display language in this order: a valid saved explicit choice, supported browser preferences from `Accept-Language`, then `en-GB`. Support `pt-BR` and `en-GB`; map Portuguese variants including `pt` and `pt-PT` to `pt-BR`, and English variants to `en-GB`. Respect quality weights, ignore entries with `q=0`, skip unsupported languages, and use English for a wildcard-only or malformed header. Country is never a language fallback.
 
@@ -101,3 +101,7 @@ The builder may choose exact module names, embedded-data representation, narrow 
 - [Cloudflare SPA shell with bootstrap data](https://developers.cloudflare.com/workers/examples/spa-shell/)
 - [Cloudflare static assets Worker routing](https://developers.cloudflare.com/workers/static-assets/routing/worker-script/)
 - [i18next ESLint literal rule](https://github.com/edvardchen/eslint-plugin-i18next/blob/main/docs/rules/no-literal-string.md)
+
+## Final implementation notes
+
+The offline shell is built from the current index and served at canonical `/offline`; a generated offline asset manifest lets the service worker precache the current JavaScript and CSS on the first visit. The language copy gate includes positive and negative fixture checks for interpolation literals, complete plural families, array/object shapes, and locale registration. English-only deterministic verifier fallbacks and Portuguese evidence recognition were localized without editing model prompts or schemas. See the completed implementation plan for verification evidence and review rulings.

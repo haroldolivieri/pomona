@@ -120,6 +120,9 @@ jobs:
           pnpm --filter @pomona/contract build || true
           pnpm --filter @pomona/proxy build || true
 
+      - name: Copy extraction and translation completeness
+        run: pnpm lint:copy
+
       - name: Typecheck
         run: pnpm typecheck
 

@@ -1,8 +1,10 @@
+import { isSupportedLocale } from "@pomona/contract";
+import { uiCopy } from "../i18n/copy";
 import { lookupProduceSeasonality, type ScanRequest, type ScanResponse } from "@pomona/contract";
 import type { PomonaApiClient, QuotaInfo } from "./api-client";
 
 function mockSeasonality(request: ScanRequest) {
-  return lookupProduceSeasonality("watermelon", { locale: request.locale }, new Date().getMonth() + 1);
+  return lookupProduceSeasonality("watermelon", { locale: request.locale }, new Date().getMonth() + 1, isSupportedLocale(request.locale) ? request.locale : "en-GB");
 }
 
 export function createMockApiClient(): PomonaApiClient {
@@ -58,7 +60,7 @@ export function createMockApiClient(): PomonaApiClient {
             modelId: "gemini-2.5-flash (mocked)",
             round: request.round,
             status: "unclear_photo",
-            message: "The captured photo is too blurry or dark to accurately grade produce ripeness.",
+            message: uiCopy("copy.theCapturedPhotoIsTooBlurryOr", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
             produce: null,
             candidates: [],
             verdict: null,
@@ -77,7 +79,7 @@ export function createMockApiClient(): PomonaApiClient {
             modelId: "gemini-2.5-flash (mocked)",
             round: request.round,
             status: "no_produce",
-            message: "Couldn't spot any produce clearly. Move closer and try again.",
+            message: uiCopy("copy.couldnTSpotAnyProduceClearlyMove", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
             produce: null,
             candidates: [],
             verdict: null,
@@ -104,7 +106,7 @@ export function createMockApiClient(): PomonaApiClient {
             message: null,
             produce: {
               type: "watermelon",
-              displayName: "Watermelon",
+              displayName: uiCopy("copy.watermelon", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
               variety: null,
             },
             candidates: [
@@ -113,7 +115,7 @@ export function createMockApiClient(): PomonaApiClient {
                 box: [360, 240, 680, 560],
                 score: 8.6,
                 ripeness: "ripe",
-                traits: ["Creamy-yellow ground spot", "Matte rind", "Heavy web lines"],
+                traits: [uiCopy("copy.creamyYellowGroundSpot", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"), uiCopy("copy.matteRind", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"), uiCopy("copy.heavyWebLines", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB")],
                 flipSummary: null,
               },
               {
@@ -121,7 +123,7 @@ export function createMockApiClient(): PomonaApiClient {
                 box: [320, 580, 660, 900],
                 score: 8.1,
                 ripeness: "almost_ripe",
-                traits: ["Slightly glossy rind", "Small field spot"],
+                traits: [uiCopy("copy.slightlyGlossyRind", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"), uiCopy("copy.smallFieldSpot", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB")],
                 flipSummary: null,
               },
               {
@@ -129,7 +131,7 @@ export function createMockApiClient(): PomonaApiClient {
                 box: [180, 420, 440, 720],
                 score: 7.2,
                 ripeness: "underripe",
-                traits: ["Bright glossy green", "Small white spot"],
+                traits: [uiCopy("copy.brightGlossyGreen", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"), uiCopy("copy.smallWhiteSpot", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB")],
                 flipSummary: null,
               },
               {
@@ -137,7 +139,7 @@ export function createMockApiClient(): PomonaApiClient {
                 box: [620, 310, 880, 610],
                 score: 6.8,
                 ripeness: "underripe",
-                traits: ["Firm striped rind", "Chalky white spot"],
+                traits: [uiCopy("copy.firmStripedRind", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"), uiCopy("copy.chalkyWhiteSpot", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB")],
                 flipSummary: null,
               },
             ],
@@ -145,31 +147,31 @@ export function createMockApiClient(): PomonaApiClient {
               winnerId: "c1",
               runnerUpId: "c2",
               confidence: "high",
-              headline: "Buy this one.",
+              headline: uiCopy("copy.buyThisOne", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
             },
             followUp: {
               targetCandidateId: "c2",
               targetRole: "runner_up",
-              bannerText: "The blue-marked Watermelon could be sweeter. Flip it and snap.",
-              flipHeadline: "Flip the Watermelon over",
-              instruction: "Turn the blue-marked Watermelon to show its ground spot.",
+              bannerText: uiCopy("copy.theBlueMarkedWatermelonCouldBeSweeter", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+              flipHeadline: uiCopy("copy.flipTheWatermelonOver", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+              instruction: uiCopy("copy.turnTheBlueMarkedWatermelonToShow", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
             },
             afterPurchase: {
               readyInDays: { min: 0, max: 0 },
               eatWithinDays: { min: 4, max: 6 },
-              eatWithinLabel: "4–6 days",
+              eatWithinLabel: uiCopy("copy.46Days", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
               storage: {
                 beforeCut: {
                   where: "counter",
-                  whereLabel: "Counter",
-                  summary: "Counter · whole",
-                  tip: "Keep out of direct sunlight",
+                  whereLabel: uiCopy("copy.counter", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+                  summary: uiCopy("copy.counterWhole", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+                  tip: uiCopy("copy.keepOutOfDirectSunlight", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
                 },
                 afterCut: {
                   where: "fridge",
-                  whereLabel: "Fridge",
-                  summary: "Fridge · sealed",
-                  tip: "Cover cut surface with wrap or store in airtight container",
+                  whereLabel: uiCopy("copy.fridge", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+                  summary: uiCopy("copy.fridgeSealed", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+                  tip: uiCopy("copy.coverCutSurfaceWithWrapOrStore", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
                 },
               },
             },
@@ -191,7 +193,7 @@ export function createMockApiClient(): PomonaApiClient {
             message: null,
             produce: {
               type: "watermelon",
-              displayName: "Watermelon",
+              displayName: uiCopy("copy.watermelon", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
               variety: null,
             },
             candidates: [
@@ -200,39 +202,39 @@ export function createMockApiClient(): PomonaApiClient {
                 box: [150, 150, 850, 850],
                 score: 9.0,
                 ripeness: "ripe",
-                traits: ["Deep buttery field spot", "Rich brown webbing", "Dull thud skin"],
-                flipSummary: "deep creamy field spot with excellent webbing",
+                traits: [uiCopy("copy.deepButteryFieldSpot", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"), uiCopy("copy.richBrownWebbing", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"), uiCopy("copy.dullThudSkin", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB")],
+                flipSummary: uiCopy("copy.deepCreamyFieldSpotWithExcellentWebbing", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
               },
             ],
             verdict: {
               winnerId: "c2",
               runnerUpId: "c1",
               confidence: "high",
-              headline: "Buy this one.",
+              headline: uiCopy("copy.buyThisOne", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
             },
             followUp: {
               targetCandidateId: "c1",
               targetRole: "first_pick",
-              bannerText: "1st Winner (8.6) was only graded from the top. Flip it too for a fair final check, or take this one now.",
-              flipHeadline: "Flip your 1st winner over",
-              instruction: "Turn the yellow-marked Watermelon to show its underside.",
+              bannerText: uiCopy("copy.1stWinner86WasOnlyGraded", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+              flipHeadline: uiCopy("copy.flipYour1stWinnerOver", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+              instruction: uiCopy("copy.turnTheYellowMarkedWatermelonToShow", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
             },
             afterPurchase: {
               readyInDays: { min: 0, max: 0 },
               eatWithinDays: { min: 4, max: 6 },
-              eatWithinLabel: "4–6 days",
+              eatWithinLabel: uiCopy("copy.46Days", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
               storage: {
                 beforeCut: {
                   where: "counter",
-                  whereLabel: "Counter",
-                  summary: "Counter · whole",
-                  tip: "Room temperature",
+                  whereLabel: uiCopy("copy.counter", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+                  summary: uiCopy("copy.counterWhole", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+                  tip: uiCopy("copy.roomTemperature", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
                 },
                 afterCut: {
                   where: "fridge",
-                  whereLabel: "Fridge",
-                  summary: "Fridge · sealed",
-                  tip: "Keep chilled in container",
+                  whereLabel: uiCopy("copy.fridge", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+                  summary: uiCopy("copy.fridgeSealed", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+                  tip: uiCopy("copy.keepChilledInContainer", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
                 },
               },
             },
@@ -253,7 +255,7 @@ export function createMockApiClient(): PomonaApiClient {
           message: null,
           produce: {
             type: "watermelon",
-            displayName: "Watermelon",
+            displayName: uiCopy("copy.watermelon", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
             variety: null,
           },
           candidates: [
@@ -262,33 +264,33 @@ export function createMockApiClient(): PomonaApiClient {
               box: [150, 150, 850, 850],
               score: 9.3,
               ripeness: "ripe",
-              traits: ["Large golden field spot", "Heavy bee stings", "Dry brown stem"],
-              flipSummary: "vibrant golden ground spot with extensive pollination scarring",
+              traits: [uiCopy("copy.largeGoldenFieldSpot", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"), uiCopy("copy.heavyBeeStings", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"), uiCopy("copy.dryBrownStem", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB")],
+              flipSummary: uiCopy("copy.vibrantGoldenGroundSpotWithExtensivePollination", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
             },
           ],
           verdict: {
             winnerId: "c1",
             runnerUpId: "c2",
             confidence: "high",
-            headline: "Buy your 1st winner.",
+            headline: uiCopy("copy.buyYour1stWinner", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
           },
           followUp: null,
           afterPurchase: {
             readyInDays: { min: 0, max: 0 },
             eatWithinDays: { min: 4, max: 6 },
-            eatWithinLabel: "4–6 days",
+            eatWithinLabel: uiCopy("copy.46Days", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
             storage: {
               beforeCut: {
                 where: "counter",
-                whereLabel: "Counter",
-                summary: "Counter · whole",
-                tip: "Room temperature",
+                whereLabel: uiCopy("copy.counter", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+                summary: uiCopy("copy.counterWhole", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+                tip: uiCopy("copy.roomTemperature", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
               },
               afterCut: {
                 where: "fridge",
-                whereLabel: "Fridge",
-                summary: "Fridge · sealed",
-                tip: "Wrap tightly",
+                whereLabel: uiCopy("copy.fridge", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+                summary: uiCopy("copy.fridgeSealed", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
+                tip: uiCopy("copy.wrapTightly", undefined, isSupportedLocale(request.locale) ? request.locale : "en-GB"),
               },
             },
           },

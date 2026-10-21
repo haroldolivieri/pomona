@@ -12,5 +12,6 @@ export function readInitialLocale(): SupportedLocale {
 
 export function saveLocalePreference(locale: SupportedLocale): void {
   if (!isSupportedLocale(locale)) return;
+  // eslint-disable-next-line i18next/no-literal-string -- Cookie protocol attributes, not display copy.
   try { document.cookie = `${LOCALE_COOKIE}=${locale}; Max-Age=31536000; Path=/; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`; } catch { /* Keep the current-page choice when storage is blocked. */ }
 }

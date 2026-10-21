@@ -87,5 +87,17 @@
   "metadata": {
     "title": "Pomona · Escolha suas frutas",
     "description": "Escolha frutas e legumes e confira o ponto de maturação pela foto."
+  },
+  "verifier": {
+    "unsupportedTie": "Os sinais visíveis não mostram a maturação individual. Envie uma foto mais nítida.",
+    "similar": "A maturação parece semelhante. Mostre cada item mais de perto.",
+    "missing": "Não consigo escolher por este ângulo. Mostre a base ou o talo.",
+    "unclear": "O alimento não está visível. Tire outra foto mostrando a superfície.",
+    "noProduce": "Nenhum alimento encontrado. Fotografe as frutas ou os legumes que deseja comparar.",
+    "multiple": "Há vários tipos de alimentos. Contorne apenas um tipo para comparar.",
+    "failed": "Não foi possível concluir a análise. Tire outra foto e tente novamente.",
+    "finalBanner": "A primeira opção ({{score}}) só foi vista por cima. Vire {{produce}} para conferir.",
+    "finalHeadline": "Vire a primeira opção: {{produce}}",
+    "finalInstruction": "Vire a primeira opção, {{produce}}, para mostrar a parte de baixo."
   }
 }

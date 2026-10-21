@@ -83,5 +83,17 @@
   "metadata": {
     "title": "Pomona · Produce Picker",
     "description": "Instant bounding-box produce picker and ripeness guide."
+  },
+  "verifier": {
+    "unsupportedTie": "Visible cues do not establish individual maturity. Please provide a clearer view.",
+    "similar": "These look similarly mature. Please show a closer individual view.",
+    "missing": "I cannot confidently choose from this view. Turn the produce to show the underside or stem.",
+    "unclear": "The produce is obscured. Retake a clear photo with its surface visible.",
+    "noProduce": "No produce found. Take a photo of the fruit or vegetables you want to compare.",
+    "multiple": "Several produce types are visible. Draw around one type to compare it.",
+    "failed": "Analysis could not finish. Please take another photo and try again.",
+    "finalBanner": "1st Pick ({{score}}) was only graded from the top. Flip the {{produce}} for a final check.",
+    "finalHeadline": "Flip your 1st pick {{produce}} over",
+    "finalInstruction": "Turn your 1st pick {{produce}} over to show its underside."
   }
 }

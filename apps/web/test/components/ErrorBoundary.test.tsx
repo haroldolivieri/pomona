@@ -33,7 +33,8 @@ describe("ErrorBoundary", () => {
 
     expect(screen.getByTestId("error-boundary-fallback")).toBeInTheDocument();
     expect(screen.getByText("Application Error")).toBeInTheDocument();
-    expect(screen.getByText("Simulated React render crash")).toBeInTheDocument();
+    expect(screen.getByText("An unexpected error occurred in the produce scanner.")).toBeInTheDocument();
+    expect(screen.queryByText("Simulated React render crash")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reload App" })).toBeInTheDocument();
 
     consoleErrorSpy.mockRestore();
