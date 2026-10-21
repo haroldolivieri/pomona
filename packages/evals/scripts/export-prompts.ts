@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { v1PromptConfig } from "@pomona/proxy";
 import type { ScanRequest } from "@pomona/contract";
+import { templateFocusPolygon, templateRoundTwoContext, templateRoundThreeContext, renderDocumentationTemplate } from "./prompt-examples";
 
 /**
  * Renders every production prompt variant (v1 prompt registry) to docs/prompts/
@@ -12,21 +13,7 @@ import type { ScanRequest } from "@pomona/contract";
  */
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const MANIFEST_PATH = path.resolve(__dirname, "../dataset/ground-truth.json");
 const OUT_DIR = path.resolve(__dirname, "../../../docs/prompts");
-
-interface GroundTruthEntry {
-  id: string;
-  groundTruth: Record<string, any>;
-}
-
-const manifest: GroundTruthEntry[] = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf-8"));
-
-function entry(id: string): GroundTruthEntry {
-  const found = manifest.find((item) => item.id === id);
-  if (!found) throw new Error(`Missing ground-truth entry ${id} for prompt export`);
-  return found;
-}
 
 function makeRequest(overrides: Partial<ScanRequest>): ScanRequest {
   return {
@@ -54,72 +41,72 @@ const exports: ExportedPrompt[] = [
   {
     file: "round1-system.txt",
     title: "Round 1 — System prompt (shared by all Round 1 scans)",
-    source: "buildRoundOneSystemPrompt()",
+    source: "v1PromptConfig.buildSystemPrompt(request)",
     request: makeRequest({}),
     body: v1PromptConfig.buildSystemPrompt(makeRequest({})),
   },
   {
     file: "round1-user-no-polygon.txt",
     title: "Round 1 — User prompt (no focus polygon)",
-    source: `scenario ${entry("16-roma-tomatoes-bulk-pile").id}`,
+    source: "v1PromptConfig.buildUserPrompt(request)",
     request: makeRequest({}),
     body: v1PromptConfig.buildUserPrompt(makeRequest({})),
   },
   {
     file: "round1-user-with-polygon.txt",
     title: "Round 1 — User prompt (user-drawn focus polygon)",
-    source: `scenario ${entry("17-roma-bulk-pile-focus-polygon").id}`,
-    request: makeRequest({ focusPolygon: entry("17-roma-bulk-pile-focus-polygon").groundTruth.focusPolygon }),
+    source: "v1PromptConfig.buildUserPrompt(request)",
+    request: makeRequest({ focusPolygon: templateFocusPolygon }),
     body: v1PromptConfig.buildUserPrompt(
-      makeRequest({ focusPolygon: entry("17-roma-bulk-pile-focus-polygon").groundTruth.focusPolygon })
+      makeRequest({ focusPolygon: templateFocusPolygon })
     ),
   },
   {
     file: "round1-user-repair.txt",
     title: "Round 1 — User prompt (validation-repair attempt)",
-    source: `scenario ${entry("16-roma-tomatoes-bulk-pile").id} + repairErrors`,
+    source: "v1PromptConfig.buildRepairPrompt(request, repairErrors)",
     request: makeRequest({}),
-    body: v1PromptConfig.buildRepairPrompt(
+    body: v1PromptConfig.buildRepairPrompt!(
       makeRequest({}),
       [
-        "Count mismatch: countedTotal=15 requires exactly 15 valid candidates, but 14 remain after validation",
+        "{{validationErrors}}",
       ]
     ),
   },
   {
     file: "round2-system.txt",
     title: "Round 2 — System prompt (close-up flip of the runner-up)",
-    source: `scenario ${entry("06-round2-runner-up-flip-overtakes").id}`,
-    request: makeRequest({ round: 2, followUpContext: entry("06-round2-runner-up-flip-overtakes").groundTruth.followUpContext }),
+    source: "v1PromptConfig.buildSystemPrompt(request)",
+    request: makeRequest({ round: 2, followUpContext: templateRoundTwoContext }),
     body: v1PromptConfig.buildSystemPrompt(
-      makeRequest({ round: 2, followUpContext: entry("06-round2-runner-up-flip-overtakes").groundTruth.followUpContext })
+      makeRequest({ round: 2, followUpContext: templateRoundTwoContext })
     ),
   },
   {
     file: "round2-user.txt",
     title: "Round 2 — User prompt (close-up flip of the runner-up)",
-    source: `scenario ${entry("06-round2-runner-up-flip-overtakes").id}`,
-    request: makeRequest({ round: 2, followUpContext: entry("06-round2-runner-up-flip-overtakes").groundTruth.followUpContext }),
+    source: "v1PromptConfig.buildUserPrompt(request)",
+    request: makeRequest({ round: 2, followUpContext: templateRoundTwoContext }),
     body: v1PromptConfig.buildUserPrompt(
-      makeRequest({ round: 2, followUpContext: entry("06-round2-runner-up-flip-overtakes").groundTruth.followUpContext })
+      makeRequest({ round: 2, followUpContext: templateRoundTwoContext })
     ),
   },
   {
     file: "round3-system.txt",
     title: "Round 3 — System prompt (final check of the 1st pick)",
-    source: `scenario ${entry("08-round3-first-pick-reclaims").id}`,
-    request: makeRequest({ round: 3, followUpContext: entry("08-round3-first-pick-reclaims").groundTruth.followUpContext }),
+    source: "v1PromptConfig.buildSystemPrompt(request)",
+    request: makeRequest({ round: 3, followUpContext: templateRoundThreeContext }),
     body: v1PromptConfig.buildSystemPrompt(
-      makeRequest({ round: 3, followUpContext: entry("08-round3-first-pick-reclaims").groundTruth.followUpContext })
+      makeRequest({ round: 3, followUpContext: templateRoundThreeContext })
     ),
   },
   {
     file: "round3-user.txt",
     title: "Round 3 — User prompt (final check of the 1st pick)",
-    source: `scenario ${entry("08-round3-first-pick-reclaims").id}`,
-    request: makeRequest({ round: 3, followUpContext: entry("08-round3-first-pick-reclaims").groundTruth.followUpContext }),
+    source: "v1PromptConfig.buildUserPrompt(request)",
+    request: makeRequest({ round: 3, followUpContext: templateRoundThreeContext }),
     body: v1PromptConfig.buildUserPrompt(
-      makeRequest({ round: 3, followUpContext: entry("08-round3-first-pick-reclaims").groundTruth.followUpContext })
+      makeRequest({ round: 3, followUpContext: templateRoundThreeContext })
     ),
   },
 ];
@@ -132,7 +119,7 @@ for (const item of exports) {
     `# promptVersion: ${v1PromptConfig.version} | round: ${item.request.round} | focusPolygon: ${item.request.focusPolygon ? "provided" : "null"}`,
     "",
   ].join("\n");
-  fs.writeFileSync(path.join(OUT_DIR, item.file), `${header}${item.body}\n`);
+  fs.writeFileSync(path.join(OUT_DIR, item.file), `${header}${renderDocumentationTemplate(item.body)}\n`);
   console.log(`Exported docs/prompts/${item.file}`);
 }
 console.log(`\n${exports.length} production prompt variants exported to ${OUT_DIR}`);

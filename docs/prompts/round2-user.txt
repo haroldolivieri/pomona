@@ -1,14 +1,12 @@
 # Round 2 — User prompt (close-up flip of the runner-up)
-# Builder: scenario 06-round2-runner-up-flip-overtakes
+# Builder: v1PromptConfig.buildUserPrompt(request)
 # promptVersion: v1 | round: 2 | focusPolygon: null
-Analyze this grocery produce image for Round 2 (locale: en-GB). Remember: all candidate scores MUST be on a 0.0 to 10.0 scale, and each trait string MUST be <= 28 characters.
-Round 2 close-up inspection:
-Inspecting ONLY the foreground candidate "c2" (Watermelon, role: runner_up).
-Requested instruction: "Flip the Runner-Up Watermelon over to inspect its underside ground spot.".
-Previous 1st pick candidate "c1" scored 8.6/10 (ripe).
-Previous runner-up candidate "c2" scored 8.1/10.
-Output ONLY candidate "c2" in candidates with a non-null flipSummary (<= 80 chars) and an updated score on the 0.0–10.0 scale.
-- RIPENESS CRITERIA: A creamy-yellow, warm yellow, or golden ground spot with brown pollination sugar webbing scars indicates optimal sugar concentration and peak ripeness. If the underside exhibits these ripe features, score it higher than 8.6 (e.g. 8.8–9.5), promote "c2" as winnerId, and provide a followUp targeting "c1".
-- Conversely, if the underside is stark chalky-white, greenish, bruised, or lacking webbing, score it strictly below 8.6 and set followUp to null.
+Analyze this produce photo for Round 2 (locale: en-GB). Use only current visible evidence relevant to the identified produce type and variety.
+Inspect ONLY foreground candidate "{{targetCandidateId}}" ({{produceDisplayName}}, role: runner_up).
+Requested instruction: "{{requestedInstruction}}".
+Previous winner "{{previousWinner.id}}" scored {{previousWinner.score}}/10 ({{previousWinner.ripeness}}).
+Previous runner-up "{{previousRunnerUp.id}}" scored {{previousRunnerUp.score}}/10 ({{previousRunnerUp.ripeness}}).
+Use the default ready_now target window.
+If the current view supports grading, output only "{{targetCandidateId}}" with an updated score and non-null flipSummary. Compare using produce-appropriate visible evidence; do not assume an outcome from the requested instruction.
 EVIDENCE CHECK FIRST: If blur/glare makes the capture unusable, return unclear_photo. Otherwise, if this photo cannot support a confident ripeness comparison, return insufficient_evidence with no candidates, verdict, followUp, or afterPurchase. Explain what is missing and how to retake. This overrides scoring, counting, and winner instructions, including during repair.
-CURRENT PHOTO OVERRIDES MEMORY: A request to flip does not prove the item was flipped. Inspect the pixels first. If only green striped watermelon rinds are visible and no field spot or underside is visible, return insufficient_evidence. Do not copy golden field spots, sugar webbing, or dry stems from examples or previous traits into the result. Do not output a score or flipSummary without newly visible evidence, even on Round 3. Describe the missing view and next action in one short sentence of at most 16 words and 120 characters.
+CURRENT PHOTO OVERRIDES MEMORY: A request to flip does not prove the item was flipped. Inspect the pixels first. If the view does not reveal usable grading evidence for this produce, return insufficient_evidence. Do not copy traits from prior context or invent newly visible details. Do not output a score or flipSummary without newly visible evidence, even on Round 3. Describe the missing view and next action in one short sentence of at most 16 words and 120 characters.

@@ -23,7 +23,9 @@ describe("Round-one prompt regression (CI flake fixes)", () => {
 
     expect(system).toContain("RANKING (SCORE ORDER MUST EVIDENCE RIPENESS)");
     expect(system).toMatch(/underripe must score strictly below every candidate classified almost_ripe or ripe/i);
-    expect(system).toMatch(/stark white or vivid green surface is underripe visual evidence/i);
+    expect(system).toContain("No color, texture or surface feature is a universal ripeness cue");
+    expect(system).toContain("Do not prescribe a score from a named color");
+    expect(`${system} ${user}`).not.toMatch(/field spot|webbing|glossy green|stark white|golden/i);
     expect(user).toMatch(/runner-up must be the second-highest ripeness candidate/i);
   });
 
