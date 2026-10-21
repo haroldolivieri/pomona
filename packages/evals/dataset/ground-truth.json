@@ -569,14 +569,14 @@
     "filename": "15-banana-pack-bagged.jpg",
     "imagePath": "dataset/images/15-banana-pack-bagged.jpg",
     "imageBase64PreviewLength": 450000,
-    "description": "Round 1 Bagged/Bunched Bananas: Real-world user supermarket photo of bananas in plastic bag-lined crate. Verifies that the model selects the whole bunch/pack unit rather than placing bounding boxes around a single isolated banana.",
+    "description": "Round 1 Bagged/Bunched Bananas: Real-world user supermarket photo of bananas (separate hands plus a few loose bananas) in a plastic bag-lined crate. Verifies that the model selects whole bunch/hand units anchored on distinct cut crowns rather than placing a bounding box per banana; maximum calibrated to 10 separate visible hands/crowns in this display.",
     "groundTruth": {
       "round": 1,
       "expectedStatus": "ok",
       "expectedProduceType": "banana",
       "focusPolygon": null,
       "expectedCandidateCountMin": 1,
-      "expectedCandidateCountMax": 8,
+      "expectedCandidateCountMax": 10,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",

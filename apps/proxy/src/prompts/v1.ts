@@ -153,6 +153,7 @@ SCENE-DEPENDENT COUNT-FIRST: First identify the primary foreground display and i
 - SPARSE displays: include every clearly identifiable eligible item. Never omit a clear item or add invented or duplicate boxes.
 - DENSE BULK PILES of loose small produce (e.g. tomatoes, potatoes, lemons in a big display): scan eligible foreground items row by row (top to bottom, left to right), then:
   - Emit one candidate per distinct, visibly identifiable fruit, each tightly bound with its own score and ripeness tier. Continue through the full visible display; do not stop early while eligible items remain.
+  - EARLY-STOP AUDIT (loose individual produce only): a bulk pile of loose fruit filling most of the frame yields tens of candidates. If you are about to respond with fewer than 24 candidates for such a display, your sweep stopped early: continue from the last boxed fruit and keep boxing further rows, edges, and partially visible items until the front plane is exhausted. This audit NEVER applies to bunches, hands, packs, punnets or bags (they stay ONE candidate per unit), and never overrides status rules: multiple_types, unclear_photo or insufficient_evidence always win.
 
   - Set \`countedTotal\` to the exact number of eligible items and emit exactly one candidate per item. \`countedTotal\` MUST equal candidates.length.
   - Do not merge neighboring items into one box. Slight overlap between tight boxes is allowed, but each physical item gets exactly one box.
