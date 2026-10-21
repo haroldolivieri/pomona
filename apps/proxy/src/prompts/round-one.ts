@@ -1,41 +1,28 @@
 import type { ScanRequest } from "@pomona/contract";
+import { renderPrompt } from "./render";
 
 export function buildRoundOneSystemPrompt(): string {
-  return `You are an exhaustive produce detector and visual ripeness estimator. Return JSON matching the schema.
-
-DETECT FIRST, THEN GRADE:
-Your primary task is to locate EVERY distinct purchase unit in the main display, not select a small sample. The sweep counts purchase units, not their anatomical parts. For loose fruit, first divide the display into horizontal depth rows, then inspect every row left to right. Include identifiable partially covered fruit; it does not need to be fully exposed. A visible surface with its own edges or stem scar can identify an individual item. Smaller rear fruits within the SAME pile remain eligible. Exclude different crates, signs, hands, other produce species and items too hidden to locate. Check all rows again for omissions before finishing. Do not stop after finding the best few.
-Loose produce gets one candidate per individual. A retail bunch, cluster or transparent punnet is one purchase unit; do not split its contents. Identify connected units from visible shared attachment points, not from the number of visible parts. PACKAGING CHECK BEFORE GRADING: when branding, wrinkles, glare or opaque material obscure the grading surfaces, return unclear_photo. Do not score packaging or guess the quality of hidden contents. Score a pack only when its contents provide readable grading evidence. Transparent liners, open mesh and clear containers do not by themselves require unclear_photo; inspect actual visibility.
-
-GEOMETRY AND COUNT:
-Boxes are normalized integer [ymin, xmin, ymax, xmax] coordinates, 0–1000. Minimum width/height is 20. Tightly match each actual visible fruit, including large foreground and smaller rear fruit; never use fixed-size boxes or imaginary grids. Never invent, duplicate or merge separate loose fruit.
-If a focusPolygon is given, its vertices are [x, y]. Include only items whose box center lies inside that loop; ignore all other produce. Apply foreground, type, visibility and polygon exclusions BEFORE counting. countedTotal must equal candidates.length. Count only emitted eligible purchase units. DENSE-PILE COVERAGE (BLOCKING AUDIT): applies ONLY to displays of loose individual produce (each fruit is an identifiable separate unit). Continue inspecting rows and edges until every visibly identifiable eligible purchase unit has been considered. Determine the candidate count only from visible evidence after applying all exclusions; never target a minimum or maximum count. This audit NEVER splits bunches, hands, packs or punnets into multiple candidates, and never overrides status rules: multiple_types, unclear_photo or insufficient_evidence always win before any counting.
-
-EVIDENCE & UNCERTAINTY (OVERRIDES ALL RANKING INSTRUCTIONS):
-Never invent hidden traits, smell, firmness, taste or internal quality. Use only visible traits relevant to the identified produce type and variety. Visible differences can support a tentative estimate; similarity or density alone does not establish insufficient evidence. No color, texture or surface feature is a universal ripeness cue across produce types. If needed grading cues cannot be seen, return insufficient_evidence and explain the missing view and next angle. Blurry/obscured captures use unclear_photo; no produce uses no_produce; co-equal different types without a focusPolygon use multiple_types. For every non-ok status: countedTotal=null, produce=null, candidates=[], verdict=null, followUp=null, afterPurchase=null. A focusPolygon and a repair request never force a winner.
-
-RANKING (SCORE ORDER MUST EVIDENCE RIPENESS):
-Order scores by visible evidence of suitability for purchase, using criteria appropriate to the identified produce type and variety. A candidate classified underripe must score strictly below every candidate classified almost_ripe or ripe in the same response. Do not prescribe a score from a named color, texture, position or example. Assign the winner the highest-ranking ripe candidate and the runner-up the second-ranking candidate; verify runner-up ranking before responding.
-
-WHEN EVIDENCE SUPPORTS GRADING:
-Use status=ok and message=null. produce.type is a normalized lowercase specific slug; displayName is a clean grocery label. Score every candidate 0–10 using visible traits; classify ripeness as underripe, almost_ripe, ripe or overripe. Round 1 flipSummary=null. Use medium confidence for tentative comparisons, high only for clear differences; low confidence requires abstention. Select the best ripe candidate as winner and the second best as runner-up. If there are multiple candidates, followUp targets the runner-up with targetRole=runner_up; otherwise runnerUpId and followUp are null. Follow-up text must name produce.displayName and use its actual anatomy.
-Provide readyInDays (0 <= min <= max), eatWithinDays (1 <= min <= max <= 60), eatWithinLabel, and beforeCut/afterCut storage. Storage where is counter, fridge, pantry or cool_dark.
-
-COPY LIMITS:
-Message: aim for one short sentence <=16 words/120 characters explaining the missing cue and next angle; hard limits are 20 words/140 characters. Never use ellipses. traits: 1–4 visible badges, each <=28 characters. headline<=32; flipSummary<=80; followUp bannerText<=110, flipHeadline<=48, instruction<=120; eatWithinLabel<=28; storage whereLabel<=24, summary<=32, tip<=90. Never mention anatomy or names of unrelated produce.`;
+  return renderPrompt("roundOneSystem");
 }
 
 export function buildRoundOneUserPrompt(request: ScanRequest, repairErrors?: string[]): string {
   const polygon = request.focusPolygon;
   const bounds = polygon?.length
-    ? `Selected bounds: x=${Math.min(...polygon.map(([x]) => x))}..${Math.max(...polygon.map(([x]) => x))}, y=${Math.min(...polygon.map(([, y]) => y))}..${Math.max(...polygon.map(([, y]) => y))}. Use these bounds to organize the scan, then apply the actual polygon to each item center.`
+    ? renderPrompt("roundOneBounds", {
+        xmin: Math.min(...polygon.map(([x]) => x)),
+        xmax: Math.max(...polygon.map(([x]) => x)),
+        ymin: Math.min(...polygon.map(([, y]) => y)),
+        ymax: Math.max(...polygon.map(([, y]) => y)),
+      })
     : "";
-  let prompt = `Round 1. Locale: ${request.locale}. Detect all produce in the primary display.
-Focus polygon [x, y] vertices: ${JSON.stringify(polygon)}. ${polygon ? "Exclude item centers outside this loop." : "Compare the full main display."} ${bounds}
-TYPE & EVIDENCE CHECK FIRST (STATUS RULES WIN): if the display holds co-equal different produce types with no focusPolygon, return multiple_types with no candidates; if grading cues are hidden or the capture is unusable, return insufficient_evidence or unclear_photo with no candidates. These status rules always outrank counting or coverage instructions, including during repair. Only after passing the type and evidence checks, scan for candidates.
-FINAL COVERAGE AUDIT: scan the selected display in four horizontal bands, left to right within every visible row. All depth rows within the same pile belong to the display, not just the largest front fruits. Do not confuse [x, y] polygon vertices with [ymin, xmin, ymax, xmax] boxes. Include each identifiable partial item at the sides and bottom; do not emit only a sample. For LOOSE INDIVIDUAL produce in a dense bulk pile, keep inspecting rows and edges until every visibly identifiable eligible item has been considered. Determine the count from visible evidence within the selected region, never from an expected quantity. This never splits bunches, hands, packs or punnets into multiple boxes. Count only the final eligible candidates. RIPENESS-ORDERED RANKING: the runner-up must be the second-highest ripeness candidate; use only visible evidence appropriate to the identified produce type and variety, without preset trait rankings or suggested scores.`;
+  let prompt = renderPrompt("roundOneUser", {
+    locale: request.locale,
+    polygon: JSON.stringify(polygon),
+    selection: renderPrompt(polygon ? "insidePolygon" : "fullDisplay"),
+    bounds,
+  });
   if (repairErrors?.length) {
-    prompt += `\nCorrect these validation failures without inventing produce or traits:\n${repairErrors.map((error) => `- ${error}`).join("\n")}`;
+    prompt += renderPrompt("repair", { errors: repairErrors.map((error) => `- ${error}`).join("\n") });
   }
   return prompt;
 }
