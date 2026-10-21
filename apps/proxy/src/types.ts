@@ -9,4 +9,7 @@ export interface Env {
   ACTIVE_PROVIDER?: string;
   DEFAULT_MODEL?: string;
   DEVICE_DAILY_LIMIT?: string;
+  AI_GATEWAY_ACCOUNT_ID?: string;
+  AI_GATEWAY_ID?: string;
+  AI_GATEWAY_TOKEN?: string;
 }

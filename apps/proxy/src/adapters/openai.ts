@@ -3,11 +3,13 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { ScanResponseModelSchema } from "@pomona/contract";
 import type { VisionProviderAdapter, AdapterInput, AdapterRawResult } from "./types";
 import { normalizeTokenUsage } from "./types";
+import { getGatewayTraceHeaders, type GatewayRouting } from "./gateway";
 
 export interface OpenAIVisionAdapterOptions {
   apiKey: string;
   modelId?: string;
   baseURL?: string;
+  gateway?: GatewayRouting;
   generateObjectFn?: typeof generateObject;
 }
 
@@ -17,7 +19,8 @@ export function createOpenAIVisionAdapter(options: OpenAIVisionAdapterOptions): 
 
   const openai = createOpenAI({
     apiKey: options.apiKey,
-    baseURL: options.baseURL,
+    baseURL: options.gateway?.baseURL ?? options.baseURL,
+    headers: options.gateway?.headers,
   });
 
   return {
@@ -30,6 +33,7 @@ export function createOpenAIVisionAdapter(options: OpenAIVisionAdapterOptions): 
         model: model as any,
         schema: ScanResponseModelSchema,
         system: input.systemPrompt,
+        headers: getGatewayTraceHeaders(options.gateway, input.trace),
         messages: [
           {
             role: "user",

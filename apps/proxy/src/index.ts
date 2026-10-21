@@ -28,6 +28,7 @@ import {
 } from "./adapters/types";
 import { createGeminiVisionAdapter } from "./adapters/gemini";
 import { createOpenAIVisionAdapter } from "./adapters/openai";
+import { getGatewayRouting } from "./adapters/gateway";
 import { verifyAndResolveScanResponse } from "./verifier/verify-response";
 
 export interface VisionAdapterLike {
@@ -54,11 +55,13 @@ function defaultAdapterFactory(modelId: string, env: Env): VisionProviderAdapter
   if (provider === "openai") {
     return createOpenAIVisionAdapter({
       apiKey: env.OPENAI_API_KEY ?? "",
+      gateway: getGatewayRouting(env, "openai"),
       modelId,
     });
   }
   return createGeminiVisionAdapter({
     apiKey: env.GEMINI_API_KEY ?? "",
+    gateway: getGatewayRouting(env, "google"),
     modelId,
   });
 }
@@ -90,7 +93,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
     cors({
       origin: (origin) => origin || "*",
       allowHeaders: ["Content-Type", DEVICE_TOKEN_HEADER, "Cookie", "X-Pomona-Quota-Override"],
-      exposeHeaders: [DEVICE_TOKEN_HEADER, REMAINING_SCANS_HEADER],
+      exposeHeaders: [DEVICE_TOKEN_HEADER, REMAINING_SCANS_HEADER, "X-Pomona-Request-Id"],
       allowMethods: ["GET", "POST", "OPTIONS"],
       credentials: true,
     })
@@ -292,6 +295,8 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
     }
 
     const scanRequest: ScanRequest = parseResult.data;
+    const requestId = crypto.randomUUID();
+    c.header("X-Pomona-Request-Id", requestId);
     console.log(
       `[proxy] Scan request valid: round ${scanRequest.round}, mime: ${scanRequest.imageMimeType}, base64 length: ${scanRequest.imageBase64.length} chars, focusPolygon: ${scanRequest.focusPolygon ? `${scanRequest.focusPolygon.length} pts` : "null"}`
     );
@@ -353,7 +358,9 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
       const scanOutcome = await runVerifiedVisionScan(
         scanRequest,
         normalizedAdapter,
-        promptConfig
+        promptConfig,
+        undefined,
+        requestId
       );
 
       console.log(
@@ -361,6 +368,12 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
           scanOutcome.response.candidates?.map((c) => ({ id: c.id, box: c.box, score: c.score }))
         )}`
       );
+
+      console.log(JSON.stringify({
+        event: "scan_usage", requestId, sessionId: scanRequest.sessionId, round: scanRequest.round,
+        provider: adapter.providerId, model: modelId, promptVersion: promptConfig.version,
+        attempts: scanOutcome.attempts, status: scanOutcome.response.status, usage: scanOutcome.usage,
+      }));
 
       const recordResult = await recordScanOutcome(store, {
         deviceId,
