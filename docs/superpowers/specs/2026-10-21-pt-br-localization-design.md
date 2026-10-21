@@ -1,8 +1,8 @@
-# Region-based Brazilian Portuguese
+# Preference-based Brazilian Portuguese
 
 ## Intent and agreed scope
 
-Give users connecting from Brazil the existing Pomona experience in Brazilian Portuguese. Keep flows, grading behavior, model prompts, and the model output schema unchanged. Other regions retain English. Region, rather than browser language, selects language for this release.
+Give users the existing Pomona experience in their preferred supported language: Brazilian Portuguese or British English. The user approved replacing the initial region-based language proposal with saved user choice, then browser language, then English. Geographic country independently controls seasonality. Keep grading behavior, model prompts, and the model output schema unchanged; add only a language selector to the existing camera screen.
 
 The user explicitly excluded live evals. Deterministic acceptance scenarios and assertions in `packages/evals` remain required by repository instructions. Model language quality will remain unverified by live calls.
 
@@ -19,13 +19,19 @@ The user explicitly excluded live evals. Deterministic acceptance scenarios and 
 
 Recommended implementation choices below are the author's calls, pending design approval.
 
-Add a small same-origin bootstrap endpoint, proposed as `GET /api/v1/context`, returning the detected country when available and resolved locale. Use trusted Cloudflare country metadata; do not trust a country supplied in a browser query or body. `BR` resolves to `pt-BR`; all other countries and missing/invalid metadata resolve to `en-GB`. Browser language does not participate.
+Resolve display language in this order: a valid saved explicit choice, supported browser preferences from `Accept-Language`, then `en-GB`. Support `pt-BR` and `en-GB`; map Portuguese variants including `pt` and `pt-PT` to `pt-BR`, and English variants to `en-GB`. Respect quality weights, ignore entries with `q=0`, skip unsupported languages, and use English for a wildcard-only or malformed header. Country is never a language fallback.
 
-Fetch context before mounting translated app screens. Show a neutral loading surface without English copy while waiting. A bounded request timeout or failure selects English and allows the app to open. Set the document language consistently. Resolve once per page load; do not persist locale across visits or change language midway through a scan. Manual language selection is outside scope.
+Save explicit choice in a first-party `pomona_locale` cookie (one year, Path=/, SameSite=Lax, Secure in HTTPS), readable by both Worker and app. Allow only supported locale values; invalid cookies fall back to browser negotiation. Storage failure must not prevent changing language for the current page. No account/profile integration is required.
 
-Do not globally cache the context response: use `Cache-Control: private, no-store`. Ensure service-worker handling cannot cache a regional result for another visit. Development and tests inject region metadata or mock context; do not ship a public region override.
+Run the existing Worker before serving HTML navigation responses, fetch the static shell through an assets binding, and inject allowlisted locale into HTML using `HTMLRewriter`. Set the HTML language and localized document metadata consistently. Initialize i18next synchronously from the embedded value before React mounts. Bundle both language catalogs so selection requires no additional network request. Do not introduce a context endpoint or blocking bootstrap fetch. This eliminates an extra network round trip; it does not promise zero processing overhead.
 
-Maintain country and display locale as separate concepts. For example, France still uses English copy but must retain French seasonality. English fallback must not overwrite a known country.
+Keep JavaScript, CSS, images, and other immutable assets on the direct static-asset path. Configure routing for every supported HTML entry path, including `/` and direct index navigation. Do not accidentally intercept API calls or return the app shell for missing asset files. Local Vite startup uses a valid saved cookie, then `navigator.languages`, then English when edge data is absent.
+
+Do not globally cache transformed preference-specific HTML under a shared key: use `Cache-Control: private, no-store` while retaining static-source and immutable-asset caching. Update the service worker to avoid storing or precaching personalized documents. For offline startup, use a separately cached neutral shell and a valid explicit cookie, then browser preferences, then English. Fresh online bootstrap data takes precedence over browser fallback. Do not cache country metadata, images, or scan results for this feature.
+
+Add a compact accessible language select to the idle camera screen, labeled through the copy catalog. Choices use the self-names English and Português (Brasil), also stored in catalogs. Changing language updates i18next, the document language/metadata, and saved preference without a reload. Do not offer the selector during active scans or results; this prevents mixed-language model results mid-session. The next scan uses the selected locale on every round.
+
+Keep shopper country separate. Cloudflare country remains authoritative for seasonality, with the existing locale fallback and GB default only when geographic data is unavailable. For example, an English-speaking user in Brazil gets Brazilian seasonal calculations and English labels; a Portuguese-speaking user in Britain gets British calculations and Portuguese labels. Do not add manual country overrides or infer current country from a language cookie.
 
 ## Copy extraction and translation
 
@@ -35,11 +41,19 @@ Keep identifiers, logs, API enums, property names, and internal errors separate 
 
 Helpers and state transitions should use stable semantic values and presentation translations. Audit existing comparisons against English phrases such as `Buy it.` so translating a headline cannot change winner resolution or follow-up behavior. Preserve behavior with deterministic regression cases.
 
-Use interpolation and locale-aware pluralization for counts, scores, and durations. Keep the Pomona name unchanged. English remains the fallback for genuinely missing keys, with deterministic parity checks preventing catalog gaps at release.
+Use interpolation and locale-aware pluralization for counts, scores, and durations. Keep the Pomona name unchanged. English remains the runtime fallback for genuinely missing keys, but release gates must reject incomplete catalogs.
+
+### Mandatory copy gate
+
+Introduce a root `lint:copy` command and run it as a required CI/pre-merge check. Use ESLint with `eslint-plugin-i18next` in broad literal-checking mode rather than JSX-text-only mode. Cover JSX text, accessibility and presentation attributes, template strings, label objects, fallback messages, and user-facing helper/state code. Allow explicit machine values such as schema enums, identifiers, routes, CSS values, logs, and translation keys. Keep exceptions narrow and documented; do not exempt whole product directories or all constructor/error calls.
+
+Add a deterministic catalog validator to the same gate. It must verify matching semantic keys and value shapes across every registered language, matching interpolation placeholders, valid plural variants for each locale, and that referenced translation keys exist. Validate the dedicated seasonality catalogs as well as the web catalogs. Generated country/month display names may use locale-aware platform APIs; handwritten product messages must come from copy files. Disallow inline English `defaultValue` fallbacks and translation components containing uncatalogued copy.
+
+JSX lint alone does not catch every string that reaches a user. Include HTML title/description and manifest copy in the extraction audit and require those sources to use catalog-backed generation or edge formatting. Test the gate against deliberately invalid snippets and catalogs: JSX text, `aria-label`, helper fallback, missing Portuguese key, unknown key, mismatched placeholder, and missing locale-required plural form must fail. Approved machine literals must pass. Static checks cannot prove a translation is linguistically correct.
 
 ## Model boundary
 
-Pass the resolved locale in the existing scan request field for rounds 1, 2, and 3, including retries and follow-ups. Do not add fields or change defaults/enums in the model schema. Do not edit prompt templates, system instructions, repair instructions, grading rules, or text limits. Rendered prompts may differ only where the existing locale parameter is substituted.
+Pass the resolved display locale in the existing scan request field for rounds 1, 2, and 3, including retries and follow-ups. Do not add fields or change defaults/enums in the model schema. Do not edit prompt templates, system instructions, repair instructions, grading rules, or text limits. Rendered prompts may differ only where the existing locale parameter is substituted.
 
 Human-readable response values are expected to follow the requested locale. Machine identifiers, including produce slugs, status values, candidate identifiers, roles, and abstention reasons, remain unchanged. Seasonality must prefer canonical produce slugs, rather than depending on translated display names.
 
@@ -61,23 +75,29 @@ Keep existing text limits, including 48 characters for seasonality badges and 90
 
 Add or extend runnable deterministic scenarios and assertions in `packages/evals` covering:
 
-1. Brazil with an English browser resolves to Portuguese; non-Brazil with a Portuguese browser resolves to English.
-2. Missing/invalid country and context timeout/failure use English without blocking startup. Context responses are not cached.
-3. Catalog keys match; required user-facing paths use translated copy and interpolation works for Portuguese counts.
+1. A saved choice overrides browser preferences; otherwise supported browser preferences determine language regardless of country. Test weighted preferences, Portuguese/English variants, unsupported languages, wildcards, `q=0`, invalid cookies, and malformed input.
+2. Initial HTML supplies locale without a bootstrap request; personalized HTML is not shared or stored by the service worker. Offline/local startup uses saved choice and browser preferences. The selector persists language across reloads, updates document metadata, and remains usable when storage is unavailable.
+3. The required copy gate rejects hardcoded user-facing literals, missing/unknown translation keys, placeholder mismatches, and invalid plural coverage. Required user-facing paths use translated copy and Portuguese counts interpolate correctly.
 4. All scan rounds carry the resolved locale. Prompt templates are unchanged; prompt rendering changes only existing locale substitutions.
 5. Representative Portuguese fixtures validate against the unchanged response schema, retaining canonical enums and produce slugs.
 6. Every round accepts valid `insufficient_evidence` fixtures without a winner or fabricated traits. These cases exercise contracts and integration, not live model compliance.
 7. Brazil-specific seasonality remains intact; changing display language preserves calculations. A non-Brazil country using English is not replaced with GB.
 8. Winner/follow-up resolution remains stable when human-readable headlines change language.
 
-Run focused existing contract/proxy/web tests, relevant deterministic evals, type checks, and the web build. Use browser journey checks with mocked context for both languages to inspect camera, draw, loading, result, flip, error, quota, and seasonality states. Verify Portuguese text wraps without obscuring controls and accessibility names use the selected language.
+Run focused existing contract/proxy/web tests, relevant deterministic evals, type checks, and the web build. Use browser journey checks with mocked HTML locale data for both languages to inspect camera, draw, loading, result, flip, error, quota, and seasonality states. Verify Portuguese text wraps without obscuring controls and accessibility names use the selected language.
 
 Do not run live evals. Explicitly report that model translation quality was not live-tested.
 
 ## Non-goals
 
-No new flows, manual language picker, browser-language negotiation, persisted language preference, additional languages, regional pricing, schema revisions, prompt edits, calendar revisions, or deployment.
+No new scan flows, additional languages, country domains, language-specific URL routes, account preference synchronization, manual country picker, regional pricing, schema revisions, prompt edits, calendar revisions, or deployment.
 
 ## Builder discretion
 
-The builder may choose exact endpoint/module names, startup timeout, translation key organization, and focused test placement. Keep the changes within the architecture and acceptance criteria above. An implementation plan follows approval of this design.
+The builder may choose exact module names, embedded-data representation, narrow lint exceptions, translation key organization, and focused test placement. Keep the changes within the architecture and acceptance criteria above. An implementation plan follows approval of this design.
+
+## Architecture references
+
+- [Cloudflare SPA shell with bootstrap data](https://developers.cloudflare.com/workers/examples/spa-shell/)
+- [Cloudflare static assets Worker routing](https://developers.cloudflare.com/workers/static-assets/routing/worker-script/)
+- [i18next ESLint literal rule](https://github.com/edvardchen/eslint-plugin-i18next/blob/main/docs/rules/no-literal-string.md)
