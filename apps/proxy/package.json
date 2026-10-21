@@ -26,6 +26,8 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
+    "miniflare": "5.20261012.1-beta",
     "typescript": "^5.8.2",
     "vitest": "^3.2.7",
     "wrangler": "^4.151.1"

@@ -1,3 +1,4 @@
+import { serveLocalizedDocument } from "./document";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { bodyLimit } from "hono/body-limit";
@@ -452,6 +453,8 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
     }
   });
 
+  app.get("/", (c) => c.env.ASSETS ? serveLocalizedDocument(c.req.raw, c.env.ASSETS) : c.notFound());
+  app.get("/index.html", (c) => c.env.ASSETS ? serveLocalizedDocument(c.req.raw, c.env.ASSETS) : c.notFound());
   return app;
 }
 
