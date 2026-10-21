@@ -1,7 +1,7 @@
 {
   "copy": {
     "noCandidates": "SEM CANDIDATOS",
-    "noProduceDetected": "Nenhum alimento detectado.",
+    "noProduceDetected": "Nenhum hortifruti detectado.",
     "tryScanningAgainWithFruitClearlyIn": "Tente novamente com frutas bem visíveis.",
     "bestInView": "MELHOR OPÇÃO À VISTA",
     "buyIt": "Leve este.",
@@ -92,9 +92,9 @@
     "unsupportedTie": "Os sinais visíveis não mostram a maturação individual. Envie uma foto mais nítida.",
     "similar": "A maturação parece semelhante. Mostre cada item mais de perto.",
     "missing": "Não consigo escolher por este ângulo. Mostre a base ou o talo.",
-    "unclear": "O alimento não está visível. Tire outra foto mostrando a superfície.",
-    "noProduce": "Nenhum alimento encontrado. Fotografe as frutas ou os legumes que deseja comparar.",
-    "multiple": "Há vários tipos de alimentos. Contorne apenas um tipo para comparar.",
+    "unclear": "A fruta ou o legume não está visível. Tire outra foto mostrando a superfície.",
+    "noProduce": "Nenhum hortifruti encontrado. Fotografe as frutas ou os legumes que deseja comparar.",
+    "multiple": "Há vários tipos de frutas e legumes. Contorne apenas um tipo para comparar.",
     "failed": "Não foi possível concluir a análise. Tire outra foto e tente novamente.",
     "finalBanner": "A primeira opção ({{score}}) só foi vista por cima. Vire {{produce}} para conferir.",
     "finalHeadline": "Vire a primeira opção: {{produce}}",
