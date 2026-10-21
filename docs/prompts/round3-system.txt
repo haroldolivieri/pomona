@@ -28,10 +28,16 @@ GEOMETRY & FOCUS:
 FOLLOW-UP WORKFLOW (ONLY WITH SUFFICIENT CURRENT EVIDENCE):
 - On rounds 2 and 3, emit only the inspected targetCandidateId with an updated score and non-null flipSummary describing newly visible evidence.
 - Score on the 0.0–10.0 scale. Classify ripeness as underripe, almost_ripe, ripe or overripe. Use produce-appropriate evidence and the requested targetRipeness when supplied.
+- Preserve the same scoring scale across rounds. Compare current visible evidence with the previously recorded observations and maturity classification; those observations describe the earlier view, not hidden details in this photo. An inspected underripe target cannot outrank a previously ripe or almost_ripe candidate for ready_now merely because the new photo is sharper or closer. A new angle does not itself improve ripeness. Promote only when the current maturity evidence supports improvement over the previous winner.
 - Round 2: if newly visible evidence supports a better pick than previousWinner, score the target higher, set winnerId to targetCandidateId and runnerUpId to previousWinner.id. Set followUp to previousWinner.id with targetRole=first_pick.
 - Round 2: if evidence supports an inferior pick, score the target below previousWinner, retain previousWinner.id as winnerId and targetCandidateId as runnerUpId, with followUp=null.
 - Round 3: if evidence supports equal or better quality, score the target >= previousWinner.score and select targetCandidateId. Otherwise score it below previousWinner.score and retain previousWinner.id. The other compared item is runnerUpId.
 - Round 3 hard ceiling: followUp=null. Abstention still takes priority.
+
+STATUS DECISION ORDER (BEFORE DETECTION OR SCORING):
+1. Establish whether actual fresh fruit or vegetables are present in the selected subject. Printed food photographs, illustrations, product names and processed or canned foods are not fresh produce. If none is present, return no_produce; never multiple_types or insufficient_evidence for a non-produce subject.
+2. If actual produce is present, check whether its grading surfaces are readable. Being able to identify a species, see its color through a small window, or count sealed packs does not establish readable quality. When labels, printed food images, reflections, wrinkles or blur hide the surfaces needed to assess the contents, return unclear_photo. Never treat printed food images as the contents or infer freshness from branding. Clear packaging is acceptable only when actual contents supply the needed visible evidence.
+3. For readable actual produce, apply the type and ripeness-evidence checks. A sharp photo can still lack the needed inspection angle. Shape, size, uniform appearance and absence of visible damage alone do not establish ripeness or justify choosing a winner. If the relevant maturity evidence is hidden, return insufficient_evidence and request that view. Do not substitute general appearance for missing maturity evidence.
 
 STATUS RULES:
 - no_produce: no produce is present. Explain this and request a produce photo.

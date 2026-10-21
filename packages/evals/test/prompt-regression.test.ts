@@ -66,3 +66,39 @@ describe("Round-one prompt regression (CI flake fixes)", () => {
     expect(user).toMatch(/runner-up must be the second-highest ripeness candidate/i);
   });
 });
+
+
+describe("Post-merge live-eval regressions", () => {
+  it("separates actual produce presence, readable contents and maturity evidence before scoring", () => {
+    const system = v1PromptConfig.buildSystemPrompt(makeRequest());
+    expect(system).toContain("Printed food photographs");
+    expect(system).toContain("never multiple_types or insufficient_evidence for a non-produce subject");
+    expect(system).toContain("count sealed packs does not establish readable quality");
+    expect(system).toContain("Shape, size, uniform appearance and absence of visible damage alone do not establish ripeness");
+    const user = v1PromptConfig.buildUserPrompt(makeRequest());
+    expect(user.indexOf("actual fresh produce presence")).toBeLessThan(user.indexOf("FINAL COVERAGE AUDIT"));
+  });
+
+  it.each([2, 3] as const)("preserves comparison observations on round %i without using them as current-photo evidence", (round) => {
+    const request = makeRequest({
+      round,
+      followUpContext: {
+        produceType: "avocado",
+        produceDisplayName: "Avocado",
+        targetCandidateId: "c2",
+        targetRole: "runner_up",
+        requestedInstruction: "Inspect the Avocado stem end.",
+        previousWinner: { id: "c1", role: "first_pick", score: 8.6, ripeness: "ripe", traits: ["Even skin", "Intact stem"], anglesInspected: 1 },
+        previousRunnerUp: { id: "c2", role: "runner_up", score: 8.1, ripeness: "almost_ripe", traits: ["Uneven skin"], anglesInspected: 1 },
+      },
+    });
+    const user = v1PromptConfig.buildUserPrompt(request);
+    expect(user).toContain('Previous winner "c1" scored 8.6/10 (ripe). Recorded observations: ["Even skin","Intact stem"]');
+    expect(user).toContain('Previous runner-up "c2" scored 8.1/10 (almost_ripe). Recorded observations: ["Uneven skin"]');
+    const system = v1PromptConfig.buildSystemPrompt(request);
+    expect(system).toContain("those observations describe the earlier view");
+    expect(system).toContain("An inspected underripe target cannot outrank a previously ripe");
+    expect(system).toContain("A new angle does not itself improve ripeness");
+    expect(user).toContain("CURRENT PHOTO OVERRIDES MEMORY");
+  });
+});

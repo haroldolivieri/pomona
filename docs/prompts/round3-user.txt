@@ -4,8 +4,8 @@
 Analyze this produce photo for Round 3 (locale: en-GB). Use only current visible evidence relevant to the identified produce type and variety.
 Inspect ONLY foreground candidate "{{targetCandidateId}}" ({{produceDisplayName}}, role: first_pick).
 Requested instruction: "{{requestedInstruction}}".
-Previous winner "{{previousWinner.id}}" scored {{previousWinner.score}}/10 ({{previousWinner.ripeness}}).
-Previous runner-up "{{previousRunnerUp.id}}" scored {{previousRunnerUp.score}}/10 ({{previousRunnerUp.ripeness}}).
+Previous winner "{{previousWinner.id}}" scored {{previousWinner.score}}/10 ({{previousWinner.ripeness}}). Recorded observations: ["{{previousWinner.traits}}"].
+Previous runner-up "{{previousRunnerUp.id}}" scored {{previousRunnerUp.score}}/10 ({{previousRunnerUp.ripeness}}). Recorded observations: ["{{previousRunnerUp.traits}}"].
 Use the default ready_now target window.
 If the current view supports grading, output only "{{targetCandidateId}}" with an updated score and non-null flipSummary. Compare using produce-appropriate visible evidence; do not assume an outcome from the requested instruction.
 Final round: followUp MUST be null.
