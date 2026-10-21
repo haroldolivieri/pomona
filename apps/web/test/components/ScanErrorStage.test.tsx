@@ -6,6 +6,29 @@ import { ScanErrorStage } from "../../src/components/ScanErrorStage";
 import "../../src/i18n";
 
 describe("ScanErrorStage", () => {
+  it("shows similar visible maturity as a distinct notice without claiming equal quality", () => {
+    const onRetake = vi.fn();
+    render(<ScanErrorStage status="insufficient_evidence" abstentionReason="assessed_tie"
+      errorMessage="I cannot choose between these items." photoDataUrl={null} onRetake={onRetake} />);
+    expect(screen.getByRole("heading", { name: "No clear standout" })).toBeInTheDocument();
+    expect(screen.getByText("Similar Visible Maturity")).toBeInTheDocument();
+    expect(screen.getByText(/no visible ripeness advantage/)).toBeInTheDocument();
+    expect(screen.getByText(/does not confirm equal quality inside/)).toBeInTheDocument();
+    expect(screen.queryByText("Another Look Needed")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Scan Another Selection" }));
+    expect(onRetake).toHaveBeenCalledOnce();
+  });
+
+  it("never shows the similar-maturity notice for missing evidence or another status", () => {
+    const { rerender } = render(<ScanErrorStage status="insufficient_evidence" abstentionReason="missing_evidence"
+      photoDataUrl={null} onRetake={vi.fn()} />);
+    expect(screen.getByRole("heading", { name: "Not enough evidence to choose" })).toBeInTheDocument();
+    rerender(<ScanErrorStage status="unclear_photo" abstentionReason="assessed_tie"
+      photoDataUrl={null} onRetake={vi.fn()} />);
+    expect(screen.queryByText("No clear standout")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Photo isn't clear enough" })).toBeInTheDocument();
+  });
+
   it("shows a distinct evidence notice and another-angle action", () => {
     const onRetake = vi.fn();
     render(<ScanErrorStage status="insufficient_evidence" errorMessage="The field spots are hidden; I cannot confidently choose."

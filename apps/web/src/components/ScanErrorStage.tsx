@@ -1,10 +1,11 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { ScanStatus } from "@pomona/contract";
+import type { AbstentionReason, ScanStatus } from "@pomona/contract";
 
 export interface ScanErrorStageProps {
   status: ScanStatus | "analysis_failed" | null;
   errorMessage?: string | null;
+  abstentionReason?: AbstentionReason | null;
   photoDataUrl: string | null;
   onRetake: () => void;
   onDrawFocus?: () => void;
@@ -13,11 +14,13 @@ export interface ScanErrorStageProps {
 export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
   status,
   errorMessage,
+  abstentionReason,
   photoDataUrl,
   onRetake,
   onDrawFocus,
 }) => {
   const { t } = useTranslation();
+  const similarMaturity = status === "insufficient_evidence" && abstentionReason === "assessed_tie";
 
   let icon = "⚠️";
   let title = t("errors.analysisFailedTitle");
@@ -29,6 +32,14 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
 
   switch (status) {
     case "insufficient_evidence":
+      if (similarMaturity) {
+        icon = "🧺";
+        title = t("errors.similarMaturityTitle");
+        explanation = t("errors.similarMaturity");
+        tip = t("errors.similarMaturityTip");
+        primaryCtaLabel = t("errors.similarMaturityCta");
+        break;
+      }
       icon = "🔎";
       title = t("errors.insufficientEvidenceTitle");
       explanation = errorMessage || t("errors.insufficientEvidence");
@@ -158,7 +169,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
           data-testid="error-status-pill"
           style={{
             backgroundColor: "rgba(251, 250, 246, 0.88)",
-            color: "#8B2E2E",
+            color: similarMaturity ? "#2F5D34" : "#8B2E2E",
             backdropFilter: "blur(10px)",
             WebkitBackdropFilter: "blur(10px)",
             fontFamily: "Inter, system-ui, sans-serif",
@@ -173,8 +184,8 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
           }}
         >
-          <span style={{ fontSize: "12px" }}>⚠️</span>
-          <span>Notice</span>
+          <span style={{ fontSize: "12px" }}>{similarMaturity ? "🧺" : "⚠️"}</span>
+          <span>{similarMaturity ? t("errors.similarMaturityPill") : "Notice"}</span>
         </div>
 
         <button
@@ -228,7 +239,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
             justifyContent: "center",
             fontSize: "36px",
             boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
-            border: "3px solid #F5D547",
+            border: similarMaturity ? "3px solid #62B86C" : "3px solid #F5D547",
           }}
         >
           {icon}
@@ -278,10 +289,12 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
             lineHeight: 1,
             letterSpacing: "0.12em",
             textTransform: "uppercase",
-            color: "#B45309",
+            color: similarMaturity ? "var(--eyebrow-accent)" : "#B45309",
           }}
         >
-          {status === "insufficient_evidence"
+          {similarMaturity
+            ? t("errors.similarMaturityEyebrow")
+            : status === "insufficient_evidence"
             ? "Another Look Needed"
             : status === "unclear_photo"
             ? "Camera Adjustment"
@@ -324,8 +337,8 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
         {/* Helpful Tip Box */}
         <div
           style={{
-            backgroundColor: "var(--surface-hint-warn)",
-            border: "1px solid var(--surface-hint-warn-border)",
+            backgroundColor: similarMaturity ? "var(--surface-hint-ok)" : "var(--surface-hint-warn)",
+            border: similarMaturity ? "1px solid var(--surface-hint-ok-border)" : "1px solid var(--surface-hint-warn-border)",
             borderRadius: "14px",
             padding: "10px 14px",
             display: "flex",

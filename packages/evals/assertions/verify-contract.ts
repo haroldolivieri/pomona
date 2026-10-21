@@ -61,6 +61,9 @@ export function verifyPromptfooOutput(
 
   // Grade the model's abstention itself, before server safeguards can sanitize it.
   const raw = parsedJson as Record<string, any> | null;
+  if (raw?.status !== "insufficient_evidence" && raw?.abstentionReason != null) {
+    return { pass: false, score: 0, reason: "abstentionReason must be null outside insufficient_evidence" };
+  }
   // Check the model's inventory before filtering or normalization can change it.
   if (typeof raw?.countedTotal === "number" && (
     !Array.isArray(raw.candidates) || raw.countedTotal !== raw.candidates.length
@@ -123,6 +126,11 @@ export function verifyPromptfooOutput(
   }
 
   if (response.status === "insufficient_evidence") {
+    if (vars.expectedAbstentionReason && (
+      raw?.abstentionReason !== vars.expectedAbstentionReason || response.abstentionReason !== vars.expectedAbstentionReason
+    )) {
+      return { pass: false, score: 0, reason: `Expected abstentionReason "${vars.expectedAbstentionReason}" but received "${raw?.abstentionReason}"` };
+    }
     const message = response.message ?? "";
     const explainsUncertainty = /(cannot|can.t|not enough|insufficient|unsure|uncertain|unable|more|need|hidden|not visible|not shown|missing|obscur(?:e[sd]?|ing)|(?:similar|uniform|indistinguishable).{0,40}(?:ripe|matur)|no visible basis)/i.test(message);
     const requestsNewView = /\b(turn|flip|rotate|retake|closer|show|(?:provide|take|capture).{0,60}(?:view|angle|photo))\b/i.test(message);

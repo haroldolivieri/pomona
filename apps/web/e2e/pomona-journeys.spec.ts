@@ -142,6 +142,38 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     });
   });
 
+  for (const reason of ["assessed_tie", "missing_evidence"] as const) {
+    test(`Abstention notice: ${reason}`, async ({ page }, testInfo) => {
+      await page.route("**/api/v1/scan", async (route) => {
+        await route.fulfill({
+          status: 200, contentType: "application/json",
+          body: JSON.stringify({
+            ...mockRound1Response, status: "insufficient_evidence", abstentionReason: reason,
+            message: reason === "assessed_tie"
+              ? "These items look similarly mature. Please show a closer individual view."
+              : "The grading surface is hidden. Please turn the item to show it.",
+            countedTotal: null, produce: null, candidates: [], verdict: null, followUp: null, afterPurchase: null,
+          }),
+        });
+      });
+      await page.goto("/");
+      await page.getByTestId("shutter-button").click();
+      await page.getByTestId("whole-photo-button").click();
+      const similar = reason === "assessed_tie";
+      await expect(page.getByRole("heading", { name: similar ? "No clear standout" : "Not enough evidence to choose" })).toBeVisible();
+      if (similar) {
+        await expect(page.getByText(/no visible ripeness advantage/)).toBeVisible();
+        await expect(page.getByText(/does not confirm equal quality inside/)).toBeVisible();
+        await expect(page.getByText("Another Look Needed")).not.toBeVisible();
+      } else {
+        await expect(page.getByText("No clear standout")).not.toBeVisible();
+      }
+      await testInfo.attach(reason, { body: await page.screenshot({ path: testInfo.outputPath(`${reason}.png`) }), contentType: "image/png" });
+      await page.getByRole("button", { name: similar ? "Scan Another Selection" : "Try Another Angle" }).click();
+      await expect(page.getByTestId("stage-S1_LiveCamera")).toBeVisible();
+    });
+  }
+
   test("Journey 1: Whole-Photo Quick Pick (S1 -> S2 -> S3 -> S4)", async ({ page }) => {
     await page.route("**/api/v1/scan", async (route) => {
       await route.fulfill({

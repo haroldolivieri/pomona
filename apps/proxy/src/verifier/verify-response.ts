@@ -134,8 +134,11 @@ export function verifyAndResolveScanResponse(
   // Do not let deterministic ranking turn admitted uncertainty into a purchase recommendation.
   if (data.status === "ok" && data.verdict?.confidence === "low") {
     data.status = "insufficient_evidence";
+    data.abstentionReason = "missing_evidence";
   }
   if (data.status === "insufficient_evidence") {
+    // Older providers may omit the reason. Never infer equal maturity from missing metadata.
+    data.abstentionReason = data.abstentionReason ?? "missing_evidence";
     data.message = data.message?.trim() || "I cannot confidently choose from this view. Turn the produce to show the underside or stem.";
     data.countedTotal = null;
     data.produce = null;
@@ -153,6 +156,7 @@ export function verifyAndResolveScanResponse(
       modelId: ctx.modelId,
       round: ctx.request.round,
       status: data.status,
+      abstentionReason: data.status === "insufficient_evidence" ? data.abstentionReason : null,
       message: data.message,
       countedTotal: data.countedTotal ?? null,
       produce: data.produce,
@@ -369,6 +373,7 @@ export function verifyAndResolveScanResponse(
     modelId: ctx.modelId,
     round: ctx.request.round,
     status: data.status,
+    abstentionReason: null,
     message: data.message,
     countedTotal: data.countedTotal ?? null,
     produce: data.produce,

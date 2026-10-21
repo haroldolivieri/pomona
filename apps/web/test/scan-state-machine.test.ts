@@ -38,6 +38,18 @@ const makeRound1Response = (): ScanResponse => ({
 });
 
 describe("10-state ScanStateMachine", () => {
+  it("preserves the abstention reason for the UI without a selected winner", () => {
+    const response: ScanResponse = {
+      ...makeRound1Response(), status: "insufficient_evidence", abstentionReason: "assessed_tie",
+      message: "These look similarly mature. Please show a closer view.",
+      countedTotal: null, produce: null, candidates: [], verdict: null, followUp: null, afterPurchase: null,
+    };
+    const next = scanMachineReducer(initialScanMachineState(), { type: "SCAN_SUCCEEDED", response });
+    expect(next.phase).toBe("S_ScanError");
+    expect(next.lastResponse?.abstentionReason).toBe("assessed_tie");
+    expect(next.firstPick).toBeNull();
+  });
+
   it.each([1, 2, 3] as const)("routes insufficient evidence on round %s to the notice instead of a winner", (round) => {
     const state = scanMachineReducer(initialScanMachineState(), { type: "SCAN_SUCCEEDED", response: makeRound1Response() });
     const response: ScanResponse = {

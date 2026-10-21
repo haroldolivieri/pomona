@@ -68,6 +68,12 @@
     "insufficientEvidenceTitle": "Not enough evidence to choose",
     "insufficientEvidence": "I can see the produce, but this view does not show enough ripeness detail to recommend a best pick.",
     "insufficientEvidenceTip": "Turn the produce to show another side, including the underside or stem, then take a new photo.",
-    "insufficientEvidenceCta": "Try Another Angle"
+    "insufficientEvidenceCta": "Try Another Angle",
+    "similarMaturityTitle": "No clear standout",
+    "similarMaturity": "These items look similarly mature, with no visible ripeness advantage for one over another.",
+    "similarMaturityTip": "This does not confirm equal quality inside. Try a closer view to compare individual items.",
+    "similarMaturityCta": "Scan Another Selection",
+    "similarMaturityEyebrow": "Similar Visible Maturity",
+    "similarMaturityPill": "Comparison"
   }
 }

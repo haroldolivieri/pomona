@@ -47,12 +47,21 @@ function ripenessOutput() {
 }
 
 const abstention = {
+  abstentionReason: "assessed_tie",
   status: "insufficient_evidence", countedTotal: null, produce: null, candidates: [],
   verdict: null, followUp: null, afterPurchase: null,
   message: "Cannot assess maturity from this dense view. Please show individual surfaces more clearly.",
 };
 
 describe("reviewed scene expectations", () => {
+  it.each(["16-roma-tomatoes-bulk-pile", "17-roma-bulk-pile-focus-polygon"])("%s: distinguishes similar maturity from missing evidence", (id) => {
+    for (const abstentionReason of [null, "missing_evidence"]) {
+      const result = verifyPromptfooOutput(JSON.stringify({ ...abstention, abstentionReason }), { vars: scene(id) });
+      expect(result.pass).toBe(false);
+      expect(result.reason).toContain("Expected abstentionReason");
+    }
+  });
+
   it("allows case 12 to grade or abstain while keeping inventory guards", () => {
     const vars = scene("12-tomato-basket-polygon-selection");
     expect(verifyPromptfooOutput(JSON.stringify(abstention), { vars }).pass).toBe(true);

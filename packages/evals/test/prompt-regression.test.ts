@@ -23,6 +23,9 @@ describe("Round-one prompt regression (CI flake fixes)", () => {
     expect(system).toContain("abstain if those cues are missing");
     expect(system).toContain("Minor variations within one apparent maturity stage are not distinct earlier and later stages");
     expect(system).toContain("A solo unit needs supported maturity grading, not a comparison winner");
+    expect(system).toContain("type-appropriate visible maturity cues positively establish the same maturity class");
+    expect(system).toContain("Matching outward appearance is NOT an assessed tie");
+    expect(system).toContain("missing_evidence when a solo item could not be graded from the shown surfaces");
     expect(system).toContain("Survey the ENTIRE eligible region before deciding");
     expect(system).toContain("Assess the actual exposed surfaces, not the presence of plastic");
     expect(system).toContain("every unit need not have a unique stage or score");
@@ -76,6 +79,7 @@ describe("Round-one prompt regression (CI flake fixes)", () => {
     expect(system).toContain(JSON.stringify(polygon));
     expect(system).toContain("x=80..950, y=460..950");
     expect(system).toContain("USER SELECTION OVERRIDES FULL-DISPLAY DETECTION");
+    expect(system.startsWith("USER SELECTION OVERRIDES FULL-DISPLAY DETECTION")).toBe(true);
 
     // The polygon path shares the same system prompt and user coverage audit.
     expect(user).toContain("visible evidence within the selected region, never from an expected quantity");

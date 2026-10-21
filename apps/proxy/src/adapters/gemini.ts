@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   ScanResponseModelSchema,
   ModelStatusSchema,
+  AbstentionReasonSchema,
   ProduceInfoSchema,
   VerdictSchema,
   FollowUpSchema,
@@ -25,8 +26,9 @@ const GeminiStorageStageSchema = z.object({
 });
 
 const GeminiProviderSchema = z.object({
-  status: ModelStatusSchema,
+  status: ModelStatusSchema.describe("Apply visibility gates BEFORE maturity: no actual fresh produce -> no_produce; blur or sealed printed packaging obscuring grading surfaces -> unclear_photo; co-equal types -> multiple_types. Only a readable single-type subject reaches maturity assessment. If required diagnostic surfaces are absent, insufficient_evidence means missing_evidence, even when every visible item looks alike."),
   message: z.string().nullable().describe("Null when status is ok; descriptive error message otherwise (max 20 words and 140 chars; complete sentences, no ellipsis)"),
+  abstentionReason: AbstentionReasonSchema.nullable().describe("Only for insufficient_evidence: assessed_tie only if visible type-specific cues suffice to grade each item individually but show no useful preference. missing_evidence if grading a solo item from these surfaces would require another angle. If the message asks to reveal a required hidden diagnostic surface, the reason must be missing_evidence. Uniform appearance alone is missing_evidence. An assessed tie requires positive maturity evidence, not merely failure to detect differences. Null for every other status."),
   countedTotal: z
     .number()
     .int()

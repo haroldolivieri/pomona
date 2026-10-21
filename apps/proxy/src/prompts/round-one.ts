@@ -4,7 +4,7 @@ import { renderPrompt } from "./render";
 export function buildRoundOneSystemPrompt(request?: ScanRequest): string {
   const system = renderPrompt("roundOneSystem");
   if (!request?.focusPolygon || request.focusPolygon.length < 3) return system;
-  return system + renderPrompt("roundOneSelection", {
+  const selection = renderPrompt("roundOneSelection", {
     polygon: JSON.stringify(request.focusPolygon),
     bounds: describeSelectionBounds(request.focusPolygon),
     xmin: Math.min(...request.focusPolygon.map(([x]) => x)),
@@ -16,6 +16,7 @@ export function buildRoundOneSystemPrompt(request?: ScanRequest): string {
     excludedLeftPercent: Math.min(...request.focusPolygon.map(([x]) => x)) / 10,
     excludedRightPercent: (1000 - Math.max(...request.focusPolygon.map(([x]) => x))) / 10,
   });
+  return `${selection.trim()}\n\n${system}`;
 }
 
 function describeSelectionBounds(polygon: [number, number][]): string {

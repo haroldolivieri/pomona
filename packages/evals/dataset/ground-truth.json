@@ -607,7 +607,8 @@
         "pineapple",
         "banana",
         "potato"
-      ]
+      ],
+      "expectedAbstentionReason": "assessed_tie"
     }
   },
   {
@@ -701,7 +702,8 @@
         "pineapple",
         "banana",
         "potato"
-      ]
+      ],
+      "expectedAbstentionReason": "assessed_tie"
     }
   },
   {
@@ -712,7 +714,8 @@
     "groundTruth": {
       "round": 1,
       "expectedStatus": "insufficient_evidence",
-      "focusPolygon": null
+      "focusPolygon": null,
+      "expectedAbstentionReason": "missing_evidence"
     }
   },
   {
@@ -752,7 +755,8 @@
           ],
           "anglesInspected": 1
         }
-      }
+      },
+      "expectedAbstentionReason": "missing_evidence"
     }
   },
   {
@@ -792,7 +796,8 @@
           ],
           "anglesInspected": 1
         }
-      }
+      },
+      "expectedAbstentionReason": "missing_evidence"
     }
   },
   {
@@ -820,7 +825,8 @@
           0,
           1000
         ]
-      ]
+      ],
+      "expectedAbstentionReason": "missing_evidence"
     }
   },
   {

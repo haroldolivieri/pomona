@@ -5,6 +5,7 @@ import manifest from "../dataset/ground-truth.json";
 import { verifyPromptfooOutput } from "../assertions/verify-contract";
 
 const abstention = {
+  abstentionReason: "missing_evidence",
   status: "insufficient_evidence", countedTotal: null, produce: null, candidates: [],
   verdict: null, followUp: null, afterPurchase: null,
   message: "I cannot confidently choose: the underside is hidden. Turn the fruit and show the field spot.",
@@ -30,6 +31,12 @@ describe("insufficient evidence abstention eval", () => {
 
   it("covers all three rounds with runnable image scenarios", () => {
     expect(scenarios.map((entry) => entry.groundTruth.round)).toEqual([1, 2, 3]);
+  });
+
+  it.each(scenarios)("$id: rejects a similar-maturity reason when grading evidence is hidden", ({ groundTruth }) => {
+    const result = verifyPromptfooOutput(JSON.stringify({ ...abstention, abstentionReason: "assessed_tie" }), { vars: groundTruth });
+    expect(result.pass).toBe(false);
+    expect(result.reason).toContain("Expected abstentionReason");
   });
 
   it.each([
