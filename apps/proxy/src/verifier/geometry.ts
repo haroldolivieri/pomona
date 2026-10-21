@@ -1,5 +1,12 @@
 import type { BoundingBox, Point } from "@pomona/contract";
 
+export function boxIoU(a: BoundingBox, b: BoundingBox): number {
+  const intersection = Math.max(0, Math.min(a[2], b[2]) - Math.max(a[0], b[0])) *
+    Math.max(0, Math.min(a[3], b[3]) - Math.max(a[1], b[1]));
+  const union = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - intersection;
+  return union > 0 ? intersection / union : 0;
+}
+
 /**
  * Calculates squared distance from a point (px, py) to a line segment between (x1, y1) and (x2, y2).
  */

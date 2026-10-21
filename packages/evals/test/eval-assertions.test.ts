@@ -8,6 +8,7 @@ describe("promptfoo contract & focus-polygon assertion", () => {
         status: "ok",
         message: null,
         produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+        countedTotal: 1,
         candidates: [
           { id: "c1", box: [385, 370, 625, 655], score: 8.6, ripeness: "ripe", traits: ["Yellow field spot"], flipSummary: null },
         ],
@@ -47,6 +48,7 @@ describe("promptfoo contract & focus-polygon assertion", () => {
         status: "ok",
         message: null,
         produce: { type: "cantaloupe", displayName: "Cantaloupe", variety: null },
+        countedTotal: 1,
         candidates: [
           // center is at [100, 100], strictly outside [300, 300] - [700, 700]
           { id: "c1", box: [50, 50, 150, 150], score: 8.0, ripeness: "ripe", traits: ["Good netting"], flipSummary: null },
@@ -80,6 +82,7 @@ describe("promptfoo contract & focus-polygon assertion", () => {
         status: "ok",
         message: null,
         produce: { type: "cantaloupe", displayName: "Cantaloupe", variety: null },
+        countedTotal: 1,
         candidates: [
           { id: "c1", box: [385, 370, 625, 655], score: 8.6, ripeness: "ripe", traits: ["Good aroma"], flipSummary: null },
         ],

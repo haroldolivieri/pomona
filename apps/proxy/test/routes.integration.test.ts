@@ -32,6 +32,7 @@ describe("Hono Worker routes (/api/v1/quota & /api/v1/scan)", () => {
             status: "ok",
             message: null,
             produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+            countedTotal: 1,
             candidates: [
               { id: "c1", box: [385, 370, 625, 655], score: 8.6, ripeness: "ripe", traits: ["Yellow field spot", "Matte rind"], flipSummary: null },
             ],

@@ -13,7 +13,7 @@ describe("geometry & semantic verifier", () => {
     expect(isValidBoundingBox([100, 100, 110, 115])).toBe(false); // < 20 minSize
   });
 
-  it("strips candidates outside focusPolygon and promotes highest remaining candidate to winnerId", () => {
+  it("rejects out-of-selection count mismatches and ranks eligible candidates", () => {
     const rawOutput = {
         status: "ok",
         message: null,
@@ -56,7 +56,9 @@ describe("geometry & semantic verifier", () => {
           followUpContext: null,
         },
       };
-    const res = verifyAndResolveScanResponse(rawOutput, context);
+    const outside = verifyAndResolveScanResponse(rawOutput, context);
+    expect(outside.ok).toBe(false);
+    const res = verifyAndResolveScanResponse({ ...rawOutput, candidates: rawOutput.candidates.slice(1) }, context);
     expect(res.ok).toBe(true);
     if (res.ok) {
       expect(res.response.candidates.map((c) => c.id)).toEqual(["inside1", "inside2"]);
@@ -81,6 +83,7 @@ describe("geometry & semantic verifier", () => {
         status: "ok",
         message: null,
         produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+        countedTotal: null,
         candidates: [
           { id: "c2", box: [200, 200, 800, 800], score: 9.0, ripeness: "ripe", traits: ["Deep creamy spot"], flipSummary: "deep creamy spot" },
         ],
@@ -139,6 +142,7 @@ describe("geometry & semantic verifier", () => {
         status: "ok",
         message: null,
         produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+        countedTotal: null,
         candidates: [
           { id: "c2", box: [200, 200, 800, 800], score: 7.2, ripeness: "almost_ripe", traits: ["Pale spot"], flipSummary: "pale underside" },
         ],
@@ -190,6 +194,7 @@ describe("geometry & semantic verifier", () => {
         status: "ok",
         message: null,
         produce: { type: "watermelon", displayName: "Watermelon", variety: "Seedless" },
+        countedTotal: 2,
         candidates: [
           {
             id: "c1",
@@ -255,6 +260,7 @@ describe("geometry & semantic verifier", () => {
         status: "ok",
         message: null,
         produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+        countedTotal: null,
         candidates: [
           { id: "c1", box: [200, 200, 800, 800], score: 9.3, ripeness: "ripe", traits: ["Deep creamy spot"], flipSummary: "perfect creamy spot" },
         ],
@@ -313,6 +319,7 @@ describe("geometry & semantic verifier", () => {
         status: "ok",
         message: null,
         produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+        countedTotal: null,
         candidates: [
           { id: "c1", box: [200, 200, 800, 800], score: 9.0, ripeness: "ripe", traits: ["Creamy spot"], flipSummary: "creamy spot" },
         ],
@@ -365,6 +372,7 @@ describe("geometry & semantic verifier", () => {
         status: "ok",
         message: null,
         produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+        countedTotal: null,
         candidates: [
           { id: "c1", box: [200, 200, 800, 800], score: 8.4, ripeness: "ripe", traits: ["Faded spot"], flipSummary: "faded spot" },
         ],
@@ -423,6 +431,7 @@ describe("geometry & semantic verifier", () => {
         status: "ok",
         message: null,
         produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+        countedTotal: null,
         candidates: [
           { id: "c2", box: [200, 200, 800, 800], score: 8.8, ripeness: "almost_ripe", traits: ["Pale spot"], flipSummary: "clean pale spot" },
         ],

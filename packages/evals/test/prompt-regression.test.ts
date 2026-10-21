@@ -23,9 +23,11 @@ describe("Round-one prompt regression (CI flake fixes)", () => {
     expect(system).toContain("abstain if those cues are missing");
     expect(system).toContain("Minor variations within one apparent maturity stage are not distinct earlier and later stages");
     expect(system).toContain("A solo unit needs supported maturity grading, not a comparison winner");
-    expect(system).toContain("type-appropriate visible maturity cues positively establish the same maturity class");
+    expect(system).toContain("Only when every unit can be graded from visible cues, and those cues establish the same stage");
     expect(system).toContain("Matching outward appearance is NOT an assessed tie");
     expect(system).toContain("missing_evidence when a solo item could not be graded from the shown surfaces");
+    expect(system).toContain("name the visible maturity stage shared by the items");
+    expect(system).toContain("Similar appearance or no visible difference alone never proves a tie");
     expect(system).toContain("Survey the ENTIRE eligible region before deciding");
     expect(system).toContain("Assess the actual exposed surfaces, not the presence of plastic");
     expect(system).toContain("every unit need not have a unique stage or score");
@@ -53,6 +55,7 @@ describe("Round-one prompt regression (CI flake fixes)", () => {
     expect(system).toMatch(/ONLY to displays of loose individual produce/i);
     // the audit must never split bunches/packs or override status rules
     expect(system).toMatch(/NEVER splits? bunches, hands, packs or punnets/i);
+    expect(system).toContain("groups with separate attachments remain separate candidates");
     expect(system).toMatch(/multiple_types, unclear_photo or insufficient_evidence always win/i);
     expect(user).toContain("never from an expected quantity");
     expect(user).toMatch(/never splits? bunches, hands, packs or punnets/i);
@@ -97,6 +100,9 @@ describe("Post-merge live-eval regressions", () => {
     expect(system).toContain("Shape, size, uniform appearance and absence of visible damage alone do not establish ripeness");
     const user = v1PromptConfig.buildUserPrompt(makeRequest());
     expect(user.indexOf("actual fresh produce presence")).toBeLessThan(user.indexOf("FINAL COVERAGE AUDIT"));
+    expect(system).toContain("For produce varieties with established peel-color maturity cues, compare exposed peel across units");
+    expect(system).toContain("When retail bands bind bunches, treat each separately banded bunch as one purchase unit");
+    expect(system).toContain("if both boxes cover the same fruit, keep one");
   });
 
   it.each([2, 3] as const)("preserves comparison observations on round %i without using them as current-photo evidence", (round) => {
@@ -119,6 +125,8 @@ describe("Post-merge live-eval regressions", () => {
     expect(system).toContain("those observations describe the earlier view");
     expect(system).toContain("An inspected underripe target cannot outrank a previously ripe");
     expect(system).toContain("A new angle does not itself improve ripeness");
+    expect(system).toContain("A visible defect or maturity cue that clearly makes the target worse is sufficient evidence");
+    expect(system).toContain("do not ask for an undamaged replacement");
     expect(user).toContain("CURRENT PHOTO OVERRIDES MEMORY");
   });
 });

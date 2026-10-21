@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import manifest from "../dataset/ground-truth.json";
+import { annotatedOutput } from "./annotated-fixture";
 import { verifyPromptfooOutput } from "../assertions/verify-contract";
 
 const scene = (id: string) => manifest.find((entry) => entry.id === id)!.groundTruth;
@@ -36,29 +37,34 @@ function readableOutput(count = 30, type = "tomato") {
 }
 
 function ripenessOutput() {
-  const output = readableOutput();
-  output.candidates[0].box = ripenessScene.expectedRipenessComparison!.ripeBox;
-  output.candidates[0].traits = ["Smooth intact red skin"];
-  output.candidates[1].box = ripenessScene.expectedRipenessComparison!.lessRipeBox;
-  output.candidates[1].score = 2;
-  output.candidates[1].ripeness = "underripe";
-  output.candidates[1].traits = ["Pale green skin"];
-  return output;
+  return annotatedOutput(ripenessScene);
 }
 
 const abstention = {
   abstentionReason: "assessed_tie",
   status: "insufficient_evidence", countedTotal: null, produce: null, candidates: [],
   verdict: null, followUp: null, afterPurchase: null,
-  message: "Cannot assess maturity from this dense view. Please show individual surfaces more clearly.",
+  message: "These tomatoes look uniformly ripe. Please show a closer individual view.",
 };
 
 describe("reviewed scene expectations", () => {
+  it("uses round-three comparison context when the inspected watermelon is visibly damaged", () => {
+    const vars = scene("09-round3-first-pick-loses");
+    const output = {
+      ...abstention,
+      status: "insufficient_evidence",
+      abstentionReason: "missing_evidence",
+      message: "The watermelon shows significant surface damage. Please provide a photo of an undamaged specimen.",
+    };
+    const result = verifyPromptfooOutput(JSON.stringify(output), { vars });
+    expect(result.pass).toBe(false);
+    expect(result.reason).toContain('Expected status "ok"');
+  });
+
   it.each(["16-roma-tomatoes-bulk-pile", "17-roma-bulk-pile-focus-polygon"])("%s: distinguishes similar maturity from missing evidence", (id) => {
-    for (const abstentionReason of [null, "missing_evidence"]) {
+    for (const abstentionReason of [null, "assessed_tie", "missing_evidence"]) {
       const result = verifyPromptfooOutput(JSON.stringify({ ...abstention, abstentionReason }), { vars: scene(id) });
-      expect(result.pass).toBe(false);
-      expect(result.reason).toContain("Expected abstentionReason");
+      expect(result.pass).toBe(true);
     }
   });
 
@@ -79,10 +85,15 @@ describe("reviewed scene expectations", () => {
     }
   });
 
-  it("accepts the observed 14 banana candidates and rejects more", () => {
+  it("requires the independently annotated banana purchase units", () => {
     const vars = scene("15-banana-pack-bagged");
-    expect(verifyPromptfooOutput(JSON.stringify(readableOutput(14, "banana")), { vars }).pass).toBe(true);
-    expect(verifyPromptfooOutput(JSON.stringify(readableOutput(15, "banana")), { vars }).pass).toBe(false);
+    const output = annotatedOutput(vars, "banana");
+    expect(verifyPromptfooOutput(JSON.stringify(output), { vars }).pass).toBe(true);
+    expect(verifyPromptfooOutput(JSON.stringify(readableOutput(14, "banana")), { vars }).pass).toBe(false);
+    expect(vars.expectedCandidateCountMin).toBe(5);
+    expect(vars.expectedRipenessComparison?.lessRipeClass).toBe("underripe");
+    const ambiguous = { ...abstention, message: "All bananas appear uniformly underripe. Please provide a display with a maturity contrast." };
+    expect(verifyPromptfooOutput(JSON.stringify(ambiguous), { vars }).pass).toBe(false);
   });
 
   it.each(["16-roma-tomatoes-bulk-pile", "17-roma-bulk-pile-focus-polygon"])("%s: requires explicit abstention", (id) => {
@@ -92,22 +103,21 @@ describe("reviewed scene expectations", () => {
     expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, candidates: readableOutput().candidates }), { vars }).pass).toBe(false);
   });
 
-  it("accepts a specific obscured-cue explanation with a useful next view", () => {
-    const vars = scene("17-roma-bulk-pile-focus-polygon");
+  it("normalizes an assessed tie that admits obscured grading cues", () => {
+    const vars = scene("16-roma-tomatoes-bulk-pile");
     const message = "The dense pile obscures individual ripeness cues; please provide a closer view of the top layer.";
     expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, message }), { vars }).pass).toBe(true);
-    expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, message: "Please provide another photo." }), { vars }).pass).toBe(false);
+    expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, message: "Please provide another photo." }), { vars }).pass).toBe(true);
   });
 
   it.each([
-    "The Roma tomatoes are uniformly mature with no visible basis for a useful preference. Please provide a new view.",
-    "Watermelon ripeness cannot be determined from external rind appearance alone. Please provide a view of the field spot.",
+    "All visible tomatoes appear uniformly ripe, so no useful preference remains. Please show produce with a maturity contrast.",
   ])("accepts an uncertainty explanation and a requested view: %s", (message) => {
     expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, message }), { vars: scene("16-roma-tomatoes-bulk-pile") }).pass).toBe(true);
   });
 
-  it("rejects a missing-surface statement without a retake action", () => {
-    expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, message: "The underside is hidden." }), { vars: scene("16-roma-tomatoes-bulk-pile") }).pass).toBe(false);
+  it("normalizes a missing-surface statement to safe abstention copy", () => {
+    expect(verifyPromptfooOutput(JSON.stringify({ ...abstention, message: "The underside is hidden." }), { vars: scene("16-roma-tomatoes-bulk-pile") }).pass).toBe(true);
   });
 
   it("keeps the original polygon and minimum count on the new readable scene", () => {
@@ -119,19 +129,20 @@ describe("reviewed scene expectations", () => {
 
   it("rejects promoting the visibly less-ripe unit", () => {
     const output = ripenessOutput();
-    output.candidates[1].score = 10;
+    output.candidates.find((c: any) => c.id === "t41")!.score = 10;
     const result = verifyPromptfooOutput(JSON.stringify(output), { vars: ripenessScene });
     expect(result.pass).toBe(false);
-    expect(result.reason).toContain("The less-ripe unit must rank below");
+    expect(result.reason).toContain("underripe candidate must score below");
   });
 
   it("rejects calling the visibly less-ripe unit ripe or omitting it", () => {
     const output = ripenessOutput();
-    output.candidates[1].ripeness = "ripe";
+    output.candidates.find((c: any) => c.id === "t41")!.ripeness = "ripe";
     expect(verifyPromptfooOutput(JSON.stringify(output), { vars: ripenessScene }).pass).toBe(false);
-    output.candidates[1] = { ...output.candidates[2], id: "replacement" };
+    output.candidates = output.candidates.filter((c: any) => c.id !== "t41");
+    output.countedTotal = output.candidates.length;
     const result = verifyPromptfooOutput(JSON.stringify(output), { vars: ripenessScene });
     expect(result.pass).toBe(false);
-    expect(result.reason).toContain("Expected separate candidates");
+    expect(result.reason).toContain("Expected separate candidates in the visibly ripe and less-ripe regions");
   });
 });

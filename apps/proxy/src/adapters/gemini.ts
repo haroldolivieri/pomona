@@ -26,16 +26,9 @@ const GeminiStorageStageSchema = z.object({
 });
 
 const GeminiProviderSchema = z.object({
-  status: ModelStatusSchema.describe("Apply visibility gates BEFORE maturity: no actual fresh produce -> no_produce; blur or sealed printed packaging obscuring grading surfaces -> unclear_photo; co-equal types -> multiple_types. Only a readable single-type subject reaches maturity assessment. If required diagnostic surfaces are absent, insufficient_evidence means missing_evidence, even when every visible item looks alike."),
+  status: ModelStatusSchema.describe("Apply visibility gates BEFORE maturity: no actual fresh produce -> no_produce; blur or sealed printed packaging obscuring grading surfaces -> unclear_photo, never insufficient_evidence; co-equal types -> multiple_types. Only a readable single-type subject reaches maturity assessment. If required diagnostic surfaces are absent, insufficient_evidence means missing_evidence, even when every visible item looks alike."),
   message: z.string().nullable().describe("Null when status is ok; descriptive error message otherwise (max 20 words and 140 chars; complete sentences, no ellipsis)"),
-  abstentionReason: AbstentionReasonSchema.nullable().describe("Only for insufficient_evidence: assessed_tie only if visible type-specific cues suffice to grade each item individually but show no useful preference. missing_evidence if grading a solo item from these surfaces would require another angle. If the message asks to reveal a required hidden diagnostic surface, the reason must be missing_evidence. Uniform appearance alone is missing_evidence. An assessed tie requires positive maturity evidence, not merely failure to detect differences. Null for every other status."),
-  countedTotal: z
-    .number()
-    .int()
-    .min(0)
-    .max(500)
-    .nullable()
-    .describe("Round 1 only: exactly candidates.length AFTER foreground, type, visibility and focusPolygon exclusions. Count only emitted eligible purchase units, never outside or hidden items. Null on Rounds 2/3 or non-ok statuses."),
+  abstentionReason: AbstentionReasonSchema.nullable().describe("Only for insufficient_evidence: assessed_tie only if visible type-specific cues establish the same maturity stage for each item. Name that shared stage in the message; appearance alone is not evidence. missing_evidence if grading a solo item from these surfaces would require another angle. A requested hidden diagnostic surface requires missing_evidence. Null for every other status."),
   produce: ProduceInfoSchema.nullable(),
   candidates: z.array(
     z.object({
@@ -51,6 +44,13 @@ const GeminiProviderSchema = z.object({
       flipSummary: z.string().nullable().describe("Null on Round 1; concise summary (max 80 chars) on Round 2/3"),
     })
   ),
+  countedTotal: z
+    .number()
+    .int()
+    .min(0)
+    .max(500)
+    .nullable()
+    .describe("Round 1 only: exactly candidates.length AFTER foreground, type, visibility and focusPolygon exclusions. Count only emitted eligible purchase units, never outside or hidden items. Null on Rounds 2/3 or non-ok statuses."),
   verdict: z
     .object({
       winnerId: z.string().nullable(),

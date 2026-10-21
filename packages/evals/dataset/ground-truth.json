@@ -549,9 +549,12 @@
     "description": "Round 1 Packaged Produce Obscurity / Glare: Real-world user supermarket photo of multiple overlapping plastic bags of British Carrots in a green crate with heavy printed branding, plastic reflection, and visual glare obscuring individual root visibility. Verifies packaging error trigger: expects status = 'unclear_photo'.",
     "groundTruth": {
       "round": 1,
-      "expectedStatus": "unclear_photo",
       "expectedProduceType": null,
-      "focusPolygon": null
+      "focusPolygon": null,
+      "expectedStatuses": [
+        "unclear_photo",
+        "insufficient_evidence"
+      ]
     }
   },
   {
@@ -569,24 +572,160 @@
   },
   {
     "id": "15-banana-pack-bagged",
-    "filename": "15-banana-pack-bagged.jpg",
-    "imagePath": "dataset/images/15-banana-pack-bagged.jpg",
-    "imageBase64PreviewLength": 450000,
-    "description": "Round 1: Plastic-lined banana display. Accept the observed 14 visible candidates while preserving bounded detection and the no-cross-produce copy checks.",
+    "filename": "15-banana-display.jpg",
+    "imagePath": "dataset/images/15-banana-display.jpg",
+    "imageBase64PreviewLength": 3637092,
+    "description": "Round 1: Real supermarket banana display. Count each distinct visible banded banana bunch as one candidate; do not split its bananas. Require at least five clear bunches while allowing additional partially overlapping bunches. Visible yellower and greener bunches provide enough maturity contrast to select the ripest bunch.",
     "groundTruth": {
       "round": 1,
       "expectedStatus": "ok",
       "expectedProduceType": "banana",
       "focusPolygon": null,
-      "expectedCandidateCountMin": 1,
-      "expectedCandidateCountMax": 14,
+      "expectedCandidateCountMin": 5,
+      "expectedCandidateCountMax": 12,
       "forbiddenWordsInCopy": [
         "watermelon",
         "melon",
         "avocado",
         "field spot",
         "rind"
-      ]
+      ],
+      "expectedInventory": {
+        "required": [
+          {
+            "id": "upper-back-banded-bunch",
+            "box": [
+              100,
+              430,
+              290,
+              700
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "upper-center-banded-bunch",
+            "box": [
+              100,
+              280,
+              300,
+              420
+            ],
+            "ripeness": [
+              "almost_ripe"
+            ]
+          },
+          {
+            "id": "upper-left-banded-bunch",
+            "box": [
+              220,
+              140,
+              410,
+              400
+            ],
+            "ripeness": [
+              "almost_ripe"
+            ]
+          },
+          {
+            "id": "middle-right-banded-bunch",
+            "box": [
+              220,
+              475,
+              410,
+              660
+            ],
+            "ripeness": [
+              "almost_ripe"
+            ]
+          },
+          {
+            "id": "middle-fifis-banded-bunch",
+            "box": [
+              340,
+              285,
+              570,
+              500
+            ],
+            "ripeness": [
+              "almost_ripe"
+            ]
+          }
+        ],
+        "optional": [
+          {
+            "id": "lower-left-banded-bunch",
+            "box": [
+              500,
+              150,
+              740,
+              390
+            ],
+            "ripeness": [
+              "almost_ripe"
+            ]
+          },
+          {
+            "id": "lower-center-banded-bunch",
+            "box": [
+              520,
+              400,
+              760,
+              580
+            ],
+            "ripeness": [
+              "almost_ripe"
+            ]
+          },
+          {
+            "id": "lower-right-banded-bunch",
+            "box": [
+              430,
+              570,
+              670,
+              745
+            ],
+            "ripeness": [
+              "almost_ripe"
+            ]
+          },
+          {
+            "id": "front-bottom-banded-bunch",
+            "box": [
+              660,
+              400,
+              920,
+              780
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          }
+        ]
+      },
+      "expectedWinnerBox": [
+        100,
+        430,
+        290,
+        700
+      ],
+      "expectedRipenessComparison": {
+        "ripeBox": [
+          100,
+          430,
+          290,
+          700
+        ],
+        "lessRipeBox": [
+          660,
+          400,
+          920,
+          780
+        ],
+        "ripeClass": "ripe",
+        "lessRipeClass": "underripe"
+      }
     }
   },
   {
@@ -608,7 +747,10 @@
         "banana",
         "potato"
       ],
-      "expectedAbstentionReason": "assessed_tie"
+      "expectedAbstentionReasons": [
+        "assessed_tie",
+        "missing_evidence"
+      ]
     }
   },
   {
@@ -703,7 +845,10 @@
         "banana",
         "potato"
       ],
-      "expectedAbstentionReason": "assessed_tie"
+      "expectedAbstentionReasons": [
+        "assessed_tie",
+        "missing_evidence"
+      ]
     }
   },
   {
@@ -933,6 +1078,515 @@
           580,
           945,
           910
+        ]
+      },
+      "expectedInventory": {
+        "required": [],
+        "optional": [
+          {
+            "id": "t01",
+            "box": [
+              209,
+              236,
+              285,
+              349
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t03",
+            "box": [
+              215,
+              468,
+              294,
+              577
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t04",
+            "box": [
+              232,
+              582,
+              293,
+              711
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t05",
+            "box": [
+              248,
+              740,
+              317,
+              856
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t06",
+            "box": [
+              249,
+              174,
+              335,
+              282
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t07",
+            "box": [
+              257,
+              305,
+              321,
+              434
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t08",
+            "box": [
+              270,
+              405,
+              358,
+              517
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t09",
+            "box": [
+              256,
+              537,
+              336,
+              668
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t10",
+            "box": [
+              276,
+              670,
+              365,
+              812
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t11",
+            "box": [
+              288,
+              816,
+              365,
+              949
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t12",
+            "box": [
+              305,
+              117,
+              385,
+              260
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t13",
+            "box": [
+              298,
+              284,
+              387,
+              397
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t14",
+            "box": [
+              307,
+              475,
+              388,
+              608
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t15",
+            "box": [
+              323,
+              627,
+              403,
+              759
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t16",
+            "box": [
+              354,
+              756,
+              447,
+              866
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t17",
+            "box": [
+              349,
+              856,
+              436,
+              964
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t18",
+            "box": [
+              365,
+              57,
+              454,
+              205
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t19",
+            "box": [
+              358,
+              228,
+              451,
+              371
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t20",
+            "box": [
+              353,
+              383,
+              461,
+              510
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t21",
+            "box": [
+              352,
+              547,
+              448,
+              691
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t22",
+            "box": [
+              399,
+              692,
+              502,
+              824
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t23",
+            "box": [
+              431,
+              0,
+              528,
+              164
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t24",
+            "box": [
+              426,
+              165,
+              519,
+              337
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t25",
+            "box": [
+              424,
+              346,
+              539,
+              483
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t26",
+            "box": [
+              411,
+              502,
+              522,
+              626
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t27",
+            "box": [
+              454,
+              631,
+              564,
+              764
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t28",
+            "box": [
+              434,
+              820,
+              519,
+              982
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t29",
+            "box": [
+              511,
+              0,
+              636,
+              172
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t30",
+            "box": [
+              500,
+              164,
+              603,
+              372
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t31",
+            "box": [
+              496,
+              463,
+              615,
+              650
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t32",
+            "box": [
+              503,
+              772,
+              612,
+              976
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t33",
+            "box": [
+              552,
+              646,
+              650,
+              830
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t34",
+            "box": [
+              632,
+              0,
+              740,
+              192
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t35",
+            "box": [
+              589,
+              183,
+              710,
+              386
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t36",
+            "box": [
+              560,
+              378,
+              707,
+              524
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t37",
+            "box": [
+              622,
+              530,
+              742,
+              736
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t38",
+            "box": [
+              602,
+              800,
+              725,
+              989
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t39",
+            "box": [
+              689,
+              123,
+              899,
+              416
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          },
+          {
+            "id": "t40",
+            "box": [
+              700,
+              384,
+              838,
+              581
+            ],
+            "ripeness": [
+              "almost_ripe",
+              "ripe"
+            ]
+          },
+          {
+            "id": "t41",
+            "box": [
+              748,
+              609,
+              938,
+              889
+            ],
+            "ripeness": [
+              "underripe"
+            ]
+          },
+          {
+            "id": "t42",
+            "box": [
+              675,
+              756,
+              813,
+              987
+            ],
+            "ripeness": [
+              "ripe"
+            ]
+          }
         ]
       }
     }

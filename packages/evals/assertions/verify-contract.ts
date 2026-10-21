@@ -1,5 +1,5 @@
 import { verifyAndResolveScanResponse } from "@pomona/proxy";
-import { ErrorMessageSchema } from "@pomona/contract";
+import { ErrorMessageSchema, resolveAbstentionReason } from "@pomona/contract";
 import type { BoundingBox, ScanRequest, ScanResponse } from "@pomona/contract";
 
 export interface VerifyPromptfooOutputResult {
@@ -44,6 +44,41 @@ export function isBoxCenterInside(candidateBox: BoundingBox, groundTruthBox: Bou
   return cy >= gtYmin && cy <= gtYmax && cx >= gtXmin && cx <= gtXmax;
 }
 
+/** Match independent image annotations one-to-one; repeated boxes cannot stand in for coverage. */
+export function verifyInventory(candidates: { box: BoundingBox; ripeness?: string }[], inventory: {
+  required: { id: string; box: BoundingBox; ripeness?: string[] }[];
+  optional?: { id: string; box: BoundingBox; ripeness?: string[] }[];
+}): string | null {
+  const units = [...inventory.required, ...(inventory.optional ?? [])];
+  const owners = candidates.map(() => -1);
+  const assign = (unit: number, visited: Set<number>): boolean => {
+    for (let i = 0; i < candidates.length; i++) {
+      if (visited.has(i) || computeBoxIoU(candidates[i].box, units[unit].box) < 0.5 ||
+          !isBoxCenterInside(candidates[i].box, units[unit].box)) continue;
+      visited.add(i);
+      if (owners[i] === -1 || assign(owners[i], visited)) {
+        owners[i] = unit;
+        return true;
+      }
+    }
+    return false;
+  };
+  for (let i = 0; i < units.length; i++) {
+    if (!assign(i, new Set()) && i < inventory.required.length) {
+      return `Inventory coverage: missing annotated purchase unit ${units[i].id} (IoU >= 0.5 required)`;
+    }
+  }
+  const unmatched = owners.filter((owner) => owner === -1).length;
+  if (unmatched) return `Inventory coverage: ${unmatched} candidate(s) do not match distinct annotated purchase units`;
+  for (let i = 0; i < candidates.length; i++) {
+    const unit = units[owners[i]];
+    if (unit.ripeness && !unit.ripeness.includes(candidates[i].ripeness ?? "")) {
+      return `Inventory grading: ${unit.id} must be ${unit.ripeness.join(" or ")}, received ${candidates[i].ripeness}`;
+    }
+  }
+  return null;
+}
+
 export function verifyPromptfooOutput(
   output: string,
   context: { vars: Record<string, any> }
@@ -59,8 +94,13 @@ export function verifyPromptfooOutput(
     };
   }
 
-  // Grade the model's abstention itself, before server safeguards can sanitize it.
+  // Grade the model's output before count, geometry or ranking can change it.
   const raw = parsedJson as Record<string, any> | null;
+  const vars = context.vars ?? {};
+  const round = Number(vars.round ?? 1);
+  if (round === 1 && raw?.status === "ok" && !Number.isInteger(raw.countedTotal)) {
+    return { pass: false, score: 0, reason: "Round 1 ok responses require an integer countedTotal equal to candidates.length" };
+  }
   if (raw?.status !== "insufficient_evidence" && raw?.abstentionReason != null) {
     return { pass: false, score: 0, reason: "abstentionReason must be null outside insufficient_evidence" };
   }
@@ -83,8 +123,16 @@ export function verifyPromptfooOutput(
     return { pass: false, score: 0, reason: "Low-confidence selection must abstain with insufficient_evidence" };
   }
 
-  const vars = context.vars ?? {};
-  const round = Number(vars.round ?? 1);
+  // Message checks apply to domain errors too; abstention must not bypass hallucination checks.
+  if (Array.isArray(vars.forbiddenWordsInCopy)) {
+    const copy = JSON.stringify({ message: raw?.message, candidates: raw?.candidates, verdict: raw?.verdict,
+      followUp: raw?.followUp, afterPurchase: raw?.afterPurchase }).toLowerCase();
+    for (const term of vars.forbiddenWordsInCopy) {
+      if (copy.includes(String(term).toLowerCase())) {
+        return { pass: false, score: 0, reason: `Hallucinated forbidden term "${term}" in response copy` };
+      }
+    }
+  }
   const scanRequest: ScanRequest = {
     schemaVersion: "1.0",
     sessionId: "00000000-0000-0000-0000-000000000000",
@@ -126,14 +174,18 @@ export function verifyPromptfooOutput(
   }
 
   if (response.status === "insufficient_evidence") {
-    if (vars.expectedAbstentionReason && (
-      raw?.abstentionReason !== vars.expectedAbstentionReason || response.abstentionReason !== vars.expectedAbstentionReason
+    const expectedReasons = Array.isArray(vars.expectedAbstentionReasons)
+      ? vars.expectedAbstentionReasons
+      : vars.expectedAbstentionReason ? [vars.expectedAbstentionReason] : [];
+    const resolvedReason = resolveAbstentionReason(raw?.abstentionReason, typeof raw?.message === "string" ? raw.message : null);
+    if (expectedReasons.length && (
+      !expectedReasons.includes(resolvedReason) || response.abstentionReason !== resolvedReason
     )) {
-      return { pass: false, score: 0, reason: `Expected abstentionReason "${vars.expectedAbstentionReason}" but received "${raw?.abstentionReason}"` };
+      return { pass: false, score: 0, reason: `Expected abstentionReason ${JSON.stringify(expectedReasons)} but resolved to "${response.abstentionReason}"` };
     }
     const message = response.message ?? "";
-    const explainsUncertainty = /(cannot|can.t|not enough|insufficient|unsure|uncertain|unable|more|need|hidden|not visible|not shown|missing|obscur(?:e[sd]?|ing)|(?:similar|uniform|indistinguishable).{0,40}(?:ripe|matur)|no visible basis)/i.test(message);
-    const requestsNewView = /\b(turn|flip|rotate|retake|closer|show|(?:provide|take|capture).{0,60}(?:view|angle|photo))\b/i.test(message);
+    const explainsUncertainty = /(cannot|can.t|not enough|insufficient|unsure|uncertain|unable|more|need|hidden|not visible|not shown|missing|sealed|packaging|obscur(?:e[sd]?|ing)|do not establish|(?:similar|uniform|indistinguishable|equally).{0,40}(?:ripe|matur)|same.{0,40}(?:ripe|matur)|no useful maturity difference|no visible basis)/i.test(message);
+    const requestsNewView = /\b(turn|flip|rotate|retake|closer|show|display|selection|contrast|(?:provide|take|capture).{0,60}(?:view|angle|photo|display|selection|contrast))\b/i.test(message);
     if (!explainsUncertainty || !requestsNewView) {
       return { pass: false, score: 0, reason: "Insufficient evidence must explain uncertainty and request a useful new view" };
     }
@@ -200,10 +252,17 @@ export function verifyPromptfooOutput(
     };
   }
 
+  if (vars.expectedInventory) {
+    const error = verifyInventory(response.candidates, vars.expectedInventory);
+    if (error) return { pass: false, score: 0, reason: error };
+  }
+
   if (vars.expectedRipenessComparison) {
     const { ripeBox, lessRipeBox } = vars.expectedRipenessComparison as {
-      ripeBox: BoundingBox; lessRipeBox: BoundingBox;
+      ripeBox: BoundingBox; lessRipeBox: BoundingBox; ripeClass?: string; lessRipeClass?: string;
     };
+    const ripeClass = vars.expectedRipenessComparison.ripeClass ?? "ripe";
+    const lessRipeClass = vars.expectedRipenessComparison.lessRipeClass ?? "underripe";
     const matchRegion = (box: BoundingBox) => response.candidates
       .map((candidate) => ({ candidate, iou: computeBoxIoU(candidate.box, box) }))
       .filter(({ candidate, iou }) => iou >= 0.2 && isBoxCenterInside(candidate.box, box))
@@ -213,8 +272,8 @@ export function verifyPromptfooOutput(
     if (!better || !worse || better.id === worse.id) {
       return { pass: false, score: 0.4, reason: "Expected separate candidates in the visibly ripe and less-ripe regions" };
     }
-    if (better.ripeness !== "ripe" || worse.ripeness !== "underripe") {
-      return { pass: false, score: 0.4, reason: "Expected the red unit to be ripe and the pale green unit to be underripe" };
+    if (better.ripeness !== ripeClass || worse.ripeness !== lessRipeClass) {
+      return { pass: false, score: 0.4, reason: `Expected the comparison regions to be ${ripeClass} and ${lessRipeClass}` };
     }
     if (better.score <= worse.score || response.verdict?.winnerId === worse.id) {
       return { pass: false, score: 0.4, reason: "The less-ripe unit must rank below the ripe unit and must not win for ready_now" };
@@ -361,26 +420,6 @@ export function verifyPromptfooOutput(
     }
   }
 
-  // 8. Forbidden Cross-Produce Hallucination Words Check
-  if (Array.isArray(vars.forbiddenWordsInCopy) && vars.forbiddenWordsInCopy.length > 0) {
-    const serializedCopy = JSON.stringify({
-      candidates: response.candidates.map((c) => ({ traits: c.traits, flipSummary: c.flipSummary })),
-      verdict: response.verdict,
-      followUp: response.followUp,
-      afterPurchase: response.afterPurchase,
-    }).toLowerCase();
-
-    for (const word of vars.forbiddenWordsInCopy) {
-      const lowerWord = String(word).toLowerCase();
-      if (serializedCopy.includes(lowerWord)) {
-        return {
-          pass: false,
-          score: 0.3,
-          reason: `Hallucinated forbidden term "${lowerWord}" in response copy for produce "${response.produce?.displayName}"`,
-        };
-      }
-    }
-  }
 
   return {
     pass: true,

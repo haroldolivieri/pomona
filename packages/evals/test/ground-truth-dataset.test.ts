@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { annotatedOutput } from "./annotated-fixture";
 import { verifyPromptfooOutput, computeBoxIoU } from "../assertions/verify-contract";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -26,8 +27,8 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     }
   });
 
-  it("Readable bulk pile: requires one candidate per eligible counted item with no cap", () => {
-      const { expectedRipenessComparison, ...readableGroundTruth } = manifest.find((m) => m.id === "20-roma-clear-ripeness-focus-polygon")!.groundTruth;
+  it("Count bounds: requires a matching total and the configured minimum", () => {
+      const { expectedRipenessComparison, expectedInventory, ...readableGroundTruth } = manifest.find((m) => m.id === "20-roma-clear-ripeness-focus-polygon")!.groundTruth;
       const gt = { ...readableGroundTruth, focusPolygon: null };
 
       const mkCandidate = (i: number, size = 110) => ({
@@ -78,14 +79,14 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       expect(failCoverage.reason).toContain("Count mismatch");
 
       // 3. Too sparse (no countedTotal honesty): 3 candidates fail the expected minimum.
-      const sparseOutput = { ...baseOutput, countedTotal: null, candidates: Array.from({ length: 3 }, (_, i) => mkCandidate(i)) };
+      const sparseOutput = { ...baseOutput, countedTotal: 3, candidates: Array.from({ length: 3 }, (_, i) => mkCandidate(i)) };
       const failRes = verifyPromptfooOutput(JSON.stringify(sparseOutput), { vars: gt });
       expect(failRes.pass).toBe(false);
       expect(failRes.reason).toContain("Expected at least 30 candidates");
   });
 
-  it("Readable polygon bulk pile: requires one candidate per eligible in-polygon item", () => {
-    const { expectedRipenessComparison, ...gt } = manifest.find((m) => m.id === "20-roma-clear-ripeness-focus-polygon")!.groundTruth;
+  it("Polygon count bounds: requires a matching total after exclusions", () => {
+    const { expectedRipenessComparison, expectedInventory, ...gt } = manifest.find((m) => m.id === "20-roma-clear-ripeness-focus-polygon")!.groundTruth;
 
     // 1. Valid polygon output with boxes inside the drawn loop
     const validPolygonOutput = {
@@ -144,7 +145,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     // 3. Adversarial failure: polygon path emits only a handful of candidates for a dense heap
     const collapsedOutput = {
       ...validPolygonOutput,
-      countedTotal: null,
+      countedTotal: 5,
       candidates: validPolygonOutput.candidates.slice(0, 5),
     };
     const failRes = verifyPromptfooOutput(JSON.stringify(collapsedOutput), { vars: gt });
@@ -159,6 +160,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       status: "ok",
       message: null,
       produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+      countedTotal: 3,
       candidates: [
         {
           id: "c1",
@@ -225,7 +227,10 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
 
     const failRes = verifyPromptfooOutput(JSON.stringify(wrongWinnerOutput), { vars: gt });
     expect(failRes.pass).toBe(false);
-    expect(failRes.reason).toContain("did not match ground-truth winner region");
+    expect(failRes.reason).toContain("underripe candidate must score below");
+    const misclassifiedWinner = { ...wrongWinnerOutput, candidates: wrongWinnerOutput.candidates.map((c) =>
+      c.id === "c3" ? { ...c, ripeness: "ripe" } : c) };
+    expect(verifyPromptfooOutput(JSON.stringify(misclassifiedWinner), { vars: gt }).reason).toContain("did not match ground-truth winner region");
   });
 
   it("Scenario 02 (Avocado Polygon Isolation): strips top-left outside avocado and verifies bottom-left winner [495,105,915,475]", () => {
@@ -237,6 +242,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       status: "ok",
       message: null,
       produce: { type: "avocado", displayName: "Hass Avocado", variety: "Hass" },
+      countedTotal: 3,
       candidates: [
         {
           id: "c_outside",
@@ -287,12 +293,15 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       },
     };
 
-    const res = verifyPromptfooOutput(JSON.stringify(outputWithOutsideCandidate), { vars: gt });
-    expect(res.pass).toBe(true);
+    const outside = verifyPromptfooOutput(JSON.stringify(outputWithOutsideCandidate), { vars: gt });
+    expect(outside.pass).toBe(false);
+    const insideOnly = { ...outputWithOutsideCandidate, countedTotal: 2, candidates: outputWithOutsideCandidate.candidates.slice(1) };
+    expect(verifyPromptfooOutput(JSON.stringify(insideOnly), { vars: gt }).pass).toBe(true);
 
     // Adversarial failure check: if model hallucinates "watermelon" or "field spot" when grading avocados
     const hallucinatedCopyOutput = {
       ...outputWithOutsideCandidate,
+      countedTotal: 2,
       candidates: [
         {
           ...outputWithOutsideCandidate.candidates[1],
@@ -380,6 +389,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       status: "ok",
       message: null,
       produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+      countedTotal: null,
       candidates: [
         {
           id: "c2",
@@ -433,6 +443,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       status: "ok",
       message: null,
       produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+      countedTotal: null,
       candidates: [
         {
           id: "c2",
@@ -480,6 +491,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       status: "ok",
       message: null,
       produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+      countedTotal: null,
       candidates: [
         {
           id: "c1",
@@ -518,6 +530,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       status: "ok",
       message: null,
       produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+      countedTotal: null,
       candidates: [
         {
           id: "c1",
@@ -556,6 +569,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       status: "ok",
       message: null,
       produce: { type: "pineapple", displayName: "Pineapple", variety: null },
+      countedTotal: 1,
       candidates: [
         {
           id: "c1",
@@ -595,6 +609,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       status: "ok",
       message: null,
       produce: { type: "grapes", displayName: "Red Seedless Grapes", variety: "Crimson" },
+      countedTotal: 2,
       candidates: [
         {
           id: "c1",
@@ -642,6 +657,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     // 2. Adversarial failure: Model violates Unit of Purchase rule by boxing individual loose berries inside the pack
     const invalidPerBerryOutput = {
       ...validPackOutput,
+      countedTotal: 5,
       candidates: [
         // Tiny bounding boxes for individual berries instead of whole punnets
         { id: "c1", box: [380, 150, 440, 210], score: 9.0, ripeness: "ripe", traits: ["Single berry"], flipSummary: null },
@@ -670,7 +686,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
         { id: "c1", box: [370, 420, 470, 520], score: 9.2, ripeness: "ripe", traits: ["Vibrant red", "Plump form"], flipSummary: null },
         { id: "c2", box: [290, 280, 390, 460], score: 8.8, ripeness: "ripe", traits: ["Uniform color"], flipSummary: null },
         { id: "c3", box: [360, 620, 470, 780], score: 8.5, ripeness: "almost_ripe", traits: ["Firm skin"], flipSummary: null },
-        { id: "c4", box: [440, 490, 510, 640], score: 8.0, ripeness: "underripe", traits: ["Firm green shoulder"], flipSummary: null },
+        { id: "c4", box: [440, 490, 510, 640], score: 7.0, ripeness: "underripe", traits: ["Firm green shoulder"], flipSummary: null },
         { id: "c5", box: [250, 480, 340, 580], score: 8.3, ripeness: "ripe", traits: ["Even red"], flipSummary: null },
         { id: "c6", box: [480, 300, 560, 400], score: 7.9, ripeness: "almost_ripe", traits: ["Slight blush"], flipSummary: null },
         { id: "c7", box: [500, 520, 590, 630], score: 8.1, ripeness: "ripe", traits: ["Smooth skin"], flipSummary: null },
@@ -714,7 +730,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
     // 2. Adversarial failure: Model returns only 1 single candidate when multiple items exist in the selected area
     const invalidSingleCandidateOutput = {
       ...validMultiCandidateOutput,
-      countedTotal: null,
+      countedTotal: 1,
       candidates: [validMultiCandidateOutput.candidates[0]],
       verdict: { winnerId: "c1", runnerUpId: null, confidence: "high", headline: "Buy it." },
       followUp: null,
@@ -746,6 +762,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       status: "ok",
       message: null,
       produce: { type: "carrots", displayName: "Carrots", variety: null },
+      countedTotal: 1,
       candidates: [
         { id: "c1", box: [100, 100, 400, 400], score: 8.0, ripeness: "ripe", traits: ["Orange"], flipSummary: null }
       ],
@@ -786,6 +803,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
       status: "ok",
       message: null,
       produce: { type: "potato", displayName: "Baking Potatoes", variety: null },
+      countedTotal: 1,
       candidates: [
         { id: "c1", box: [400, 160, 900, 860], score: 8.5, ripeness: "ripe", traits: ["Firm"], flipSummary: null }
       ],
@@ -810,37 +828,7 @@ describe("Offline Ground-Truth & Adversarial Eval Suite", () => {
   it("Scenario 15 (Bagged Bananas Crate): selects whole bunch/pack unit, not individual banana", () => {
     const gt = manifest.find((m) => m.id === "15-banana-pack-bagged")!.groundTruth;
 
-    const validBananaOutput = {
-      status: "ok",
-      message: null,
-      produce: { type: "banana", displayName: "Banana", variety: "Cavendish" },
-      candidates: [
-        {
-          id: "c1",
-          box: [180, 180, 520, 720], // Whole bunch / cluster in foreground
-          score: 8.6,
-          ripeness: "ripe",
-          traits: ["Golden yellow", "Green stems", "No bruising"],
-          flipSummary: null,
-        },
-      ],
-      verdict: {
-        winnerId: "c1",
-        runnerUpId: null,
-        confidence: "high",
-        headline: "Buy this bunch.",
-      },
-      followUp: null,
-      afterPurchase: {
-        readyInDays: { min: 0, max: 0 },
-        eatWithinDays: { min: 3, max: 5 },
-        eatWithinLabel: "3–5 days",
-        storage: {
-          beforeCut: { where: "counter", whereLabel: "Counter", summary: "Counter · hang", tip: "Keep at room temp away from apples" },
-          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Fridge · container", tip: "Store sliced banana with lemon juice" },
-        },
-      },
-    };
+    const validBananaOutput = annotatedOutput(gt, "banana");
 
     expect(verifyPromptfooOutput(JSON.stringify(validBananaOutput), { vars: gt }).pass).toBe(true);
   });
