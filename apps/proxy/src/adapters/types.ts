@@ -33,12 +33,21 @@ export function normalizeTokenUsage(rawUsage: unknown): TokenUsage {
   return { promptTokens, completionTokens, totalTokens };
 }
 
+export interface ModelTrace {
+  requestId: string;
+  sessionId: string;
+  round: ScanRequest["round"];
+  promptVersion: string;
+  attempt: number;
+}
+
 export interface AdapterInput {
   systemPrompt: string;
   userPrompt: string;
   imageBase64: string;
   imageMimeType: "image/webp" | "image/jpeg";
   repairErrors?: string[];
+  trace?: ModelTrace;
 }
 
 export interface AdapterRawResult {
@@ -56,7 +65,8 @@ export async function runVerifiedVisionScan(
   request: ScanRequest,
   adapter: VisionProviderAdapter,
   promptConfig: PromptConfig,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  requestId: string = crypto.randomUUID(),
 ): Promise<{
   response: ScanResponse;
   usage: TokenUsage;
@@ -77,6 +87,29 @@ export async function runVerifiedVisionScan(
     totalUsage.totalTokens += t;
   };
 
+  async function analyzeAttempt(input: AdapterInput, attempt: number): Promise<AdapterRawResult> {
+    const trace: ModelTrace = {
+      requestId, sessionId: request.sessionId, round: request.round,
+      promptVersion: promptConfig.version, attempt,
+    };
+    const startedAt = Date.now();
+    try {
+      const result = await adapter.analyzeProduce({ ...input, trace }, signal);
+      console.log(JSON.stringify({
+        event: "model_usage", ...trace, provider: adapter.providerId, model: adapter.modelId,
+        durationMs: Date.now() - startedAt, success: true, usage: result.usage,
+      }));
+      return result;
+    } catch (error) {
+      const status = error && typeof error === "object" && "statusCode" in error ? error.statusCode : undefined;
+      console.log(JSON.stringify({
+        event: "model_usage", ...trace, provider: adapter.providerId, model: adapter.modelId,
+        durationMs: Date.now() - startedAt, success: false, upstreamStatus: typeof status === "number" ? status : null,
+      }));
+      throw error;
+    }
+  }
+
   const systemPrompt = promptConfig.buildSystemPrompt(request);
   const initialUserPrompt = promptConfig.buildUserPrompt(request);
 
@@ -94,14 +127,14 @@ export async function runVerifiedVisionScan(
 
   // Attempt 1: Initial model inference
   try {
-    const raw1 = await adapter.analyzeProduce(
+    const raw1 = await analyzeAttempt(
       {
         systemPrompt,
         userPrompt: initialUserPrompt,
         imageBase64: request.imageBase64,
         imageMimeType: request.imageMimeType,
       },
-      signal
+      1
     );
     addUsage(raw1.usage);
 
@@ -136,7 +169,7 @@ export async function runVerifiedVisionScan(
     : promptConfig.buildUserPrompt(request, repairErrors);
 
   try {
-    const raw2 = await adapter.analyzeProduce(
+    const raw2 = await analyzeAttempt(
       {
         systemPrompt,
         userPrompt: repairPrompt,
@@ -144,7 +177,7 @@ export async function runVerifiedVisionScan(
         imageMimeType: request.imageMimeType,
         repairErrors,
       },
-      signal
+      2
     );
     addUsage(raw2.usage);
 

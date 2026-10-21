@@ -147,6 +147,29 @@ Every push to `main` triggers `.github/workflows/deploy.yml`:
 3. Builds the static web client.
 4. Deploys the Cloudflare Worker with embedded static assets via Wrangler.
 
+### Production model observability
+
+Production model requests support Cloudflare AI Gateway using the existing provider-native SDKs. Both the first inference and validation repair carry the same request ID, session ID, scan round and prompt version, with a distinct attempt number. Responses expose `X-Pomona-Request-Id` for support and trace lookup.
+
+Configure a gateway in the production Cloudflare account, then set these repository variables for GitHub Actions deployments:
+
+- `AI_GATEWAY_ID`: the existing gateway ID, with logging enabled.
+- `AI_GATEWAY_ACCOUNT_ID`: the gateway's account ID; defaults to the deployment account.
+
+The deployment job refuses to deploy without a gateway ID. If authenticated gateway access is enabled, store `AI_GATEWAY_TOKEN` as a Worker secret with AI Gateway Run permission. This is separate from provider API keys and the deployment token. Do not store its value in source control. The provisioning token needs AI Gateway Read/Write permissions to inspect or create gateways.
+
+The application asks Gateway to retain metadata logs and skip request/response payload storage and caching. This provides provider, model, token counts, duration, errors and Gateway cost estimates where model pricing is available, without persisting uploaded photos or prompt/completion bodies. Optional OpenTelemetry exporters must be configured in the gateway settings; request IDs are also sent as Gateway trace IDs.
+
+Worker observability is enabled in Wrangler configuration. Structured `model_usage` logs cover each provider attempt; `scan_usage` logs record the final application status and aggregate token usage. These events share the request ID and omit provider keys, device tokens, IP addresses, photos and prompt text. An SDK call that throws has an error event with unknown token usage; Gateway remains the source for individual HTTP attempts and any available usage data.
+
+With both gateway identifiers unset, local development continues to call providers directly. Partial gateway configuration is rejected. Once Gateway routing is configured, provider errors never cause a silent direct-provider fallback. Manual deployments must supply the same variables:
+
+```bash
+pnpm --filter @pomona/proxy exec wrangler deploy \
+  --var "AI_GATEWAY_ACCOUNT_ID:$CLOUDFLARE_ACCOUNT_ID" \
+  --var "AI_GATEWAY_ID:$AI_GATEWAY_ID"
+```
+
 ### Manual Provisioning
 To provision Cloudflare KV namespaces, configure secrets, and deploy from the command line:
 ```bash

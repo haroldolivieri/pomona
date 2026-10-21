@@ -33,6 +33,12 @@ fi
 export CLOUDFLARE_API_TOKEN="${CLOUDFARE_API_TOKEN:-${CLOUDFLARE_API_TOKEN:-}}"
 export CLOUDFLARE_ACCOUNT_ID="${CLOUDFARE_ACCOUNT_ID:-${CLOUDFLARE_ACCOUNT_ID:-553fb87d04f36b2f088f1250f34503cc}}"
 
+if [ -z "${AI_GATEWAY_ID:-}" ]; then
+  echo "Set AI_GATEWAY_ID to an existing AI Gateway before provisioning production." >&2
+  exit 1
+fi
+export AI_GATEWAY_ACCOUNT_ID="${AI_GATEWAY_ACCOUNT_ID:-${CLOUDFLARE_ACCOUNT_ID}}"
+
 echo "=============================================="
 echo "  Pomona Cloudflare Provisioning & Deployment"
 echo "=============================================="
@@ -136,7 +142,9 @@ echo "✓ @pomona/web client build complete."
 # 6. Deploy Worker & Assets
 echo ""
 echo "--> Deploying Cloudflare Worker via Wrangler..."
-(cd "${ROOT_DIR}/apps/proxy" && npx wrangler deploy)
+(cd "${ROOT_DIR}/apps/proxy" && npx wrangler deploy \
+  --var "AI_GATEWAY_ACCOUNT_ID:${AI_GATEWAY_ACCOUNT_ID}" \
+  --var "AI_GATEWAY_ID:${AI_GATEWAY_ID}")
 
 echo ""
 echo "=============================================="

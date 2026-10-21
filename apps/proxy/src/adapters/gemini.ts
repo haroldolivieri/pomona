@@ -12,6 +12,7 @@ import {
 } from "@pomona/contract";
 import type { VisionProviderAdapter, AdapterInput, AdapterRawResult } from "./types";
 import { normalizeTokenUsage } from "./types";
+import { getGatewayTraceHeaders, type GatewayRouting } from "./gateway";
 
 /**
  * Gemini's OpenAPI responseSchema requires `items` on arrays to be a single schema object
@@ -85,6 +86,7 @@ export interface GeminiVisionAdapterOptions {
   apiKey: string;
   modelId?: string;
   baseURL?: string;
+  gateway?: GatewayRouting;
   generateObjectFn?: typeof generateObject;
 }
 
@@ -94,7 +96,8 @@ export function createGeminiVisionAdapter(options: GeminiVisionAdapterOptions): 
 
   const google = createGoogleGenerativeAI({
     apiKey: options.apiKey,
-    baseURL: options.baseURL,
+    baseURL: options.gateway?.baseURL ?? options.baseURL,
+    headers: options.gateway?.headers,
   });
 
   return {
@@ -108,6 +111,7 @@ export function createGeminiVisionAdapter(options: GeminiVisionAdapterOptions): 
         schema: GeminiProviderSchema as any,
         temperature: 0.1,
         system: input.systemPrompt,
+        headers: getGatewayTraceHeaders(options.gateway, input.trace),
         messages: [
           {
             role: "user",
