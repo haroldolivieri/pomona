@@ -17,3 +17,11 @@ export function releaseMessage(version, description) {
   if (message.length > 120 || /[\r\n]/.test(message)) throw new Error("Release description must fit one deployment message of at most 120 characters");
   return message;
 }
+
+export function assertCiDeployment(env) {
+  if (env.GITHUB_ACTIONS !== "true" || env.GITHUB_REPOSITORY !== "haroldolivieri/pomona" ||
+      env.GITHUB_REF !== "refs/heads/main" ||
+      !["push", "workflow_dispatch"].includes(env.GITHUB_EVENT_NAME)) {
+    throw new Error("Production deployments must run through the GitHub Actions workflow on main");
+  }
+}

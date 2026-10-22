@@ -32,11 +32,11 @@ import { createGeminiVisionAdapter } from "./adapters/gemini";
 import { createOpenAIVisionAdapter } from "./adapters/openai";
 import { getGatewayRouting } from "./adapters/gateway";
 import { verifyAndResolveScanResponse } from "./verifier/verify-response";
-import { runVisibilityGate, visibilityGateResponse, gateDenialStatus, VISIBILITY_GATE_MODEL } from "./gate/visibility";
+import { runVisibilityGate, visibilityGateResponse, gateDenialStatus, VISIBILITY_GATE_MODEL, VISIBILITY_GATE_THRESHOLD } from "./gate/visibility";
 
 import { traceStage, traceResponse, logScanResponse, type ScanTracing } from "./observability/scan-trace";
 
-type AppEnv = { Bindings: Env; Variables: { requestId: string } };
+type AppEnv = { Bindings: Env; Variables: { requestId: string; gateDecision: string; gradingStarted: boolean } };
 
 export interface VisionAdapterLike {
   readonly providerId: string;
@@ -107,6 +107,16 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
         traceResponse(span, "scan", response);
         span?.setAttributes({ "http.status": c.res.status });
         logScanResponse("scan_response", { requestId }, response);
+        if (c.get("gradingStarted") && c.get("gateDecision")) {
+          const gateDecision = c.get("gateDecision");
+          const status = typeof response?.status === "string" ? response.status : "analysis_failed";
+          const mismatch = gateDecision === "pass_to_grading" && status !== "ok";
+          span?.setAttributes({ "flow.gate_decision": gateDecision, "flow.grading_status": status,
+            "flow.clef_pass_gemini_non_ok": mismatch });
+          console.log(JSON.stringify({ event: "gate_grading_outcome", requestId,
+            gateDecision, gradingStatus: status, clefPassGeminiNonOk: mismatch, nonOkValue: mismatch ? 1 : 0 }));
+
+        }
       } finally {
         console.log(JSON.stringify({ event: "scan_complete", requestId,
           durationMs: Date.now() - startedAt, httpStatus: c.res.status }));
@@ -372,7 +382,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
       }
       try {
         const gate = await traceStage(deps.tracing, "scan.clef", {
-          requestId, model: VISIBILITY_GATE_MODEL, "gate.timeout_ms": 3000, "gate.threshold": 0.85,
+          requestId, model: VISIBILITY_GATE_MODEL, "gate.timeout_ms": 3000, "gate.threshold": VISIBILITY_GATE_THRESHOLD,
           "image.payload_characters": scanRequest.imageBase64.length,
           "image.selection_present": !!scanRequest.focusPolygon,
         }, async span => {
@@ -386,7 +396,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
               ...(result.usage ? { "tokens.input": result.usage.promptTokens, "tokens.output": result.usage.completionTokens } : {}) });
             console.log(JSON.stringify({ event: "gate_usage", requestId, sessionId: scanRequest.sessionId,
               model: VISIBILITY_GATE_MODEL, durationMs: Date.now() - startedAt,
-              status: result.status ?? "pass_to_grading", scores: result.scores, threshold: 0.85, usage: result.usage }));
+              status: result.status ?? "pass_to_grading", scores: result.scores, threshold: VISIBILITY_GATE_THRESHOLD, usage: result.usage }));
             return result;
           } catch (error) {
             const outcome = gateDenialStatus(error) ?? "pass_to_grading";
@@ -399,6 +409,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
           }
         });
         receivedGateOutput = true;
+        c.set("gateDecision", gate.scores ? gate.status ?? "pass_to_grading" : "invalid_output_fallback");
         if (gate.usage) {
           await recordScanOutcome(store, { deviceId, ip, modelId: VISIBILITY_GATE_MODEL,
             usage: gate.usage, status: gate.status ?? "analysis_failed" });
@@ -418,6 +429,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
         const denial = receivedGateOutput ? "analysis_failed" : gateDenialStatus(error);
         if (receivedGateOutput) console.log(JSON.stringify({ event: "gate_accounting_failure", requestId,
           model: VISIBILITY_GATE_MODEL, outcome: "analysis_failed", usage: null }));
+        if (!denial) c.set("gateDecision", "error_fallback");
         if (denial) {
           c.header(REMAINING_SCANS_HEADER, quotaResult.remainingDeviceScans.toString());
           return c.json(visibilityGateResponse(denial, scanRequest, promptVersion), 200);
@@ -447,6 +459,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
     };
 
     try {
+      c.set("gradingStarted", adapter.providerId === "google");
       const scanOutcome = await runVerifiedVisionScan(
         scanRequest,
         normalizedAdapter,
@@ -560,6 +573,6 @@ export { v1PromptConfig } from "./prompts/v1";
 export { getGatewayRouting } from "./adapters/gateway";
 export { traceStage, traceResponse, logScanResponse } from "./observability/scan-trace";
 export { createInMemoryQuotaStore, calculateTokenSpendMicroCents } from "./quota/budget";
-export { buildVisibilityGateInput, resolveVisibilityGate, runVisibilityGate, VISIBILITY_GATE_MODEL } from "./gate/visibility";
+export { buildVisibilityGateInput, resolveVisibilityGate, runVisibilityGate, VISIBILITY_GATE_MODEL, VISIBILITY_GATE_THRESHOLD } from "./gate/visibility";
 export type { VisibilityGateRequest } from "./gate/visibility";
 

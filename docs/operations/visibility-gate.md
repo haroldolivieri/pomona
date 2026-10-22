@@ -6,7 +6,7 @@ Release v1.1.0 enables the short neutral gate in the production `pomona-proxy` W
 
 On round one, Clef receives the uploaded image: the full frame with opaque black outside the user's drawing, or the whole photo when no drawing exists. The prompt describes black masking as artificial and excludes it from blur/obstruction judgments.
 
-Clef answers three coarse questions: no actual fresh produce, obvious unreadable surfaces, and co-equal different produce species. Exactly one failure score at or above 0.85 returns the corresponding existing error without calling Gemini. These scores require evaluation; they are not calibrated certainty. The gate never grades ripeness, declares a tie, or chooses a winner.
+Clef answers three coarse questions: no actual fresh produce, obvious unreadable surfaces, and co-equal different produce species. From v1.1.2, the Direct prompt is used. Exactly one failure score at or above 0.70 returns the corresponding existing error without calling Gemini. These scores require evaluation; they are not calibrated certainty. The gate never grades ripeness, declares a tie, or chooses a winner.
 
 Lower scores, conflicting answers, malformed output, or ordinary inference failures continue to Gemini. Native inference has a 3-second abort signal and no configured retries. Capacity/budget denials return `rate_limited`; authentication and accounting failures stop the scan. Rounds two and three bypass Clef and keep the existing abstention behavior.
 
@@ -27,7 +27,7 @@ Real Clef inference is remote: it uses the declared test account's Workers AI al
 
 ## Cost and rollback
 
-Run `pnpm --filter @pomona/evals eval:gate:compare` for exactly three contenders (baseline detailed, short neutral, minimal terse), 13 fixed round-one images, and three repetitions each. It rotates prompt order, keeps threshold 0.85 and the runtime's timeout (3 seconds from v1.1.1), saves raw scores, and preflights all captures. Report: `/tmp/pomona-clef-prompt-comparison.json`. Missing captures or provider denials stop the comparison; inference errors make its exit status nonzero.
+Run `pnpm --filter @pomona/evals eval:gate:compare` for exactly three contenders (baseline detailed, short neutral, minimal terse), 13 fixed round-one images, and three repetitions each. It rotates prompt order, uses the current application threshold (0.70 from v1.1.2) and the runtime's timeout (3 seconds from v1.1.1), saves raw scores, and preflights all captures. Report: `/tmp/pomona-clef-prompt-comparison.json`. Missing captures or provider denials stop the comparison; inference errors make its exit status nonzero.
 
 On 2026-10-22, short was the preferred tradeoff: baseline and short each classified 12/13 distinct images correctly on completed responses; minimal classified 11/13. Completed-request correctness was 31/34 baseline, 33/35 short, and 31/37 minimal, with 5, 4, and 2 timeouts respectively. All three missed the potato-packaging case; minimal also missed the cereal box. No completed response falsely rejected a valid image. Repeated successful responses were stable. The short prompt reduced input tokens for the same 13-image mix from 17,191 to 16,690 (2.9%); minimal used 16,248 but lost accuracy. These normalized costs use one observed token count per image; aborted requests have unknown billed usage. The command returned nonzero because of timeouts. The v1.1.0 release promotes the short contender into the application.
 

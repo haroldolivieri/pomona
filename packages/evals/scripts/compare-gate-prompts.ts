@@ -9,11 +9,13 @@ import { obscurityVisibilityPrompt } from "./obscurity-visibility-prompts";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const obscurity = process.argv.includes("--obscurity");
-const variants = obscurity ? ["current", "direct", "inspectability"] : ["baseline", "short", "minimal"];
+const selectedDirect = process.argv.includes("--direct-only");
+const repetitions = selectedDirect ? 1 : 3;
+const variants = selectedDirect ? ["direct"] : obscurity ? ["current", "direct", "inspectability"] : ["baseline", "short", "minimal"];
 const ids = obscurity
   ? ["01", "02", "03", "04", "05", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"]
   : ["01", "02", "03", "04", "05", "10", "11", "14", "15", "16", "17", "18", "20"];
-const reportPath = obscurity ? "/tmp/pomona-clef-obscurity-comparison.json" : "/tmp/pomona-clef-prompt-comparison.json";
+const reportPath = selectedDirect ? "/tmp/pomona-clef-direct-070.json" : obscurity ? "/tmp/pomona-clef-obscurity-comparison.json" : "/tmp/pomona-clef-prompt-comparison.json";
 
 async function main() {
   const env = clefLocalEnvironment(process.env);
@@ -49,7 +51,7 @@ async function main() {
   });
   const results: any[] = [];
   // Rotate prompt order by repetition to reduce order effects; no inference retries.
-  for (let repeat = 0; repeat < 3; repeat++) {
+  for (let repeat = 0; repeat < repetitions; repeat++) {
     for (const scene of scenes) {
       for (let offset = 0; offset < variants.length; offset++) {
         const variant = variants[(offset + repeat) % variants.length];
@@ -88,7 +90,7 @@ async function main() {
         fs.writeFileSync(reportPath, JSON.stringify({ incomplete: true, results }, null, 2));
       }
     }
-    console.log(`Completed repetition ${repeat + 1}/3 (${results.length}/${scenes.length * variants.length * 3} requests).`);
+    console.log(`Completed repetition ${repeat + 1}/${repetitions} (${results.length}/${scenes.length * variants.length * repetitions} requests).`);
   }
   const summaries = variants.map(variant => {
     const rows = results.filter(row => row.variant === variant);
@@ -107,7 +109,7 @@ async function main() {
       meanDurationMs: rows.reduce((sum, row) => sum + row.durationMs, 0) / rows.length };
   });
   summaries.sort((a, b) => b.passed - a.passed || a.falseRejections - b.falseRejections || a.errors - b.errors || a.inputTokens - b.inputTokens);
-  fs.writeFileSync(reportPath, JSON.stringify({ incomplete: false, threshold: 0.85, repetitions: 3, uniqueImages: scenes.length,
+  fs.writeFileSync(reportPath, JSON.stringify({ incomplete: false, threshold: 0.70, repetitions, uniqueImages: scenes.length,
     rankingRule: "Correct decisions, then fewer false rejections, then fewer errors, then lower input cost",
     summaries, results, limitation: "Repeated images test stability, not independent accuracy. Fixed local dataset; no Gemini calls. Obscurity mode uses actual 768px browser uploads and labels the confirmed scene-13 carrot failure as unclear_photo." }, null, 2));
   console.log(JSON.stringify({ summaries, reportPath }));

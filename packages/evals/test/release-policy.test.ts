@@ -17,3 +17,13 @@ it("production requires a greater version and a versioned change description", (
   expect(result.cases).toEqual([true, true, false, false, false, false]);
   expect(result.messages).toEqual(["v1.1.0: Masked scans; Clef gate and tracing", null, null, null, null]);
 });
+
+
+it("only main push or manual GitHub Actions releases can deploy production", () => {
+  const code = `import { assertCiDeployment } from './scripts/release-policy.mjs';
+    const valid = { GITHUB_ACTIONS:'true', GITHUB_REPOSITORY:'haroldolivieri/pomona', GITHUB_REF:'refs/heads/main', GITHUB_EVENT_NAME:'push' };
+    const inputs = [{}, valid, {...valid,GITHUB_EVENT_NAME:'workflow_dispatch'}, {...valid,GITHUB_REF:'refs/heads/test'}, {...valid,GITHUB_EVENT_NAME:'pull_request'}, {...valid,GITHUB_REPOSITORY:'other/repo'}];
+    process.stdout.write(JSON.stringify(inputs.map(env => { try { assertCiDeployment(env);return true; } catch { return false; } })));`;
+  expect(JSON.parse(execFileSync(process.execPath, ["--input-type=module", "-e", code],
+    { cwd: new URL("../../..", import.meta.url), encoding: "utf8" }))).toEqual([false, true, true, false, false, false]);
+});

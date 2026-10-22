@@ -1,7 +1,7 @@
 {
   "name": "@pomona/web",
-  "version": "1.1.1",
-  "releaseDescription": "Span outcomes, Clef scores and Gemini responses; explicit timeout errors; Clef timeout increased to 3s",
+  "version": "1.1.2",
+  "releaseDescription": "Direct Clef gate at 0.70; grading mismatch metrics; CI-only production releases",
   "type": "module",
   "scripts": {
     "dev": "vite",

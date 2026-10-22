@@ -11,7 +11,7 @@ it("the experimental prompt preserves image payload and response keys without ch
   expect(candidate.state).toContain("black masking");
   expect(candidate.state).toContain("Varieties of one species");
   expect(candidate.state).toContain("If uncertain, answer no");
-  expect(baseline.questions.no_produce.instructions).toBe(candidate.questions.no_produce.instructions);
+  expect(baseline.questions.no_produce.instructions).toBe("Is there no real fresh produce in the foreground?");
   expect(resolveVisibilityGate({ answers: {
     no_produce: { type: "noul", noul: 0.1 }, unclear_photo: { type: "noul", noul: 0.1 },
     multiple_types: { type: "noul", noul: 0.1 },

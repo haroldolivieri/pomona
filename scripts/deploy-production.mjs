@@ -2,11 +2,12 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { parseEnv } from "node:util";
 import { execFileSync, spawnSync } from "node:child_process";
-import { assertVersionBump, releaseMessage } from "./release-policy.mjs";
+import { assertVersionBump, releaseMessage, assertCiDeployment } from "./release-policy.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
 try {
+  assertCiDeployment(process.env);
   git("fetch", "origin", "main", "--tags");
   git("merge-base", "--is-ancestor", "origin/main", "HEAD");
   git("diff", "--exit-code", "HEAD", "--");
@@ -28,6 +29,7 @@ try {
   const config = JSON.parse(fs.readFileSync(`${root}/apps/proxy/wrangler.jsonc`, "utf8"));
   if (config.name !== "pomona-proxy" || account !== "553fb87d04f36b2f088f1250f34503cc") throw new Error("Unexpected production target");
   console.log(`Deploying ${message}`);
+  if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Production deployment\n\n${message}\n\nCommit: ${git("rev-parse", "HEAD")}\n`);
   const args = [`${root}/apps/proxy/node_modules/wrangler/bin/wrangler.js`, "deploy", "--config", `${root}/apps/proxy/wrangler.jsonc`,
     "--keep-vars", "--tag", `v${pkg.version}`, "--message", message];
   for (const key of ["AI_GATEWAY_ACCOUNT_ID", "AI_GATEWAY_ID"]) {

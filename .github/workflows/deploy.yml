@@ -47,7 +47,7 @@ jobs:
       - name: Compute version bump
         id: bump
         env:
-          BASE_REF: ${{ github.event_name == 'push' && github.event.before || 'origin/main' }}
+          BASE_REF: ${{ github.event_name == 'push' && github.event.before || github.event_name == 'workflow_dispatch' && 'HEAD^' || 'origin/main' }}
         run: |
           if [ "${{ github.event_name }}" != "push" ]; then
             git fetch origin main --no-tags 2>/dev/null || true
@@ -62,7 +62,7 @@ jobs:
           fi
           echo "Version gate passed"
         env:
-          BASE_REF: ${{ github.event_name == 'push' && github.event.before || 'origin/main' }}
+          BASE_REF: ${{ github.event_name == 'push' && github.event.before || github.event_name == 'workflow_dispatch' && 'HEAD^' || 'origin/main' }}
 
   check-changes:
     name: Detect Changed Paths
@@ -202,6 +202,8 @@ jobs:
         run: pnpm --filter @pomona/web test:e2e
 
   deploy:
+    permissions:
+      contents: read
     name: Build & Deploy Worker + Static Assets
     needs: [version-gate, check-changes, unit-tests, eval-gate, e2e-web]
     # Deploy only on push to main (or workflow_dispatch), and ensure gates passed if they ran
@@ -237,6 +239,10 @@ jobs:
 
       - name: Build web client & worker
         run: pnpm build
+
+      - name: Validate release message
+        run: |
+          node --input-type=module -e 'import fs from "node:fs"; import { releaseMessage } from "./scripts/release-policy.mjs"; const p = JSON.parse(fs.readFileSync("apps/web/package.json", "utf8")); console.log(releaseMessage(p.version, p.releaseDescription));'
 
       - name: Deploy to Cloudflare Workers
         run: |

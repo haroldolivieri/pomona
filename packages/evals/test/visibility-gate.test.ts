@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createProxyApp, createInMemoryQuotaStore, calculateTokenSpendMicroCents } from "@pomona/proxy";
+import { annotatedOutput } from "./annotated-fixture";
 import { ScanResponseSchema } from "@pomona/contract";
 
 const request = {
@@ -19,10 +20,11 @@ const output = (scores: number[]) => ({
 });
 
 async function scan(run: ReturnType<typeof vi.fn>, options: {
-  enabled?: string; body?: Record<string, unknown>; store?: ReturnType<typeof createInMemoryQuotaStore>;
+  gradingOutput?: unknown; gradingError?: Error; enabled?: string; body?: Record<string, unknown>; store?: ReturnType<typeof createInMemoryQuotaStore>;
   noBinding?: boolean; gatewayId?: string; local?: boolean; tracing?: NonNullable<Parameters<typeof createProxyApp>[0]>["tracing"];
 } = {}) {
-  const grade = vi.fn().mockResolvedValue({ object: abstention, usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 } });
+  const grade = vi.fn().mockResolvedValue({ object: options.gradingOutput ?? abstention, usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 } });
+  if (options.gradingError) grade.mockRejectedValue(options.gradingError);
   const store = options.store ?? createInMemoryQuotaStore();
   const app = createProxyApp({ quotaStore: store, tracing: options.tracing, adapterFactory: modelId => ({ providerId: "google", modelId, analyzeProduce: grade }) });
   const response = await app.request("/api/v1/scan", {
@@ -79,7 +81,7 @@ describe("Clef visibility gate acceptance and failure scenarios", () => {
   });
   it.each([
     ["no_produce", [0.9025, 0.2521, 0.088]],
-    ["unclear_photo", [0.7103, 0.9661, 0.1972]],
+    ["unclear_photo", [0.2623, 0.7393, 0.1972]],
     ["multiple_types", [0.0344, 0.0439, 0.8803]],
   ])("clear %s skips grading, preserves quota and accounts gate usage", async (status, scores) => {
     const run = vi.fn().mockResolvedValue(Response.json(output(scores as number[])));
@@ -87,7 +89,7 @@ describe("Clef visibility gate acceptance and failure scenarios", () => {
     const result = await scan(run);
     const events = log.mock.calls.flatMap(args => { try { return [JSON.parse(String(args[0]))]; } catch { return []; } });
     const requestId = result.response.headers.get("X-Pomona-Request-Id");
-    expect(events).toContainEqual(expect.objectContaining({ event: "gate_usage", requestId, threshold: 0.85,
+    expect(events).toContainEqual(expect.objectContaining({ event: "gate_usage", requestId, threshold: 0.70,
       scores: { no_produce: scores[0], unclear_photo: scores[1], multiple_types: scores[2] } }));
     expect(events).toContainEqual(expect.objectContaining({ event: "scan_response", requestId,
       response: expect.objectContaining({ status }) }));
@@ -102,11 +104,11 @@ describe("Clef visibility gate acceptance and failure scenarios", () => {
     expect(input.images).toEqual([`data:image/webp;base64,${request.imageBase64}`]);
     expect(input.state).toContain("mask");
     expect(input.state).toContain("not");
-    expect(input.questions.no_produce.instructions).toBe("Is there no real fresh fruit or vegetable visible?");
-    expect(input.state).toContain("Missing underside views alone");
+    expect(input.questions.no_produce.instructions).toBe("Is there no real fresh produce in the foreground?");
+    expect(input.state).toContain("Missing underside views are OK");
   });
 
-  it.each([[0.01, 0.01, 0.01], [0.8499, 0.01, 0.01], [0.85, 0.85, 0.01]])(
+  it.each([[0.01, 0.01, 0.01], [0.6999, 0.01, 0.01], [0.70, 0.70, 0.01]])(
     "usable, uncertain, or contradictory decisions preserve Gemini abstention: %j", async (...scores) => {
       const { json, grade } = await scan(vi.fn().mockResolvedValue(Response.json(output(scores))));
       expect(json.status).toBe("insufficient_evidence");
@@ -183,7 +185,7 @@ describe("Clef visibility gate acceptance and failure scenarios", () => {
   });
 
   it("threshold equality rejects and native Gateway metadata stays within five entries", async () => {
-    const run = vi.fn().mockResolvedValue(Response.json(output([0.85, 0.01, 0.01])));
+    const run = vi.fn().mockResolvedValue(Response.json(output([0.70, 0.01, 0.01])));
     const { json } = await scan(run, { gatewayId: "pomona-test" });
     expect(json.status).toBe("no_produce");
     const options = run.mock.calls[0][2];
@@ -217,4 +219,65 @@ describe("Clef visibility gate acceptance and failure scenarios", () => {
   it("prices Clef input separately and never bills output tokens", () => {
     expect(calculateTokenSpendMicroCents("@cf/cloudflare/clef-flash", { promptTokens: 10000, completionTokens: 500, totalTokens: 10500 })).toBe(38);
   });
+});
+
+
+function flowEvents(log: ReturnType<typeof vi.spyOn>) {
+  return log.mock.calls.flatMap(args => { try { return [JSON.parse(String(args[0]))]; } catch { return []; } })
+    .filter(event => event.event === "gate_grading_outcome");
+}
+
+it("records one dashboard outcome for a Clef pass followed by non-ok Gemini grading", async () => {
+  const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  try {
+    const { json } = await scan(vi.fn().mockResolvedValue(Response.json(output([0.1, 0.1, 0.1]))));
+    expect(json.status).toBe("insufficient_evidence");
+    expect(flowEvents(log)).toEqual([expect.objectContaining({ gateDecision: "pass_to_grading",
+      gradingStatus: "insufficient_evidence", clefPassGeminiNonOk: true, nonOkValue: 1 })]);
+  } finally { log.mockRestore(); }
+});
+
+it("gate rejection and disabled gates do not enter the pass-to-grading denominator", async () => {
+  const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  try {
+    await scan(vi.fn().mockResolvedValue(Response.json(output([0.99, 0.1, 0.1]))));
+    await scan(vi.fn(), { enabled: "false" });
+    expect(flowEvents(log)).toEqual([]);
+  } finally { log.mockRestore(); }
+});
+
+it.each([
+  ["error_fallback", () => vi.fn().mockRejectedValue(new DOMException("Timeout", "TimeoutError"))],
+  ["invalid_output_fallback", () => vi.fn().mockResolvedValue(Response.json({ answers: {}, usage: {} }))],
+])("%s stays outside the successful-pass metric", async (gateDecision, run) => {
+  const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  try {
+    await scan(run());
+    expect(flowEvents(log)).toEqual([expect.objectContaining({ gateDecision,
+      gradingStatus: "insufficient_evidence", clefPassGeminiNonOk: false, nonOkValue: 0 })]);
+  } finally { log.mockRestore(); }
+});
+
+
+it("successful Gemini grading counts a valid pass with zero mismatches", async () => {
+  const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  try {
+    const gradingOutput = annotatedOutput({ expectedInventory: { required: [
+      { id: "a", box: [250, 250, 450, 450], ripeness: ["ripe"] },
+      { id: "b", box: [500, 500, 700, 700], ripeness: ["almost_ripe"] },
+    ] } });
+    const { json } = await scan(vi.fn().mockResolvedValue(Response.json(output([0.1, 0.1, 0.1]))), { gradingOutput });
+    expect(json.status).toBe("ok");
+    expect(flowEvents(log)).toEqual([expect.objectContaining({ gateDecision: "pass_to_grading",
+      gradingStatus: "ok", clefPassGeminiNonOk: false, nonOkValue: 0 })]);
+  } finally { log.mockRestore(); }
+});
+
+it("Gemini provider failure counts once as non-ok after a valid Clef pass", async () => {
+  const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  try {
+    await scan(vi.fn().mockResolvedValue(Response.json(output([0.1, 0.1, 0.1]))), { gradingError: new Error("Provider unavailable") });
+    expect(flowEvents(log)).toEqual([expect.objectContaining({ gateDecision: "pass_to_grading",
+      gradingStatus: "analysis_failed", clefPassGeminiNonOk: true, nonOkValue: 1 })]);
+  } finally { log.mockRestore(); }
 });

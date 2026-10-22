@@ -3,6 +3,7 @@ import { translateShared, resolveDisplayLocale, type ScanRequest, type ScanRespo
 import type { TokenUsage } from "../adapters/types";
 
 export const VISIBILITY_GATE_MODEL = "@cf/cloudflare/clef-flash";
+export const VISIBILITY_GATE_THRESHOLD = 0.70;
 const reasons = ["no_produce", "unclear_photo", "multiple_types"] as const;
 export type GateReason = typeof reasons[number];
 export type VisibilityGateRequest = Omit<ScanRequest, "imageMimeType"> & { imageMimeType: ScanRequest["imageMimeType"] | "image/png" };
@@ -24,14 +25,13 @@ export function buildVisibilityGateInput(request: Pick<VisibilityGateRequest, "i
   return {
     model: "clef-flash",
     images: [`data:${request.imageMimeType};base64,${request.imageBase64}`],
-    state: "Check photo suitability only, not ripeness or a winner. " +
-      "Ignore artificial black masking and background produce. Printed pictures are not real produce. " +
-      "Varieties of one species count as one. For an unmasked photo, judge the dominant foreground subject. " +
-      "If uncertain, answer no. Missing underside views alone do not make a photo unclear.",
+    state: "Inspect selected foreground only. Ignore black mask and background. " +
+      "Printed pictures are not produce. Same-species varieties count as one. " +
+      "Missing underside views are OK. Do not grade ripeness. If unsure, answer no.",
     questions: {
-      no_produce: { type: "noul", instructions: "Is there no real fresh fruit or vegetable visible?" },
-      unclear_photo: { type: "noul", instructions: "Is the visible produce too blurry, obscured, or washed out to inspect?" },
-      multiple_types: { type: "noul", instructions: "Does the selected area contain multiple produce species?" },
+      no_produce: { type: "noul", instructions: "Is there no real fresh produce in the foreground?" },
+      unclear_photo: { type: "noul", instructions: "Do blur, glare, or packaging hide most produce surfaces?" },
+      multiple_types: { type: "noul", instructions: "Are two or more produce species selected together?" },
     },
   };
 }
@@ -50,7 +50,7 @@ export function resolveVisibilityGate(raw: unknown): { status: GateReason | null
   } : null;
   const answers = answersSchema.safeParse(envelope.data.answers);
   if (!answers.success || !usage) return { status: null, usage, scores: null };
-  const failures = reasons.filter(reason => answers.data[reason].noul >= 0.85);
+  const failures = reasons.filter(reason => answers.data[reason].noul >= VISIBILITY_GATE_THRESHOLD);
   return { status: failures.length === 1 ? failures[0] : null, usage,
     scores: { no_produce: answers.data.no_produce.noul, unclear_photo: answers.data.unclear_photo.noul, multiple_types: answers.data.multiple_types.noul } };
 }
