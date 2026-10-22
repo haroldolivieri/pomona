@@ -98,6 +98,34 @@ export function visibilityGateResponse(status: GateReason | "rate_limited" | "an
     produce: null, candidates: [], verdict: null, followUp: null, afterPurchase: null };
 }
 
+export async function runDeepScanVisibilityGate(
+  binding: GateAiBinding, imageBase64: string, imageMimeType: string, requestId: string,
+  gateway?: { id: string; token?: string },
+) {
+  const signal = AbortSignal.timeout(3000);
+  const input = buildDeepScanGateInput(imageBase64, imageMimeType);
+  try {
+    const response = await binding.run(VISIBILITY_GATE_MODEL, input, {
+      signal,
+      returnRawResponse: true,
+      ...(gateway ? {
+        gateway: { id: gateway.id, skipCache: true, collectLog: false, retries: { maxAttempts: 1 as const },
+          metadata: { app: "pomona", request_id: requestId, stage: "deep-scan" } },
+        extraHeaders: gateway.token ? { "cf-aig-authorization": `Bearer ${gateway.token}` } : undefined,
+      } : {}),
+    });
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => {});
+      throw Object.assign(new Error(`Workers AI HTTP ${response.status}`), { status: response.status });
+    }
+    return resolveDeepScanGate(await response.json());
+  } catch (error) {
+    if (gateDenialStatus(error)) throw error;
+    if (signal.aborted) throw Object.assign(new Error("Clef exceeded 3000ms timeout"), { name: "TimeoutError", timeoutMs: 3000 });
+    throw error;
+  }
+}
+
 export function gateDenialStatus(error: unknown): "rate_limited" | "analysis_failed" | null {
   const code = error && typeof error === "object"
     ? ((error as { status?: number }).status ?? (error as { statusCode?: number }).statusCode) : undefined;

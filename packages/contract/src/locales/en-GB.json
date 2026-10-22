@@ -101,6 +101,7 @@
     "unclearPhoto": "The produce is obscured. Please take a clearer photo showing its surfaces.",
     "multipleTypes": "Several produce types share the view. Please draw around one type or take a closer photo.",
     "rateLimited": "Scan allowance or service capacity reached. Please try again later.",
-    "failed": "The photo check is unavailable. Please try again later."
+    "failed": "The photo check is unavailable. Please try again later.",
+    "tooLarge": "The capture package is too large. Please try again shortly."
   }
 }

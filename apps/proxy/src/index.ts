@@ -5,11 +5,16 @@ import { bodyLimit } from "hono/body-limit";
 import { getCookie, setCookie } from "hono/cookie";
 import {
   ScanRequestSchema,
+  DeepScanRequestSchema,
   isSupportedLocale,
+  resolveDisplayLocale,
+  translateShared,
+  LOCALE_COOKIE,
   lookupProduceSeasonality,
   type ScanRequest,
   type ScanResponse,
   type SeasonalityInfo,
+  type DeepScanResponse,
 } from "@pomona/contract";
 import type { Env } from "./types";
 import {
@@ -29,11 +34,12 @@ import {
   type VisionProviderAdapter,
   runVerifiedVisionScan,
 } from "./adapters/types";
+import { runVerifiedDeepScan } from "./adapters/deep-scan";
 import { createGeminiVisionAdapter } from "./adapters/gemini";
 import { createOpenAIVisionAdapter } from "./adapters/openai";
 import { getGatewayRouting } from "./adapters/gateway";
 import { verifyAndResolveScanResponse } from "./verifier/verify-response";
-import { runVisibilityGate, visibilityGateResponse, gateDenialStatus, VISIBILITY_GATE_MODEL, VISIBILITY_GATE_THRESHOLD } from "./gate/visibility";
+import { runVisibilityGate, runDeepScanVisibilityGate, visibilityGateResponse, gateDenialStatus, VISIBILITY_GATE_MODEL, VISIBILITY_GATE_THRESHOLD } from "./gate/visibility";
 
 import { traceStage, traceResponse, logScanResponse, type ScanTracing } from "./observability/scan-trace";
 
@@ -96,7 +102,7 @@ function getClientIp(req: Request): string {
 export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
-  app.use("/api/v1/scan", async (c, next) => {
+  const requestTracing = async (c: any, next: () => Promise<void>) => {
     const requestId = crypto.randomUUID();
     c.set("requestId", requestId);
     c.header("X-Pomona-Request-Id", requestId);
@@ -123,7 +129,9 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
           durationMs: Date.now() - startedAt, httpStatus: c.res.status }));
       }
     });
-  });
+  };
+  app.use("/api/v1/scan", requestTracing);
+  app.use("/api/v1/deep-scan", requestTracing);
 
   // CORS middleware: allow web client origins and expose custom headers
   app.use(
@@ -574,6 +582,176 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
 
   app.get("/", (c) => c.env.ASSETS ? serveLocalizedDocument(c.req.raw, c.env.ASSETS) : c.notFound());
   app.get("/index.html", (c) => c.env.ASSETS ? serveLocalizedDocument(c.req.raw, c.env.ASSETS) : c.notFound());
+  /**
+   * POST /api/v1/deep-scan — guided multi-angle capture of a single fruit.
+   * Free during MVP: no device quota consumption, no budget charge
+   * (TODO: add deep-scan pricing to MODEL_PRICING before charging).
+   */
+  const DEEP_SCAN_BODY_BYTES = 1_048_576;
+  const DEEP_SCAN_PROMPT_VERSION = "deep_scan_v1";
+
+  app.use(
+    "/api/v1/deep-scan",
+    bodyLimit({
+      maxSize: DEEP_SCAN_BODY_BYTES,
+      onError: (c) => {
+        console.warn("[proxy] Deep-scan body exceeded size limit:", c.req.header("content-length"));
+        const locale = resolveDisplayLocale(getCookie(c, LOCALE_COOKIE), c.req.header("accept-language"));
+        return c.json(
+          { status: "analysis_failed", message: translateShared(locale, "gate.tooLarge") },
+          413
+        );
+      },
+    })
+  );
+
+  app.post("/api/v1/deep-scan", async (c) => {
+    const requestId = c.get("requestId");
+    let rawBody: unknown;
+    try {
+      rawBody = await c.req.json();
+    } catch {
+      return c.json({ error: "Invalid JSON body" }, 400);
+    }
+    const parseResult = DeepScanRequestSchema.safeParse(rawBody);
+    if (!parseResult.success) {
+      console.warn("[proxy] DeepScanRequestSchema validation failed:", JSON.stringify(parseResult.error.errors));
+      return c.json({ error: "Invalid deep scan request", details: parseResult.error.errors }, 400);
+    }
+    const deepScanRequest = parseResult.data;
+    console.log(JSON.stringify({ event: "deep_scan_received", requestId,
+      sessionId: deepScanRequest.sessionId, mimeType: deepScanRequest.imageMimeType,
+      sampleCount: deepScanRequest.sampleCount, imagePayloadCharacters: deepScanRequest.imageBase64.length }));
+
+    const store = resolveQuotaStore(c.env, deps.quotaStore);
+    const gateEnabled = c.env.VISION_GATE_ENABLED === "true";
+    const respondDeepScan = (status: "no_produce" | "unclear_photo" | "rate_limited" | "analysis_failed", messageId: string) => c.json({
+      schemaVersion: "1.0",
+      promptVersion: DEEP_SCAN_PROMPT_VERSION,
+      modelId: "run-visibility-gate",
+      status,
+      message: translateShared(isSupportedLocale(deepScanRequest.locale) ? deepScanRequest.locale : "en-GB", messageId),
+      abstentionReason: null,
+      produce: { type: "unknown", displayName: "Unknown", variety: null },
+      ripeness: { state: "unknown", confidence: 0 },
+      evidence: [],
+      quality: { sufficientVisualEvidence: false, viewCoverage: "poor", reason: null },
+      manualChecks: null,
+      recommendation: null,
+    } as DeepScanResponse, 200);
+
+    if (gateEnabled) {
+      if (!c.env.AI) {
+        return respondDeepScan("analysis_failed", "gate.failed");
+      }
+      const startedAt = Date.now();
+      try {
+        const gate = await traceStage(deps.tracing, "scan.clef", {
+          requestId, model: VISIBILITY_GATE_MODEL, "gate.timeout_ms": 3000, "gate.threshold": VISIBILITY_GATE_THRESHOLD,
+          "gate.stage": "deep-scan", stage: "deep-scan",
+          "image.payload_characters": deepScanRequest.imageBase64.length,
+          "image.selection_present": false,
+        }, async span => {
+          try {
+            const result = await runDeepScanVisibilityGate(
+              c.env.AI!, deepScanRequest.imageBase64, deepScanRequest.imageMimeType, requestId,
+              c.env.LOCAL_CLEF_TEST !== "true" && c.env.AI_GATEWAY_ID
+                ? { id: c.env.AI_GATEWAY_ID, token: c.env.AI_GATEWAY_TOKEN } : undefined,
+            );
+            span?.setAttributes({ "gate.decision": result.status ?? "pass_to_grading",
+              "gate.scores": JSON.stringify(result.scores), "gate.usage_known": result.usage !== null, "gate.timed_out": false,
+              ...(result.usage ? { "tokens.input": result.usage.promptTokens, "tokens.output": result.usage.completionTokens } : {}) });
+            console.log(JSON.stringify({ event: "gate_usage", requestId, sessionId: deepScanRequest.sessionId,
+              model: VISIBILITY_GATE_MODEL, stage: "deep-scan", durationMs: Date.now() - startedAt,
+              status: result.status ?? "pass_to_grading", scores: result.scores, threshold: VISIBILITY_GATE_THRESHOLD, usage: result.usage }));
+            return result;
+          } catch (error) {
+            const outcome = gateDenialStatus(error) ?? "pass_to_grading";
+            const timedOut = error instanceof Error && error.name === "TimeoutError";
+            span?.setAttributes({ "gate.decision": outcome, "gate.timed_out": timedOut });
+            console.log(JSON.stringify({ event: "gate_failure", requestId, model: VISIBILITY_GATE_MODEL, stage: "deep-scan",
+              durationMs: Date.now() - startedAt, outcome, timedOut, timeoutMs: 3000,
+              errorType: error instanceof Error ? error.name : "UnknownError", usage: null }));
+            throw error;
+          }
+        });
+        c.set("gateDecision", gate.scores ? gate.status ?? "pass_to_grading" : "invalid_output_fallback");
+        // Timeline below skips gate token spend on purpose: deep scan is free during MVP.
+        if (gate.status) {
+          const denialMessage = gate.status === "no_produce" ? "gate.noProduce" : "gate.unclearPhoto";
+          console.log(JSON.stringify({ event: "deep_scan_gate_denial", requestId, stage: "deep-scan",
+            gateStatus: gate.status, message: denialMessage }));
+          return c.json({
+            schemaVersion: "1.0",
+            promptVersion: DEEP_SCAN_PROMPT_VERSION,
+            modelId: VISIBILITY_GATE_MODEL,
+            status: "insufficient_evidence",
+            message: translateShared(isSupportedLocale(deepScanRequest.locale) ? deepScanRequest.locale : "en-GB", denialMessage),
+            abstentionReason: null,
+            produce: { type: "unknown", displayName: "Unknown", variety: null },
+            ripeness: { state: "unknown", confidence: 0 },
+            evidence: [],
+            quality: { sufficientVisualEvidence: false, viewCoverage: "poor", reason: null },
+            manualChecks: null,
+            recommendation: null,
+          } as DeepScanResponse, 200);
+        }
+      } catch (error) {
+        const denial = gateDenialStatus(error);
+        c.set("gateDecision", denial ? "gate_denied" : "error_fallback");
+        if (denial) {
+          return respondDeepScan(denial === "rate_limited" ? "rate_limited" : "analysis_failed",
+            denial === "rate_limited" ? "gate.rateLimited" : "gate.failed");
+        }
+        // Clef timeout/errors fail open into Gemini, mirroring round-1.
+        if (error instanceof Error && error.name === "TimeoutError") c.set("gateDecision", "timeout_fallback");
+      }
+    }
+
+    try {
+      const adapterFactory = deps.adapterFactory ?? defaultAdapterFactory;
+      const modelId = c.env.DEFAULT_MODEL ?? "gemini-3.1-flash-lite";
+      const adapter = adapterFactory(modelId, c.env);
+      const normalizedAdapter: VisionProviderAdapter = {
+        providerId: adapter.providerId,
+        modelId: adapter.modelId,
+        async analyzeProduce(input, signal) {
+          const res: any = await adapter.analyzeProduce(input, signal);
+          if (res && "rawOutput" in res && !("object" in res)) {
+            return {
+              object: res.rawOutput,
+              usage: res.usage ?? { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+            };
+          }
+          return res;
+        },
+      };
+
+      c.set("gradingStarted", adapter.providerId === "google");
+      const scanOutcome = await runVerifiedDeepScan(
+        deepScanRequest,
+        normalizedAdapter,
+        DEEP_SCAN_PROMPT_VERSION,
+        undefined,
+        requestId,
+        deps.tracing
+      );
+      const resultSizeBytes = Math.floor((deepScanRequest.imageBase64.length * 3) / 4);
+      console.log(JSON.stringify({
+        event: "scan_usage", requestId, sessionId: deepScanRequest.sessionId, stage: "deep_scan",
+        provider: adapter.providerId, model: adapter.modelId, promptVersion: DEEP_SCAN_PROMPT_VERSION,
+        attempts: scanOutcome.attempts, status: scanOutcome.response.status,
+        framesSubmitted: deepScanRequest.sampleCount, compositeImageBytes: resultSizeBytes,
+        usage: scanOutcome.usage,
+      }));
+
+      return c.json(scanOutcome.response, 200);
+    } catch (err) {
+      console.warn("[proxy] deep-scan analysis error:", err instanceof Error ? err.message : err);
+      return respondDeepScan("analysis_failed", "gate.failed");
+    }
+  });
+
   return app;
 }
 

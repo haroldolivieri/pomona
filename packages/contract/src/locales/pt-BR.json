@@ -105,6 +105,7 @@
     "unclearPhoto": "Não é possível ver bem os alimentos. Tire uma foto mais nítida mostrando a superfície.",
     "multipleTypes": "Há vários tipos de alimentos na foto. Contorne apenas um tipo ou aproxime a câmera.",
     "rateLimited": "Limite de análises ou capacidade do serviço atingido. Tente novamente mais tarde.",
-    "failed": "A verificação da foto está indisponível. Tente novamente mais tarde."
+    "failed": "A verificação da foto está indisponível. Tente novamente mais tarde.",
+    "tooLarge": "O pacote de captura está grande demais. Tente novamente em instantes."
   }
 }
