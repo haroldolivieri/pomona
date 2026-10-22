@@ -1,4 +1,4 @@
-import type { ScanRequest, ScanResponse } from "@pomona/contract";
+import type { ScanRequest, ScanResponse, DeepScanRequest } from "@pomona/contract";
 import type { PromptConfig } from "../prompts";
 import { verifyAndResolveScanResponse } from "../verifier/verify-response";
 import { traceStage, traceResponse, logScanResponse, type ScanTracing } from "../observability/scan-trace";
@@ -37,7 +37,7 @@ export function normalizeTokenUsage(rawUsage: unknown): TokenUsage {
 export interface ModelTrace {
   requestId: string;
   sessionId: string;
-  round: ScanRequest["round"];
+  round?: ScanRequest["round"];
   promptVersion: string;
   attempt: number;
 }
@@ -49,6 +49,7 @@ export interface AdapterInput {
   imageMimeType: "image/webp" | "image/jpeg";
   repairErrors?: string[];
   trace?: ModelTrace;
+  kind?: { kind: "deep_scan"; request: DeepScanRequest };
 }
 
 export interface AdapterRawResult {
