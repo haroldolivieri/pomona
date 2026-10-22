@@ -50,6 +50,8 @@ export interface PomonaAppProps {
   initialState?: Partial<ScanMachineState>;
   enableDebugOverride?: boolean;
   initialRemainingScans?: number;
+  deepScanCollect?: (video: HTMLVideoElement) => Promise<CollectedFrame[]>;
+  deepScanBuild?: NonNullable<Parameters<typeof assembleDeepScanPayload>[1]>["build"];
 }
 
 export const PomonaApp: React.FC<PomonaAppProps> = ({
@@ -58,6 +60,8 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
   initialState,
   enableDebugOverride,
   initialRemainingScans,
+  deepScanCollect,
+  deepScanBuild,
 }) => {
   useTranslation();
   const [state, dispatch] = useReducer(scanMachineReducer, {
@@ -393,7 +397,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
       return;
     }
     try {
-      const payload = await assembleDeepScanPayload(collected);
+      const payload = await assembleDeepScanPayload(collected, deepScanBuild ? { build: deepScanBuild } : {});
       dispatch({
         type: "DS_CAPTURE_COMPLETED",
         composite: payload.composite,
@@ -410,6 +414,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
       };
       const response: DeepScanResponse = await activeApiClient.submitDeepScan(request);
       dispatch({ type: "DS_SCAN_SUCCEEDED", response });
+      telemetry.capture("deep_scan_completed", { status: response.status, sampleCount: payload.sampleCount });
     } catch (err) {
       if (err instanceof DeepScanLocalReject) {
         dispatch({ type: "DS_CAPTURE_REJECTED", reason: err.reason });
@@ -420,6 +425,11 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
         error: uiCopy("errors.analysisFailed"),
       });
     }
+  };
+
+  const handleDeepScanCancel = () => {
+    telemetry.capture("deep_scan_abandoned", { phase: state.phase });
+    dispatch({ type: "DS_CANCEL" });
   };
 
   const handleCompareWithRunnerUp = () => {
@@ -490,8 +500,13 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
                 : undefined
             }
             onDeepScan={() => {
-              telemetry.capture("deep_scan_entered", { origin: "insufficient" });
-              dispatch({ type: "ENTER_DEEP_SCAN", origin: "insufficient" });
+              telemetry.capture("deep_scan_started", {
+                origin: state.lastResponse?.abstentionReason === "assessed_tie" ? "tie" : "insufficient",
+              });
+              dispatch({
+                type: "ENTER_DEEP_SCAN",
+                origin: state.lastResponse?.abstentionReason === "assessed_tie" ? "tie" : "insufficient",
+              });
             }}
           />
         );
@@ -499,8 +514,9 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
       case "S_DS_Capture":
         return (
           <DeepScanViewfinder
+            collect={deepScanCollect}
             onComplete={handleDeepScanComplete}
-            onCancel={() => dispatch({ type: "DS_CANCEL" })}
+            onCancel={handleDeepScanCancel}
             notice={state.errorMessage}
           />
         );
@@ -509,7 +525,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
         return (
           <AnalysingStage
             photoDataUrl={state.dsComposite?.dataUrl || null}
-            onCancel={() => dispatch({ type: "DS_CANCEL" })}
+            onCancel={handleDeepScanCancel}
           />
         );
 
@@ -518,7 +534,12 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
           <DeepScanResultStage
             response={state.dsResult}
             errorMessage={state.errorMessage}
-            onNewScan={() => dispatch({ type: "RESET" })}
+            onNewScan={() => {
+              telemetry.capture(state.dsResult ? "deep_scan_accepted" : "deep_scan_rescanned", {
+                status: state.dsResult?.status ?? state.status,
+              });
+              dispatch({ type: "RESET" });
+            }}
           />
         );
 
@@ -538,7 +559,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
               dispatch({ type: "SET_TARGET_RIPENESS", targetRipeness });
             }}
             onDeepScan={() => {
-              telemetry.capture("deep_scan_entered", { origin: "result_banner" });
+              telemetry.capture("deep_scan_started", { origin: "result_banner" });
               dispatch({ type: "ENTER_DEEP_SCAN", origin: "result_banner" });
             }}
           />

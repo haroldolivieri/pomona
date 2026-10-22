@@ -20,4 +20,15 @@ Image bytes, request bodies, prompts, authorization headers, cookies, IP address
 
 References: [Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/), [Workers Traces](https://developers.cloudflare.com/workers/observability/traces/), [Custom spans](https://developers.cloudflare.com/workers/observability/traces/custom-spans/).
 
+## Deep Scan (`POST /api/v1/deep-scan`)
+
+Deep Scan reuses the same request tracing stack with `stage: "deep_scan"` on every `scan_usage` row so the two surfaces stay distinguishable. A Deep Scan request emits:
+
+1. `scan_usage` (stage `deep_scan`): `framesSubmitted` (sampled frames echoed by the client), `compositeImageBytes`, `attempts` (verify/repair cycles), verified `status`, `promptVersion` (`deep_scan_v1`), provider/model, and total grading tokens. The two-question Clef visibility gate runs on the composite first — its outcome, scores, usage, and duration appear in `gate_usage`-style events with `stage: "deep-scan"` attributes; `pass_to_grading` continues to the grading provider, and denials never reach the model.
+2. Device quota is intentionally NOT consumed on this route in the current release; do not infer budget behavior from `remainingScans` (never sent on Deep Scan responses).
+
+Web-side product events (`deep_scan_started`, `deep_scan_abandoned`, `deep_scan_completed`, `deep_scan_accepted`, `deep_scan_rescanned`) carry the entry origin (`insufficient` / `tie` / `result_banner`) and result status so funnel drop-off between capture, gate denial, and verdicts can be grouped without any image data.
+
+Live deep-scan eval reports land in `packages/evals/dataset/last-deep-scan-eval-report.json` (contract-level arms, en-GB + pt-BR); gate-level smoke reports use the Clef test account as in the round-1 gate eval.
+
 See [native Clef quality dashboard](clef-grading-metrics.md) for joined gate/grading outcome fields and chart definitions.
