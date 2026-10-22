@@ -19,3 +19,9 @@ The captured pre-release production version is `d2baea23-2d1c-4096-930e-a60406bd
 See [scan observability](./scan-observability.md) for events, spans, scores, response payload handling, and dashboard navigation. No original-image storage is introduced. Native AI uses the existing account's allowance and billing.
 
 Production deployments use `node scripts/deploy-production.mjs`. The guard requires a clean checkout containing current main, a strictly increased version, matching built `/version.json`, and a meaningful change description. Cloudflare receives tag `v1.1.0` and message `v1.1.0: Masked scans; Clef gate at 0.85; model scores/responses and tracing; preserves Portuguese and offline support`. The same guard is used by CI.
+
+Deployed on 2026-10-22 from source revision `c13b95a`, Worker version `84fe6a99-513e-4cf4-a209-ddf30e659ddb`. Production `/version.json` confirms version 1.1.0 and the change description. Cloudflare version metadata confirms the exact message above. Remote settings confirm logs, invocation logs, and persisted traces enabled at full sampling.
+
+Production verification passed for Portuguese HTML, English cookie override, a Portuguese cereal-box rejection (`9f6a319e-8cc3-46a5-af33-092bba255b51`), and masked avocado grading (`b6e0b564-63da-4623-ba6d-131d93753e9a`). The latter passed Clef and returned two Gemini candidates scored 9 and 3. Production logs included correlated Clef scores, raw structured model response, usage, final response, and completion timing.
+
+Release correction: an earlier deployment incorrectly labeled 0.5.0 was built from a stale branch. It was rolled back to the captured previous production version before rebuilding this release directly on main 1.0.0. This release preserves the localization and offline changes that were missing from that stale branch.
