@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { logScanResponse, traceStage } from "@pomona/proxy";
+import { logScanResponse, traceStage, traceResponse } from "@pomona/proxy";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -11,6 +11,27 @@ it("native spans receive scan correlation attributes and preserve asynchronous r
   expect(setAttributes).toHaveBeenCalledWith({ requestId: "request-test" });
   await expect(traceStage({ enterSpan }, "scan.gemini_or_provider", {}, async () => { throw new Error("provider failed"); }))
     .rejects.toThrow("provider failed");
+});
+
+it("timeout spans contain explicit outcomes and sanitized exceptions", async () => {
+  const setAttributes = vi.fn(), recordException = vi.fn();
+  const enterSpan = vi.fn((_name, run) => run({ setAttributes, recordException }));
+  const error = Object.assign(new Error("private upstream detail"), { name: "TimeoutError" });
+  await expect(traceStage({ enterSpan }, "scan.clef", {}, async () => { throw error; })).rejects.toBe(error);
+  expect(setAttributes).toHaveBeenCalledWith(expect.objectContaining({ "stage.outcome": "timeout", "error.timeout": true }));
+  expect(recordException).toHaveBeenCalledWith({ name: "TimeoutError", message: "Stage timed out" });
+  expect(JSON.stringify(recordException.mock.calls)).not.toContain("private upstream detail");
+});
+
+it("model response and final status are directly inspectable on their active span", () => {
+  const setAttributes = vi.fn();
+  traceResponse({ setAttributes }, "model", { status: "unclear_photo", candidates: [], message: "Glare obscures surfaces" });
+  expect(setAttributes).toHaveBeenCalledWith(expect.objectContaining({ "model.status": "unclear_photo",
+    "model.response": JSON.stringify({ status: "unclear_photo", candidates: [], message: "Glare obscures surfaces" }),
+    "model.response_truncated": false }));
+  traceResponse({ setAttributes }, "model", { message: "a".repeat(40000) });
+  expect(setAttributes.mock.calls[1][0]["model.response_truncated"]).toBe(true);
+  expect(setAttributes.mock.calls[1][0]["model.response"].length).toBe(32000);
 });
 
 it("large responses are reconstructable and oversized output marks truncation explicitly", () => {

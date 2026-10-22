@@ -1,7 +1,7 @@
 {
   "name": "@pomona/web",
-  "version": "1.1.0",
-  "releaseDescription": "Masked scans; Clef gate at 0.85; model scores/responses and tracing; preserves Portuguese and offline support",
+  "version": "1.1.1",
+  "releaseDescription": "Span outcomes, Clef scores and Gemini responses; explicit timeout errors; Clef timeout increased to 3s",
   "type": "module",
   "scripts": {
     "dev": "vite",

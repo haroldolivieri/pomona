@@ -59,21 +59,29 @@ export async function runVisibilityGate(
   binding: GateAiBinding, request: VisibilityGateRequest, requestId: string,
   gateway?: { id: string; token?: string },
 ) {
-  const response = await binding.run(VISIBILITY_GATE_MODEL, buildVisibilityGateInput(request), {
-    signal: AbortSignal.timeout(2500),
-    // Native Ai.run errors omit HTTP status. Preserve the raw status before parsing.
-    returnRawResponse: true,
-    ...(gateway ? {
-      gateway: { id: gateway.id, skipCache: true, collectLog: false, retries: { maxAttempts: 1 as const },
-        metadata: { app: "pomona", request_id: requestId, session_id: request.sessionId, stage: "visibility-v1", round: request.round } },
-      extraHeaders: gateway.token ? { "cf-aig-authorization": `Bearer ${gateway.token}` } : undefined,
-    } : {}),
-  });
-  if (!response.ok) {
-    await response.body?.cancel().catch(() => {});
-    throw Object.assign(new Error(`Workers AI HTTP ${response.status}`), { status: response.status });
+  const signal = AbortSignal.timeout(3000);
+  try {
+    const response = await binding.run(VISIBILITY_GATE_MODEL, buildVisibilityGateInput(request), {
+      signal,
+      // Native Ai.run errors omit HTTP status. Preserve the raw status before parsing.
+      returnRawResponse: true,
+      ...(gateway ? {
+        gateway: { id: gateway.id, skipCache: true, collectLog: false, retries: { maxAttempts: 1 as const },
+          metadata: { app: "pomona", request_id: requestId, session_id: request.sessionId, stage: "visibility-v1", round: request.round } },
+        extraHeaders: gateway.token ? { "cf-aig-authorization": `Bearer ${gateway.token}` } : undefined,
+      } : {}),
+    });
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => {});
+      throw Object.assign(new Error(`Workers AI HTTP ${response.status}`), { status: response.status });
+    }
+    return resolveVisibilityGate(await response.json());
+  } catch (error) {
+    // Known authorization/capacity denials must never become a Gemini fallback.
+    if (gateDenialStatus(error)) throw error;
+    if (signal.aborted) throw Object.assign(new Error("Clef exceeded 3000ms timeout"), { name: "TimeoutError", timeoutMs: 3000 });
+    throw error;
   }
-  return resolveVisibilityGate(await response.json());
 }
 
 export function visibilityGateResponse(status: GateReason | "rate_limited" | "analysis_failed", request: ScanRequest, promptVersion: string): ScanResponse {

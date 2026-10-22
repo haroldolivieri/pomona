@@ -34,7 +34,7 @@ import { getGatewayRouting } from "./adapters/gateway";
 import { verifyAndResolveScanResponse } from "./verifier/verify-response";
 import { runVisibilityGate, visibilityGateResponse, gateDenialStatus, VISIBILITY_GATE_MODEL } from "./gate/visibility";
 
-import { traceStage, logScanResponse, type ScanTracing } from "./observability/scan-trace";
+import { traceStage, traceResponse, logScanResponse, type ScanTracing } from "./observability/scan-trace";
 
 type AppEnv = { Bindings: Env; Variables: { requestId: string } };
 
@@ -100,10 +100,12 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
     c.set("requestId", requestId);
     c.header("X-Pomona-Request-Id", requestId);
     const startedAt = Date.now();
-    await traceStage(deps.tracing, "scan.request", { requestId }, async () => {
+    await traceStage(deps.tracing, "scan.request", { requestId }, async span => {
       try {
         await next();
         const response = await c.res.clone().json().catch(() => null);
+        traceResponse(span, "scan", response);
+        span?.setAttributes({ "http.status": c.res.status });
         logScanResponse("scan_response", { requestId }, response);
       } finally {
         console.log(JSON.stringify({ event: "scan_complete", requestId,
@@ -369,13 +371,34 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
         return c.json(visibilityGateResponse("analysis_failed", scanRequest, promptVersion), 200);
       }
       try {
-        const gate = await traceStage(deps.tracing, "scan.clef", { requestId, model: VISIBILITY_GATE_MODEL }, () => runVisibilityGate(c.env.AI!, scanRequest, requestId,
-          c.env.LOCAL_CLEF_TEST !== "true" && c.env.AI_GATEWAY_ID
-            ? { id: c.env.AI_GATEWAY_ID, token: c.env.AI_GATEWAY_TOKEN } : undefined));
+        const gate = await traceStage(deps.tracing, "scan.clef", {
+          requestId, model: VISIBILITY_GATE_MODEL, "gate.timeout_ms": 3000, "gate.threshold": 0.85,
+          "image.payload_characters": scanRequest.imageBase64.length,
+          "image.selection_present": !!scanRequest.focusPolygon,
+        }, async span => {
+          try {
+            const result = await runVisibilityGate(c.env.AI!, scanRequest, requestId,
+              c.env.LOCAL_CLEF_TEST !== "true" && c.env.AI_GATEWAY_ID
+                ? { id: c.env.AI_GATEWAY_ID, token: c.env.AI_GATEWAY_TOKEN } : undefined);
+            span?.setAttributes({ "gate.decision": result.status ?? "pass_to_grading",
+              "gate.scores": JSON.stringify(result.scores),
+              "gate.usage_known": result.usage !== null, "gate.timed_out": false,
+              ...(result.usage ? { "tokens.input": result.usage.promptTokens, "tokens.output": result.usage.completionTokens } : {}) });
+            console.log(JSON.stringify({ event: "gate_usage", requestId, sessionId: scanRequest.sessionId,
+              model: VISIBILITY_GATE_MODEL, durationMs: Date.now() - startedAt,
+              status: result.status ?? "pass_to_grading", scores: result.scores, threshold: 0.85, usage: result.usage }));
+            return result;
+          } catch (error) {
+            const outcome = gateDenialStatus(error) ?? "pass_to_grading";
+            const timedOut = error instanceof Error && error.name === "TimeoutError";
+            span?.setAttributes({ "gate.decision": outcome, "gate.timed_out": timedOut });
+            console.log(JSON.stringify({ event: "gate_failure", requestId, model: VISIBILITY_GATE_MODEL,
+              durationMs: Date.now() - startedAt, outcome, timedOut, timeoutMs: 3000,
+              errorType: error instanceof Error ? error.name : "UnknownError", usage: null }));
+            throw error;
+          }
+        });
         receivedGateOutput = true;
-        console.log(JSON.stringify({ event: "gate_usage", requestId, sessionId: scanRequest.sessionId,
-          model: VISIBILITY_GATE_MODEL, durationMs: Date.now() - startedAt,
-          status: gate.status ?? "pass_to_grading", scores: gate.scores, threshold: 0.85, usage: gate.usage }));
         if (gate.usage) {
           await recordScanOutcome(store, { deviceId, ip, modelId: VISIBILITY_GATE_MODEL,
             usage: gate.usage, status: gate.status ?? "analysis_failed" });
@@ -393,8 +416,8 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
         }
       } catch (error) {
         const denial = receivedGateOutput ? "analysis_failed" : gateDenialStatus(error);
-        console.log(JSON.stringify({ event: "gate_failure", requestId, model: VISIBILITY_GATE_MODEL,
-          durationMs: Date.now() - startedAt, outcome: denial ?? "pass_to_grading", errorType: error instanceof Error ? error.name : "UnknownError", usage: null }));
+        if (receivedGateOutput) console.log(JSON.stringify({ event: "gate_accounting_failure", requestId,
+          model: VISIBILITY_GATE_MODEL, outcome: "analysis_failed", usage: null }));
         if (denial) {
           c.header(REMAINING_SCANS_HEADER, quotaResult.remainingDeviceScans.toString());
           return c.json(visibilityGateResponse(denial, scanRequest, promptVersion), 200);
@@ -535,7 +558,7 @@ export { createOpenAIVisionAdapter } from "./adapters/openai";
 export { getPromptConfig } from "./prompts";
 export { v1PromptConfig } from "./prompts/v1";
 export { getGatewayRouting } from "./adapters/gateway";
-export { traceStage, logScanResponse } from "./observability/scan-trace";
+export { traceStage, traceResponse, logScanResponse } from "./observability/scan-trace";
 export { createInMemoryQuotaStore, calculateTokenSpendMicroCents } from "./quota/budget";
 export { buildVisibilityGateInput, resolveVisibilityGate, runVisibilityGate, VISIBILITY_GATE_MODEL } from "./gate/visibility";
 export type { VisibilityGateRequest } from "./gate/visibility";

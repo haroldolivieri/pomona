@@ -20,11 +20,11 @@ const output = (scores: number[]) => ({
 
 async function scan(run: ReturnType<typeof vi.fn>, options: {
   enabled?: string; body?: Record<string, unknown>; store?: ReturnType<typeof createInMemoryQuotaStore>;
-  noBinding?: boolean; gatewayId?: string; local?: boolean;
+  noBinding?: boolean; gatewayId?: string; local?: boolean; tracing?: NonNullable<Parameters<typeof createProxyApp>[0]>["tracing"];
 } = {}) {
   const grade = vi.fn().mockResolvedValue({ object: abstention, usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 } });
   const store = options.store ?? createInMemoryQuotaStore();
-  const app = createProxyApp({ quotaStore: store, adapterFactory: modelId => ({ providerId: "google", modelId, analyzeProduce: grade }) });
+  const app = createProxyApp({ quotaStore: store, tracing: options.tracing, adapterFactory: modelId => ({ providerId: "google", modelId, analyzeProduce: grade }) });
   const response = await app.request("/api/v1/scan", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...request, ...options.body }),
@@ -35,6 +35,41 @@ async function scan(run: ReturnType<typeof vi.fn>, options: {
 }
 
 describe("Clef visibility gate acceptance and failure scenarios", () => {
+  it.each([401, 403, 429])("an elapsed timeout cannot hide a known HTTP %s denial", async status => {
+    const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValue(AbortSignal.abort(new DOMException("Timed out", "TimeoutError")));
+    try {
+      const { grade, json } = await scan(vi.fn().mockResolvedValue(Response.json({ error: "Denied" }, { status })));
+      expect(json.status).toBe(status === 429 ? "rate_limited" : "analysis_failed");
+      expect(grade).not.toHaveBeenCalled();
+    } finally { timeout.mockRestore(); }
+  });
+
+  it("the three-second timeout stays on the Clef span and Gemini response stays on its own span", async () => {
+    const stages = new Map<string, ReturnType<typeof vi.fn>>();
+    const tracing = { enterSpan<T>(name: string, callback: (span: { setAttributes: ReturnType<typeof vi.fn> }) => T): T {
+      const setAttributes = vi.fn(); stages.set(name, setAttributes); return callback({ setAttributes });
+    } };
+    const run = vi.fn().mockImplementation((_model, _input, options) => new Promise((_resolve, reject) => {
+      options.signal.addEventListener("abort", () => reject(options.signal.reason), { once: true });
+    }));
+    const controller = new AbortController();
+    const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValue(controller.signal);
+    try {
+      const pending = scan(run, { tracing });
+      await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
+      expect(stages.get("scan.gemini_or_provider")).toBeUndefined();
+      controller.abort(new DOMException("Timed out", "TimeoutError"));
+      const { grade, json } = await pending;
+      expect(timeout).toHaveBeenCalledWith(3000);
+      expect(grade).toHaveBeenCalledOnce();
+      expect(json.status).toBe("insufficient_evidence");
+      expect(stages.get("scan.clef")).toHaveBeenCalledWith(expect.objectContaining({ "stage.outcome": "timeout", "error.timeout": true }));
+      expect(stages.get("scan.clef")).toHaveBeenCalledWith(expect.objectContaining({ "gate.timed_out": true, "gate.decision": "pass_to_grading" }));
+      expect(stages.get("scan.gemini_or_provider")).toHaveBeenCalledWith(expect.objectContaining({ "model.status": "insufficient_evidence", "model.response": JSON.stringify(abstention) }));
+      expect(stages.get("scan.request")).toHaveBeenCalledWith(expect.objectContaining({ "scan.status": "insufficient_evidence" }));
+    } finally { timeout.mockRestore(); }
+  });
+
   it("preserves Portuguese gate responses when extending the localized release", async () => {
     const { json, grade } = await scan(vi.fn().mockResolvedValue(Response.json(output([0.95, 0.01, 0.01]))),
       { body: { locale: "pt-BR" } });
