@@ -4,6 +4,7 @@ import { describe, it, expect, vi } from "vitest";
 import React from "react";
 import { ScanErrorStage } from "../../src/components/ScanErrorStage";
 import "../../src/i18n";
+import en from "../../src/i18n/locales/en.json";
 
 describe("ScanErrorStage", () => {
   it("shows similar visible maturity as a distinct notice without claiming equal quality", () => {
@@ -34,7 +35,8 @@ describe("ScanErrorStage", () => {
     render(<ScanErrorStage status="insufficient_evidence" errorMessage="The field spots are hidden; I cannot confidently choose."
       photoDataUrl="data:image/webp;base64,mock" onRetake={onRetake} onDrawFocus={vi.fn()} />);
     expect(screen.getByText("Not enough evidence to choose")).toBeInTheDocument();
-    expect(screen.getByText("The field spots are hidden; I cannot confidently choose.")).toBeInTheDocument();
+    expect(screen.queryByText("The field spots are hidden; I cannot confidently choose.")).not.toBeInTheDocument();
+    expect(screen.getByText(en.errors.insufficientEvidence)).toBeInTheDocument();
     expect(screen.getByText("Another Look Needed")).toBeInTheDocument();
     expect(screen.queryByTestId("error-draw-button")).not.toBeInTheDocument();
     expect(screen.queryByText(/blurry/i)).not.toBeInTheDocument();
@@ -55,7 +57,8 @@ describe("ScanErrorStage", () => {
 
     expect(screen.getByTestId("stage-S_ScanError")).toBeInTheDocument();
     expect(screen.getByText("Photo isn't clear enough")).toBeInTheDocument();
-    expect(screen.getByText("Image is blurry")).toBeInTheDocument();
+    expect(screen.queryByText("Image is blurry")).not.toBeInTheDocument();
+    expect(screen.getByText(en.errors.unclearPhoto)).toBeInTheDocument();
     expect(screen.getByText(/Hold your phone steady/)).toBeInTheDocument();
     expect(screen.getByTestId("error-primary-cta").textContent).toBe("Retake Photo");
 
@@ -112,7 +115,8 @@ describe("ScanErrorStage", () => {
     );
 
     expect(screen.getByText("Photo isn't clear enough")).toBeInTheDocument();
-    expect(screen.getByText("Too many overlapping bags to grade reliably.")).toBeInTheDocument();
+    expect(screen.queryByText("Too many overlapping bags to grade reliably.")).not.toBeInTheDocument();
+    expect(screen.getByText(en.errors.unclearPhoto)).toBeInTheDocument();
     expect(screen.getByTestId("error-draw-button")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("error-draw-button"));
     expect(handleDraw).toHaveBeenCalledTimes(1);

@@ -43,13 +43,13 @@ describe("AnalysingStage (State 3 Parity)", () => {
     expect(handleCancel).toHaveBeenCalledTimes(1);
   });
 
-  it("renders scan-quota-pill and subhead when no focusPolygon is provided (whole photo)", () => {
+  it("renders the whole-photo subhead without a quota pill", () => {
     render(
       <AnalysingStage
         photoDataUrl="data:image/png;base64,mock"
       />
     );
-    expect(screen.getByTestId("scan-quota-pill")).toHaveTextContent("10 scans left today");
+    expect(screen.queryByTestId("scan-quota-pill")).toBeNull();
     expect(screen.getByText("Grading produce across the entire photo.")).toBeInTheDocument();
   });
 });

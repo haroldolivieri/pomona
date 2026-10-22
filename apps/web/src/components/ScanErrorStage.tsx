@@ -1,3 +1,4 @@
+import { uiCopy } from "../i18n/copy";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { AbstentionReason, ScanStatus } from "@pomona/contract";
@@ -13,7 +14,6 @@ export interface ScanErrorStageProps {
 
 export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
   status,
-  errorMessage,
   abstentionReason,
   photoDataUrl,
   onRetake,
@@ -24,7 +24,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
 
   let icon = "⚠️";
   let title = t("errors.analysisFailedTitle");
-  let explanation = errorMessage || t("errors.analysisFailed");
+  let explanation = t("errors.analysisFailed");
   let tip = t("errors.analysisFailedTip");
   let primaryCtaLabel = t("errors.analysisFailedCta");
   let primaryAction = onRetake;
@@ -42,7 +42,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
       }
       icon = "🔎";
       title = t("errors.insufficientEvidenceTitle");
-      explanation = errorMessage || t("errors.insufficientEvidence");
+      explanation = t("errors.insufficientEvidence");
       tip = t("errors.insufficientEvidenceTip");
       primaryCtaLabel = t("errors.insufficientEvidenceCta");
       primaryAction = onRetake;
@@ -51,7 +51,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
     case "unclear_photo":
       icon = "📷";
       title = t("errors.unclearPhotoTitle");
-      explanation = errorMessage || t("errors.unclearPhoto");
+      explanation = t("errors.unclearPhoto");
       tip = t("errors.unclearPhotoTip");
       primaryCtaLabel = t("errors.unclearPhotoCta");
       primaryAction = onRetake;
@@ -61,7 +61,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
     case "no_produce":
       icon = "🍎";
       title = t("errors.noProduceTitle");
-      explanation = errorMessage || t("errors.noProduce");
+      explanation = t("errors.noProduce");
       tip = t("errors.noProduceTip");
       primaryCtaLabel = t("errors.noProduceCta");
       primaryAction = onRetake;
@@ -70,7 +70,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
     case "multiple_types":
       icon = "🧺";
       title = t("errors.multipleTypesTitle");
-      explanation = errorMessage || t("errors.multipleTypes");
+      explanation = t("errors.multipleTypes");
       tip = t("errors.multipleTypesTip");
       primaryCtaLabel = t("errors.multipleTypesCta");
       primaryAction = onDrawFocus || onRetake;
@@ -79,17 +79,17 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
 
     case "rate_limited":
       icon = "⏳";
-      title = "Scan limit reached";
-      explanation = errorMessage || t("errors.rateLimited");
-      tip = "You have used all daily scans for this device. Limits reset tomorrow morning.";
-      primaryCtaLabel = "Back to Camera";
+      title = uiCopy("copy.scanLimitReached");
+      explanation = t("errors.rateLimited");
+      tip = uiCopy("copy.youHaveUsedAllDailyScansFor");
+      primaryCtaLabel = uiCopy("copy.backToCamera");
       primaryAction = onRetake;
       break;
 
     default:
       icon = "⚠️";
       title = t("errors.analysisFailedTitle");
-      explanation = errorMessage || t("errors.analysisFailed");
+      explanation = t("errors.analysisFailed");
       tip = t("errors.analysisFailedTip");
       primaryCtaLabel = t("errors.analysisFailedCta");
       primaryAction = onRetake;
@@ -114,7 +114,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
       {photoDataUrl && (
         <img
           src={photoDataUrl}
-          alt="Frozen scan"
+          alt={uiCopy("copy.frozenScan")}
           style={{
             position: "absolute",
             inset: 0,
@@ -143,7 +143,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
         <button
           onClick={onRetake}
           data-testid="error-back-button"
-          aria-label="Back to camera"
+          aria-label={uiCopy("copy.backToCamera2")}
           style={{
             width: "36px",
             height: "36px",
@@ -185,13 +185,13 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
           }}
         >
           <span style={{ fontSize: "12px" }}>{similarMaturity ? "🧺" : "⚠️"}</span>
-          <span>{similarMaturity ? t("errors.similarMaturityPill") : "Notice"}</span>
+          <span>{similarMaturity ? t("errors.similarMaturityPill") : uiCopy("copy.notice")}</span>
         </div>
 
         <button
           onClick={onRetake}
           data-testid="error-close-button"
-          aria-label="Close"
+          aria-label={uiCopy("copy.close")}
           style={{
             width: "36px",
             height: "36px",
@@ -295,14 +295,14 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
           {similarMaturity
             ? t("errors.similarMaturityEyebrow")
             : status === "insufficient_evidence"
-            ? "Another Look Needed"
+            ? uiCopy("copy.anotherLookNeeded")
             : status === "unclear_photo"
-            ? "Camera Adjustment"
+            ? uiCopy("copy.cameraAdjustment")
             : status === "no_produce"
-            ? "Subject Not Found"
+            ? uiCopy("copy.subjectNotFound")
             : status === "multiple_types"
-            ? "Multiple Items"
-            : "Notice"}
+            ? uiCopy("copy.multipleItems")
+            : uiCopy("copy.notice")}
         </div>
 
         {/* Title */}
@@ -380,8 +380,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
                 textAlign: "center",
               }}
             >
-              Draw Around One
-            </button>
+              {uiCopy("copy.drawAroundOne")}</button>
           )}
 
           <button

@@ -1,4 +1,10 @@
+import { uiCopy } from "../i18n/copy";
 import type { ScanRequest, ScanResponse } from "@pomona/contract";
+
+export class ApiClientError extends Error {
+  readonly copyKey = "errors.analysisFailed";
+  constructor(readonly status: number, detail: string) { super(detail); }
+}
 
 export interface QuotaInfo {
   remainingDeviceScans: number;
@@ -32,7 +38,7 @@ export function createFetchApiClient(baseUrl: string = ""): PomonaApiClient {
         credentials: "include",
       });
       if (!res.ok) {
-        throw new Error(`Failed to fetch quota: ${res.statusText}`);
+        throw new ApiClientError(res.status, uiCopy("copy.failedToFetchQuota", { value1: res.statusText }));
       }
       return res.json();
     },
@@ -48,7 +54,7 @@ export function createFetchApiClient(baseUrl: string = ""): PomonaApiClient {
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        throw new Error(`Failed to override quota: ${res.statusText}`);
+        throw new ApiClientError(res.status, uiCopy("copy.failedToOverrideQuota", { value1: res.statusText }));
       }
       return res.json();
     },
@@ -81,7 +87,7 @@ export function createFetchApiClient(baseUrl: string = ""): PomonaApiClient {
           }
         }
         console.error(`[api-client] Scan request failed (${res.status}): ${errorDetail}`);
-        throw new Error(`Scan request failed (${res.status}): ${errorDetail || "Unknown error"}`);
+        throw new ApiClientError(res.status, uiCopy("copy.scanRequestFailed", { value1: res.status, value2: errorDetail || uiCopy("errors.analysisFailed") }));
       }
       const scanResponse: ScanResponse = await res.json();
       const remainingHeader = res.headers?.get?.("X-Pomona-Remaining-Scans");

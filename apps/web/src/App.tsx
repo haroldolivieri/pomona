@@ -1,3 +1,6 @@
+import { currentDisplayLocale } from "./i18n/copy";
+import { useTranslation } from "react-i18next";
+import { uiCopy } from "./i18n/copy";
 import React, { useReducer, useState, useEffect, useRef } from "react";
 import type { ScanRequest, Point, ScanResponse } from "@pomona/contract";
 import type { PomonaApiClient } from "./lib/api-client";
@@ -49,6 +52,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
   enableDebugOverride,
   initialRemainingScans,
 }) => {
+  useTranslation();
   const [state, dispatch] = useReducer(scanMachineReducer, {
     ...initialScanMachineState(),
     ...initialState,
@@ -105,7 +109,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     if (brandTapCountRef.current >= 5) {
       brandTapCountRef.current = 0;
       // Always show the current app version, in every build
-      setBrandToast(`Pomona v${__APP_VERSION__}`);
+      setBrandToast(uiCopy("copy.pomonaV", { value1: __APP_VERSION__ }));
       if (!isLocalBuild) {
         // Published build: show the toast only; never unlock debug mode
         try {
@@ -183,7 +187,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     if (typeof window === "undefined" || typeof window.prompt !== "function") return;
     const current = remainingScans;
     const val = window.prompt(
-      "Set backend scan quota for this device (currently " + current + "):",
+      uiCopy("copy.setBackendScanQuotaForThisDevice") + current + "):",
       String(current)
     );
     if (val !== null) {
@@ -199,7 +203,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
           .catch((err) => {
             console.error("[quota] Failed to override quota on backend:", err);
             if (typeof window.alert === "function") {
-              window.alert("Could not update backend quota: " + err.message);
+              window.alert(uiCopy("copy.couldNotUpdateBackendQuota"));
             }
           });
       }
@@ -335,7 +339,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
         schemaVersion: "1.0",
         sessionId: generateUuid(),
         round,
-        locale: "en-GB",
+        locale: currentDisplayLocale(),
         imageBase64: base64Data,
         imageMimeType: mimeType,
         focusPolygon: safePolygon,
@@ -358,7 +362,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     } catch (err: any) {
       console.error("[scan:failed]", err);
       telemetry.captureException(err, { round });
-      dispatch({ type: "SCAN_FAILED", error: err.message || "Network error" });
+      dispatch({ type: "SCAN_FAILED", error: uiCopy("errors.analysisFailed") });
     }
   };
 
@@ -401,6 +405,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             onToggleTheme={toggleTheme}
             theme={theme}
             onBrandTap={handleBrandTap}
+            showLanguageSelector={isDevMode && isLocalBuild}
           />
         );
 
@@ -528,7 +533,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
                 return next;
               });
             }}
-            aria-label="Toggle Mock Mode"
+            aria-label={uiCopy("copy.toggleMockMode")}
             style={{
               background: isMockMode ? "rgba(245, 213, 71, 0.2)" : "rgba(0,0,0,0.35)",
               border: isMockMode ? "1px solid #F5D547" : "1px solid rgba(255,255,255,0.3)",
@@ -542,15 +547,15 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
               WebkitBackdropFilter: "blur(6px)",
             }}
           >
-            {isMockMode ? "🧪 MOCK" : "🌐 LIVE"}
+            {isMockMode ? uiCopy("copy.mock") : uiCopy("copy.live")}
           </button>
 
           <button
             type="button"
             onClick={handleQuotaPrompt}
-            aria-label="Set remaining scans"
+            aria-label={uiCopy("copy.setRemainingScans")}
             data-testid="dev-set-scans-button"
-            title="Click to override scan quota"
+            title={uiCopy("copy.clickToOverrideScanQuota")}
             style={{
               background: "rgba(0,0,0,0.35)",
               border: "1px solid rgba(255,255,255,0.3)",
@@ -564,7 +569,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
               WebkitBackdropFilter: "blur(6px)",
             }}
           >
-            ⚡ {remainingScans} scans
+            ⚡ {uiCopy("copy.scans", { count: remainingScans })}
           </button>
         </div>
       )}

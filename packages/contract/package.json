@@ -17,6 +17,7 @@
     "build": "tsc"
   },
   "dependencies": {
+    "i18next": "^26.4.6",
     "zod": "^3.24.2"
   }
 }

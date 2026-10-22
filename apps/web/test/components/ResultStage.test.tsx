@@ -162,7 +162,7 @@ describe("ResultStage (Mockup Parity)", () => {
     fireEvent.click(screen.getByTestId("sheet-drag-area"));
 
     // Eyebrow & headline
-    expect(screen.getByText(/✓ 1ST WINNER WINS · BEATS RUNNER-UP \(8\.6 VS 7\.2\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/✓ 1ST WINNER BEATING RUNNER-UP \(8\.6 VS 7\.2\)/i)).toBeInTheDocument();
     expect(screen.getByText("Best available.")).toBeInTheDocument();
 
     // Tick marker on circular score meter for previous/other candidate score (7.2)

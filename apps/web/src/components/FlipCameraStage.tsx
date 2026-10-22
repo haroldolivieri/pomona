@@ -1,3 +1,4 @@
+import { uiCopy } from "../i18n/copy";
 import React, { useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { ScanMachineState } from "../state/scan-state-machine";
@@ -44,15 +45,13 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
   const targetRipeness = state.targetRipeness || "ready_now";
 
   // Parameterized produce name and instructions (sanitize any "1st pick" -> "1st winner")
-  const rawHeadline = followUp?.flipHeadline || (isFinalCheck ? "Flip your 1st winner over" : "Flip the produce over");
-  const headline = rawHeadline.replace(/1st\s*pick/gi, "1st winner").replace(/first\s*pick/gi, "first winner");
-  let rawInstruction = followUp?.instruction || "Turn over to inspect the underside.";
+  const rawHeadline = followUp?.flipHeadline || (isFinalCheck ? uiCopy("copy.flipYour1stWinnerOver") : uiCopy("copy.flipTheProduceOver"));
+  const headline = rawHeadline.replace(/1st\s*pick/gi, uiCopy("copy.1stWinner")).replace(/first\s*pick/gi, uiCopy("copy.firstWinner"));
+  let rawInstruction = followUp?.instruction || uiCopy("copy.turnOverToInspectTheUnderside");
   if (targetRipeness !== "ready_now") {
-    rawInstruction = `Show the hidden underside so Pomona can check the underside for hidden bruises or uneven ripening before storing for ${
-      targetRipeness === "in_2_3_days" ? "2–3 days" : "later this week"
-    }.`;
+    rawInstruction = uiCopy("copy.showTheHiddenUndersideSoPomonaCan");
   }
-  const instruction = rawInstruction.replace(/1st\s*pick/gi, "1st winner").replace(/first\s*pick/gi, "first winner");
+  const instruction = rawInstruction.replace(/1st\s*pick/gi, uiCopy("copy.1stWinner")).replace(/first\s*pick/gi, uiCopy("copy.firstWinner"));
   
   // Scores for State 5A & State 6
   const winnerToBeatScore = firstPick?.score?.toFixed(1) ?? "8.6";
@@ -66,7 +65,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
     async function initCamera() {
       try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("getUserMedia not supported");
+          throw new Error(uiCopy("copy.getusermediaNotSupported"));
         }
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -191,7 +190,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
         <button
           onClick={onBack}
           data-testid="back-button"
-          aria-label="Back"
+          aria-label={uiCopy("copy.back")}
           style={{
             background: "rgba(251, 250, 246, 0.88)",
             border: "none",
@@ -230,13 +229,13 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
             boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
           }}
         >
-          {state.lastResponse?.produce?.displayName || "Produce"}
+          {state.lastResponse?.produce?.displayName || uiCopy("copy.produce")}
         </div>
 
         <button
           onClick={onClose}
           data-testid="close-button"
-          aria-label="Close"
+          aria-label={uiCopy("copy.close")}
           style={{
             background: "rgba(251, 250, 246, 0.88)",
             border: "none",
@@ -296,7 +295,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
               color: isFinalCheck ? "#142117" : "#FFFFFF",
             }}
           >
-            {isFinalCheck ? "1st Winner" : "Runner-Up"}
+            {isFinalCheck ? uiCopy("copy.1stWinner2") : uiCopy("copy.runnerUp")}
           </div>
         </div>
       )}
@@ -444,8 +443,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
                     marginTop: "2px",
                   }}
                 >
-                  Top
-                </span>
+                  {uiCopy("copy.top")}</span>
               </div>
 
               {/* Back Face: Underside / Ground Spot */}
@@ -464,8 +462,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
                     marginTop: "2px",
                   }}
                 >
-                  Underside ☀️
-                </span>
+                  {uiCopy("copy.underside")}</span>
               </div>
             </div>
           </div>
@@ -519,8 +516,8 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
             }}
           >
             {isFinalCheck
-              ? `FINAL CHECK · BEAT ${runnerUpScore} TO RECLAIM`
-              : "INSPECT RUNNER-UP"}
+              ? uiCopy("copy.finalCheckBeatToReclaim", { value1: runnerUpScore })
+              : uiCopy("copy.inspectRunnerUp")}
           </div>
 
           {/* Title */}
@@ -581,10 +578,10 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
               <span>🎯</span>
               <span>
                 {targetRipeness === "in_2_3_days"
-                  ? "In 2–3 days"
+                  ? uiCopy("copy.in23Days")
                   : targetRipeness === "later_this_week"
-                  ? "Later this week"
-                  : "Ready now"}
+                  ? uiCopy("copy.laterThisWeek")
+                  : uiCopy("copy.readyNow")}
               </span>
             </div>
 
@@ -602,8 +599,8 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
               }}
             >
               {isFinalCheck
-                ? `Current leader: ${runnerUpScore} · 1st Winner: ${firstPickScore} (top only)`
-                : `Winner to beat: ${winnerToBeatScore} / 10`}
+                ? uiCopy("copy.currentLeader1stWinnerTopOnly", { value1: runnerUpScore, value2: firstPickScore })
+                : uiCopy("copy.winnerToBeat10", { value1: winnerToBeatScore })}
             </div>
           </div>
         </div>
@@ -613,7 +610,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
           onClick={handleCapture}
           disabled={!isOnline}
           data-testid="flip-shutter-button"
-          aria-label="Capture flipped produce"
+          aria-label={uiCopy("copy.captureFlippedProduce")}
           style={{
             width: "66px",
             height: "66px",

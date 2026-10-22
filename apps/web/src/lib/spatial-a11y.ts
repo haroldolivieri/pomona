@@ -1,3 +1,4 @@
+import { uiCopy } from "../i18n/copy";
 import type { BoundingBox } from "@pomona/contract";
 
 /**
@@ -19,21 +20,21 @@ export function describeBoxPosition(
 
   let row: string;
   if (centerY < 333) {
-    row = "top row";
+    row = uiCopy("copy.topRow");
   } else if (centerY > 666) {
-    row = "bottom row";
+    row = uiCopy("copy.bottomRow");
   } else {
-    row = "middle row";
+    row = uiCopy("copy.middleRow");
   }
 
   let col: string;
   if (centerX < 333) {
-    col = "left";
+    col = uiCopy("copy.left");
   } else if (centerX > 666) {
-    col = "right";
+    col = uiCopy("copy.right");
   } else {
-    col = "centre";
+    col = uiCopy("copy.centre");
   }
 
-  return `${roleLabel}: ${row}, ${col}, score ${score} out of 10`;
+  return uiCopy("copy.scoreOutOf10", { value1: roleLabel, value2: row, value3: col, value4: score });
 }

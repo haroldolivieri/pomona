@@ -1,11 +1,17 @@
-const CACHE_NAME = "pomona-shell-v7";
-const PRECACHE_URLS = ["/", "/index.html", "/manifest.json", "/icon-192.png", "/icon-512.png", "/launch-screen.png"];
+const CACHE_NAME = "pomona-shell-v18";
+const PRECACHE_URLS = ["/offline", "/manifest.json", "/icon-192.png", "/icon-512.png", "/launch-screen.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then(async (cache) => {
+        const response = await fetch("/offline-assets.json", { cache: "no-store" });
+        if (!response.ok) throw new Error("Offline asset manifest unavailable");
+        const assets = await response.json();
+        if (!Array.isArray(assets) || !assets.every((asset) => typeof asset === "string" && asset.startsWith("/assets/"))) throw new Error("Invalid offline asset manifest");
+        await cache.addAll([...PRECACHE_URLS, ...assets]);
+      })
       .then(() => self.skipWaiting())
   );
 });
@@ -28,17 +34,22 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.pathname.startsWith("/api/")) return;
 
+  if (request.mode === "navigate") {
+    event.respondWith(fetch(request).catch(() => caches.match("/offline")));
+    return;
+  }
+
   event.respondWith(
     fetch(request)
       .then((response) => {
         if (response && response.status === 200 && url.origin === self.location.origin) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {}));
         }
         return response;
       })
       .catch(() =>
-        caches.match(request).then((cached) => cached || caches.match("/index.html"))
+        caches.match(request)
       )
   );
 });

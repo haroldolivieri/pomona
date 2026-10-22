@@ -1,6 +1,9 @@
+import { translateShared } from "./copy";
+import type { SupportedLocale } from "./locale";
 import { Candidate, TargetRipenessWindow } from "./schemas";
 
 export interface TargetResolutionResult {
+  headlineKind: "buy" | "other";
   targetWindow: TargetRipenessWindow;
   rankedCandidates: Candidate[]; // candidates with score updated to window suitability score
   winner: Candidate | null;
@@ -99,18 +102,20 @@ function getTier(ripeness: Candidate["ripeness"], targetWindow: TargetRipenessWi
 
 export function resolveCandidatesForTarget(
   candidates: Candidate[],
-  targetWindow: TargetRipenessWindow
+  targetWindow: TargetRipenessWindow,
+  displayLocale: SupportedLocale = "en-GB",
 ): TargetResolutionResult {
   if (candidates.length === 0) {
     return {
+      headlineKind: "other",
       targetWindow,
       rankedCandidates: [],
       winner: null,
       runnerUp: null,
       isExactMatch: false,
-      eyebrow: "NO CANDIDATES",
-      headline: "No produce detected.",
-      subtitle: "Try scanning again with fruit clearly in view.",
+      eyebrow: translateShared(displayLocale, "copy.noCandidates"),
+      headline: translateShared(displayLocale, "copy.noProduceDetected"),
+      subtitle: translateShared(displayLocale, "copy.tryScanningAgainWithFruitClearlyIn"),
       eatWithinOverride: null,
       followUpHintOverride: null,
     };
@@ -143,78 +148,79 @@ export function resolveCandidatesForTarget(
   let mismatchReason: "all_already_ripe" | "all_underripe" | "no_match" | null = null;
   let badgeLabel: string | null = null;
   let bannerNotice: string | null = null;
-  let eyebrow = "BEST IN VIEW";
-  let headline = "Buy it.";
-  let subtitle = `${candidates.length} compared in view`;
+  let eyebrow = translateShared(displayLocale, "copy.bestInView");
+  let headline = translateShared(displayLocale, "copy.buyIt");
+  let subtitle = translateShared(displayLocale, "copy.comparedInView", { count: candidates.length });
   let eatWithinOverride: string | null = null;
   let followUpHintOverride: string | null = null;
 
   if (targetWindow === "ready_now") {
     isExactMatch = winner?.ripeness === "ripe";
-    followUpHintOverride = "Check underside for sweetness before buying";
+    followUpHintOverride = translateShared(displayLocale, "copy.checkUndersideForSweetnessBeforeBuying");
     if (!isExactMatch && winner) {
       mismatchReason = "all_underripe";
-      badgeLabel = "Closest match · Not yet ripe";
-      bannerNotice = "All items in view are still underripe — showing closest to ripe";
-      eyebrow = "CLOSEST MATCH · ALL ITEMS UNDERRIPE";
-      headline = winner.ripeness === "almost_ripe" ? "Ripens in 1–2 days." : "Firm & underripe.";
-      subtitle = "No fully ripe fruit found in view. Needs time to ripen.";
+      badgeLabel = translateShared(displayLocale, "copy.closestMatchNotYetRipe");
+      bannerNotice = translateShared(displayLocale, "copy.allItemsInViewAreStillUnderripe");
+      eyebrow = translateShared(displayLocale, "copy.closestMatchAllItemsUnderripe");
+      headline = winner.ripeness === "almost_ripe" ? translateShared(displayLocale, "copy.ripensIn12Days") : translateShared(displayLocale, "copy.firmUnderripe");
+      subtitle = translateShared(displayLocale, "copy.noFullyRipeFruitFoundInView");
     } else {
-      eyebrow = "BEST IN VIEW · READY NOW";
-      headline = "Buy it.";
-      subtitle = `High confidence · ${candidates.length} compared in view`;
+      eyebrow = translateShared(displayLocale, "copy.bestInViewReadyNow");
+      headline = translateShared(displayLocale, "copy.buyIt");
+      subtitle = translateShared(displayLocale, "copy.highConfidenceComparedInView", { count: candidates.length });
     }
   } else if (targetWindow === "in_2_3_days") {
     isExactMatch = winner?.ripeness === "almost_ripe";
-    eatWithinOverride = "Ready in 2–3d · Keeps 5–7 days";
-    followUpHintOverride = "Check underside before storing for 2–3 days";
+    eatWithinOverride = translateShared(displayLocale, "copy.readyIn23dKeeps57");
+    followUpHintOverride = translateShared(displayLocale, "copy.checkUndersideBeforeStoringFor23");
     if (isExactMatch) {
-      eyebrow = "BEST IN VIEW · IN 2–3 DAYS";
-      headline = "Buy this one.";
-      subtitle = `Will reach peak ripeness in 2–3 days · ${candidates.length} compared`;
+      eyebrow = translateShared(displayLocale, "copy.bestInViewIn23Days");
+      headline = translateShared(displayLocale, "copy.buyThisOne");
+      subtitle = translateShared(displayLocale, "copy.willReachPeakRipenessIn23", { count: candidates.length });
     } else if (winner?.ripeness === "ripe" || winner?.ripeness === "overripe") {
       mismatchReason = "all_already_ripe";
-      badgeLabel = "Closest match · Already ripe";
-      bannerNotice = "All items in view are already ripe — eat sooner";
-      eyebrow = "CLOSEST MATCH · ALL ITEMS ALREADY RIPE";
-      headline = "No items will keep 2–3 days.";
-      subtitle = "All items in view are already ripe. This one is best, but eat it sooner.";
+      badgeLabel = translateShared(displayLocale, "copy.closestMatchAlreadyRipe");
+      bannerNotice = translateShared(displayLocale, "copy.allItemsInViewAreAlreadyRipe");
+      eyebrow = translateShared(displayLocale, "copy.closestMatchAllItemsAlreadyRipe");
+      headline = translateShared(displayLocale, "copy.noItemsWillKeep23Days");
+      subtitle = translateShared(displayLocale, "copy.allItemsInViewAreAlreadyRipe2");
       eatWithinOverride = null;
     } else {
       mismatchReason = "all_underripe";
-      badgeLabel = "Closest match · Too firm";
-      bannerNotice = "All items in view are firm & underripe — will take 4+ days";
-      eyebrow = "CLOSEST MATCH · FIRM & UNRIPE";
-      headline = "Will take 4+ days to ripen.";
-      subtitle = "No items ready in 2–3 days. This one will take longer to soften.";
+      badgeLabel = translateShared(displayLocale, "copy.closestMatchTooFirm");
+      bannerNotice = translateShared(displayLocale, "copy.allItemsInViewAreFirmUnderripe");
+      eyebrow = translateShared(displayLocale, "copy.closestMatchFirmUnripe");
+      headline = translateShared(displayLocale, "copy.willTake4DaysToRipen");
+      subtitle = translateShared(displayLocale, "copy.noItemsReadyIn23Days");
     }
   } else if (targetWindow === "later_this_week") {
     isExactMatch = winner?.ripeness === "underripe";
-    eatWithinOverride = "Ripens in 4–6d · Keeps 7–10 days";
-    followUpHintOverride = "Check underside for bruises before long storage";
+    eatWithinOverride = translateShared(displayLocale, "copy.ripensIn46dKeeps710");
+    followUpHintOverride = translateShared(displayLocale, "copy.checkUndersideForBruisesBeforeLongStorage");
     if (isExactMatch) {
-      eyebrow = "BEST IN VIEW · LATER THIS WEEK";
-      headline = "Buy to store.";
-      subtitle = `Firm and unbruised · will ripen later this week · ${candidates.length} compared`;
+      eyebrow = translateShared(displayLocale, "copy.bestInViewLaterThisWeek");
+      headline = translateShared(displayLocale, "copy.buyToStore");
+      subtitle = translateShared(displayLocale, "copy.firmAndUnbruisedWillRipenLaterThis", { count: candidates.length });
     } else if (winner?.ripeness === "ripe" || winner?.ripeness === "almost_ripe") {
       mismatchReason = "all_already_ripe";
-      badgeLabel = "Closest match · Already ripe";
-      bannerNotice = "All items in view are already ripe — none will keep for later";
-      eyebrow = "CLOSEST MATCH · ALL ITEMS ALREADY RIPE";
-      headline = "No items will keep until later.";
-      subtitle = "All items in view are already ripe. Pick from a fresher batch to store.";
+      badgeLabel = translateShared(displayLocale, "copy.closestMatchAlreadyRipe");
+      bannerNotice = translateShared(displayLocale, "copy.allItemsInViewAreAlreadyRipe3");
+      eyebrow = translateShared(displayLocale, "copy.closestMatchAllItemsAlreadyRipe");
+      headline = translateShared(displayLocale, "copy.noItemsWillKeepUntilLater");
+      subtitle = translateShared(displayLocale, "copy.allItemsInViewAreAlreadyRipe4");
       eatWithinOverride = null;
     } else {
       mismatchReason = "no_match";
-      badgeLabel = "Closest match";
-      bannerNotice = "No items match later this week — closest match selected";
-      eyebrow = "CLOSEST MATCH";
-      headline = "Closest match in view.";
-      subtitle = `${candidates.length} compared in view`;
+      badgeLabel = translateShared(displayLocale, "copy.closestMatch");
+      bannerNotice = translateShared(displayLocale, "copy.noItemsMatchLaterThisWeekClosest");
+      eyebrow = translateShared(displayLocale, "copy.closestMatch2");
+      headline = translateShared(displayLocale, "copy.closestMatchInView");
+      subtitle = translateShared(displayLocale, "copy.comparedInView", { count: candidates.length });
     }
   }
 
   return {
+    headlineKind: isExactMatch && targetWindow === "ready_now" ? "buy" : "other",
     targetWindow,
     rankedCandidates,
     winner,

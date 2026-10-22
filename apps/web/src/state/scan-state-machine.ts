@@ -1,3 +1,5 @@
+import { currentDisplayLocale } from "../i18n/copy";
+import { uiCopy } from "../i18n/copy";
 import {
   type ScanResponse,
   type Candidate,
@@ -194,7 +196,7 @@ export function scanMachineReducer(
           ...state,
           phase: "S_ScanError",
           status: resp.status,
-          errorMessage: resp.message || "Produce analysis could not be completed.",
+          errorMessage: resp.message || uiCopy("copy.produceAnalysisCouldNotBeCompleted"),
           lastResponse: resp,
         };
       }
@@ -328,7 +330,8 @@ export function scanMachineReducer(
 
       const resolution = resolveCandidatesForTarget(
         state.allCandidatesRound1,
-        action.targetRipeness
+        action.targetRipeness,
+        currentDisplayLocale(),
       );
 
       const winnerCandidate = resolution.winner;
@@ -357,13 +360,13 @@ export function scanMachineReducer(
             ...state.lastResponse.verdict,
             winnerId: winnerCandidate?.id ?? state.lastResponse.verdict.winnerId,
             runnerUpId: runnerCandidate?.id ?? null,
-            headline: resolution.headline === "Buy it." ? "Best available." : resolution.headline,
+            headline: resolution.headlineKind === "buy" ? uiCopy("copy.bestAvailable") : resolution.headline,
           }
         : null;
 
       const bannerText = action.targetRipeness === "ready_now"
-        ? (state.round1FollowUp?.bannerText || resolution.followUpHintOverride || state.lastResponse.followUp?.bannerText || "The blue one could be sweeter. Flip it and snap.")
-        : (resolution.followUpHintOverride || state.lastResponse.followUp?.bannerText || "Check underside before storing.");
+        ? (state.round1FollowUp?.bannerText || resolution.followUpHintOverride || state.lastResponse.followUp?.bannerText || uiCopy("copy.theBlueOneCouldBeSweeterFlip"))
+        : (resolution.followUpHintOverride || state.lastResponse.followUp?.bannerText || uiCopy("copy.checkUndersideBeforeStoring"));
 
       const updatedFollowUp = state.lastResponse?.followUp && runnerCandidate
         ? {

@@ -11,9 +11,13 @@
     "tunnel": "bash scripts/tunnel.sh",
     "test": "pnpm -r test",
     "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "lint:copy": "eslint apps/web/src packages/contract/src/ripeness-target.ts packages/contract/src/seasonality.ts apps/proxy/src/verifier/verify-response.ts --max-warnings 0 && node scripts/check-copy.mjs"
   },
   "devDependencies": {
+    "@typescript-eslint/parser": "^8.72.0",
+    "eslint": "^10.13.0",
+    "eslint-plugin-i18next": "^6.1.5",
     "typescript": "^5.8.2",
     "vitest": "^3.2.7"
   }

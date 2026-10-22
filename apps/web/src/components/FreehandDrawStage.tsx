@@ -1,3 +1,4 @@
+import { uiCopy } from "../i18n/copy";
 import React, { useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { Point } from "@pomona/contract";
@@ -23,8 +24,6 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
   onAnalyse,
   onRetake,
   errorMessage,
-  remainingScans = 10,
-  onQuotaClick,
 }) => {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -175,37 +174,13 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
           ←
         </button>
 
-        <div
-          data-testid="scan-quota-pill"
-          onClick={onQuotaClick}
-          role={onQuotaClick ? "button" : undefined}
-          tabIndex={onQuotaClick ? 0 : undefined}
-          title={onQuotaClick ? "Tap to override scan quota (testing)" : undefined}
-          style={{
-            background: "rgba(251,250,246,0.92)",
-            color: "#142117",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            fontFamily: "Inter, system-ui, sans-serif",
-            fontWeight: 600,
-            fontSize: "12px",
-            lineHeight: 1,
-            padding: "7px 12px",
-            borderRadius: "999px",
-            display: "inline-flex",
-            alignItems: "center",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.18)",
-            cursor: onQuotaClick ? "pointer" : "default",
-          }}
-        >
-          {t("camera.scansLeftToday", { count: remainingScans ?? 10 })}
-        </div>
+
 
         <button
           onClick={handleResetPoints}
           disabled={points.length === 0}
           data-testid="reset-draw-button"
-          aria-label="Reset drawing"
+          aria-label={uiCopy("copy.resetDrawing")}
           style={{
             width: "30px",
             height: "30px",
@@ -251,7 +226,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
           pointerEvents: "none",
         }}
       >
-        {t("draw.floatingPrompt", { defaultValue: "✍️ Draw around the area to focus on" })}
+        {t("draw.floatingPrompt")}
       </div>
 
       {/* Drawing canvas / image viewport */}
@@ -271,7 +246,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
         <img
           ref={imgRef}
           src={photoDataUrl}
-          alt="Captured produce"
+          alt={uiCopy("copy.capturedProduce")}
           onLoad={updateCoverRect}
           style={{
             width: "100%",
@@ -340,7 +315,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
               zIndex: 30,
             }}
           >
-            {errorMessage}
+            {t("errors.analysisFailed")}
           </div>
         )}
       </div>
@@ -389,7 +364,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
             color: "var(--text-muted)",
           }}
         >
-          {t("draw.eyebrow", { defaultValue: "Step 1 · Focus area" })}
+          {t("draw.eyebrow")}
         </div>
 
         {/* Headline */}
@@ -404,7 +379,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
             color: "var(--text-primary)",
           }}
         >
-          {t("draw.headline", { defaultValue: "Draw around your picks" })}
+          {t("draw.headline")}
         </div>
 
         {/* Subtitle */}
@@ -417,10 +392,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
             color: "var(--text-muted)",
           }}
         >
-          {t("draw.subtitle", {
-            defaultValue:
-              "Trace with your finger so the AI only grades the produce inside your loop, or skip to scan the whole photo.",
-          })}
+          {t("draw.subtitle")}
         </div>
 
         {/* Action buttons */}

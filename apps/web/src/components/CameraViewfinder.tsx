@@ -1,3 +1,8 @@
+import { uiCopy } from "../i18n/copy";
+import i18n from "../i18n";
+import { saveLocalePreference } from "../i18n/bootstrap";
+import { isSupportedLocale } from "@pomona/contract";
+import { LanguageSelector } from "./LanguageSelector";
 import React, { useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { captureViewportCrop } from "../lib/image-pipeline";
@@ -10,6 +15,7 @@ export interface CameraViewfinderProps {
   remainingScans?: number;
   onQuotaClick?: () => void;
   onBrandTap?: () => void;
+  showLanguageSelector?: boolean;
 }
 
 export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
@@ -20,6 +26,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   remainingScans = 10,
   onQuotaClick,
   onBrandTap,
+  showLanguageSelector = false,
 }) => {
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -51,7 +58,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
     async function initCamera() {
       try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("getUserMedia not supported");
+          throw new Error(uiCopy("copy.getusermediaNotSupported"));
         }
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -68,7 +75,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         }
       } catch (err: any) {
         if (isMounted) {
-          setCameraError(err.message || "Camera access denied");
+          setCameraError(uiCopy("copy.cameraAccessDenied"));
           setStreamActive(false);
         }
       }
@@ -169,6 +176,9 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         justifyContent: "space-between",
       }}
     >
+      {showLanguageSelector && <div style={{ position: "absolute", top: "max(72px, env(safe-area-inset-top))", right: "20px", zIndex: 11 }}>
+        <LanguageSelector locale={isSupportedLocale(i18n.language) ? i18n.language : "en-GB"} onChange={(locale) => { saveLocalePreference(locale); void i18n.changeLanguage(locale); }} />
+      </div>}
       {/* Top bar with white chip pills */}
       <div
         style={{
@@ -217,8 +227,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
               color: "#142117",
             }}
           >
-            Pomona
-          </span>
+            {uiCopy("copy.pomona")}</span>
         </div>
 
         {/* Right action buttons: Flash toggle, Theme toggle, Close button */}
@@ -250,7 +259,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              aria-label="Close"
+              aria-label={uiCopy("copy.close")}
               data-testid="close-button"
               style={{
                 background: "rgba(251,250,246,0.92)",

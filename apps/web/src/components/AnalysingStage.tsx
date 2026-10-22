@@ -1,3 +1,4 @@
+import { uiCopy } from "../i18n/copy";
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { Point } from "@pomona/contract";
@@ -26,8 +27,6 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
   focusPolygon,
   cropRect,
   onCancel,
-  remainingScans = 10,
-  onQuotaClick,
 }) => {
   const { t } = useTranslation();
   const tips: string[] = (t("analysing.tips", { returnObjects: true }) as string[]) || [];
@@ -158,7 +157,7 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
         <img
           ref={imgRef}
           src={photoDataUrl}
-          alt="Analysing produce"
+          alt={uiCopy("copy.analysingProduce")}
           onLoad={updateCoverRect}
           style={{
             position: "absolute",
@@ -209,7 +208,9 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
               </clipPath>
             )}
             <style>
-              {`
+              {
+                // eslint-disable-next-line i18next/no-literal-string -- Generated CSS keyframes, not display copy.
+                `
                 @keyframes scan-laser-sweep-svg-bbox {
                   0% {
                     transform: translateY(${minY}px);
@@ -336,7 +337,7 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
           type="button"
           onClick={onCancel}
           data-testid="cancel-button"
-          aria-label="Cancel analysis"
+          aria-label={uiCopy("copy.cancelAnalysis")}
           style={{
             width: "30px",
             height: "30px",
@@ -358,31 +359,7 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
           ✕
         </button>
 
-        <div
-          data-testid="scan-quota-pill"
-          onClick={onQuotaClick}
-          role={onQuotaClick ? "button" : undefined}
-          tabIndex={onQuotaClick ? 0 : undefined}
-          title={onQuotaClick ? "Tap to override scan quota (testing)" : undefined}
-          style={{
-            background: "rgba(251,250,246,0.92)",
-            color: "#142117",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            fontFamily: "Inter, system-ui, sans-serif",
-            fontWeight: 600,
-            fontSize: "12px",
-            lineHeight: 1,
-            padding: "7px 12px",
-            borderRadius: "999px",
-            display: "inline-flex",
-            alignItems: "center",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.18)",
-            cursor: onQuotaClick ? "pointer" : "default",
-          }}
-        >
-          {t("camera.scansLeftToday", { count: remainingScans ?? 10 })}
-        </div>
+
 
         <div style={{ width: "30px" }} />
       </div>
@@ -431,8 +408,7 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
             color: "var(--text-muted)",
           }}
         >
-          Pomona Vision
-        </div>
+          {uiCopy("copy.pomonaVision")}</div>
 
         {/* Headline */}
         <div
@@ -446,8 +422,7 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
             color: "var(--text-primary)",
           }}
         >
-          Checking ripeness…
-        </div>
+          {uiCopy("copy.checkingRipeness")}</div>
 
         {/* Subhead */}
         <div
@@ -460,8 +435,8 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
           }}
         >
           {isDrawnArea
-            ? "Grading only the produce inside the boundary you drew."
-            : "Grading produce across the entire photo."}
+            ? uiCopy("copy.gradingOnlyTheProduceInsideTheBoundary")
+            : uiCopy("copy.gradingProduceAcrossTheEntirePhoto")}
         </div>
 
         {/* Produce Tip ticker inside sheet */}
@@ -489,7 +464,7 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
                 marginTop: "1px",
               }}
             >
-              TIP
+              {uiCopy("copy.tip")}
             </span>
             <p
               style={{
@@ -500,7 +475,7 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
                 margin: 0,
               }}
             >
-              {tips[tipIndex] || "Evaluating produce freshness and quality..."}
+              {tips[tipIndex] || uiCopy("copy.evaluatingProduceFreshnessAndQuality")}
             </p>
           </div>
         )}

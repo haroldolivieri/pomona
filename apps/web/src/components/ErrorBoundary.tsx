@@ -1,3 +1,4 @@
+import { uiCopy } from "../i18n/copy";
 import React, { Component, type ErrorInfo, type ReactNode } from "react";
 
 interface Props {
@@ -43,8 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
         >
           <div style={{ fontSize: "44px", marginBottom: "16px" }}>⚠️</div>
           <h2 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>
-            Application Error
-          </h2>
+            {uiCopy("copy.applicationError")}</h2>
           <p
             style={{
               color: "#97AB9C",
@@ -55,7 +55,7 @@ export class ErrorBoundary extends Component<Props, State> {
               wordBreak: "break-word",
             }}
           >
-            {this.state.error?.message || "An unexpected error occurred in the produce scanner."}
+            {uiCopy("copy.anUnexpectedErrorOccurredInTheProduce")}
           </p>
           <button
             type="button"
@@ -72,8 +72,7 @@ export class ErrorBoundary extends Component<Props, State> {
               boxShadow: "0 4px 14px rgba(47, 93, 52, 0.4)",
             }}
           >
-            Reload App
-          </button>
+            {uiCopy("copy.reloadApp")}</button>
         </div>
       );
     }

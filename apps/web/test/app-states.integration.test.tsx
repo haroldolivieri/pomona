@@ -153,7 +153,7 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     expect(screen.getByText(/1st Winner Reclaims the Win \(9\.3 vs 9\.0\)/i)).toBeTruthy();
   }, 25000);
 
-  it("transitions into S_ScanError and displays detailed error message when scan fails", async () => {
+  it("transitions into S_ScanError and displays localized recovery copy when scan fails", async () => {
     const mockClient = {
       getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
       overrideQuota: vi.fn().mockResolvedValue({ success: true, deviceId: "d1", deviceLimit: 10, remainingDeviceScans: 10 }),
@@ -177,7 +177,8 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
 
     // Should transition to S_ScanError with error message displayed
     expect(await screen.findByTestId("stage-S_ScanError")).toBeTruthy();
-    expect(screen.getByText("Scan request failed (413): Request body too large")).toBeTruthy();
+    expect(screen.getByText("Produce analysis could not be completed. Please try again.")).toBeTruthy();
+    expect(screen.queryByText("Scan request failed (413): Request body too large")).toBeNull();
     expect(screen.getByTestId("error-primary-cta")).toBeTruthy();
 
     // Clicking primary CTA resets back to camera
@@ -234,10 +235,10 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     expect(screen.getByTestId("brand-pill")).toHaveTextContent("Pomona");
     expect(screen.queryByTestId("scan-quota-pill")).toBeNull();
 
-    // Snap photo -> State 2: Top middle chip shows 10 scans left today
+    // Snap photo -> State 2: Top bar keeps the remaining-scan label hidden
     fireEvent.click(screen.getByTestId("shutter-button"));
     expect(await screen.findByTestId("stage-S2_DrawFocusArea")).toBeTruthy();
-    expect(screen.getByTestId("scan-quota-pill")).toHaveTextContent("10 scans left today");
+    expect(screen.queryByTestId("scan-quota-pill")).toBeNull();
 
     // Scan whole photo -> State 4: Top middle chip shows Alphonso Mango ONLY
     fireEvent.click(screen.getByTestId("whole-photo-button"));
