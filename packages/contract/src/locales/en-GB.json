@@ -95,5 +95,12 @@
     "finalBanner": "1st Pick ({{score}}) was only graded from the top. Flip the {{produce}} for a final check.",
     "finalHeadline": "Flip your 1st pick {{produce}} over",
     "finalInstruction": "Turn your 1st pick {{produce}} over to show its underside."
+  },
+  "gate": {
+    "noProduce": "No fresh produce is visible. Please photograph the fruit or vegetables you want to compare.",
+    "unclearPhoto": "The produce is obscured. Please take a clearer photo showing its surfaces.",
+    "multipleTypes": "Several produce types share the view. Please draw around one type or take a closer photo.",
+    "rateLimited": "Scan allowance or service capacity reached. Please try again later.",
+    "failed": "The photo check is unavailable. Please try again later."
   }
 }

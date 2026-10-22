@@ -90,6 +90,8 @@ export function createFetchApiClient(baseUrl: string = ""): PomonaApiClient {
         throw new ApiClientError(res.status, uiCopy("copy.scanRequestFailed", { value1: res.status, value2: errorDetail || uiCopy("errors.analysisFailed") }));
       }
       const scanResponse: ScanResponse = await res.json();
+      const requestId = res.headers?.get?.("X-Pomona-Request-Id");
+      if (requestId) console.log("[scan] trace", { requestId, sessionId: request.sessionId, round: request.round });
       const remainingHeader = res.headers?.get?.("X-Pomona-Remaining-Scans");
       const parsedRemaining = remainingHeader ? parseInt(remainingHeader, 10) : 10;
       return {

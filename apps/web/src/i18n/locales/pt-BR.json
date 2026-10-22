@@ -54,7 +54,7 @@
     "unclearPhoto": "A foto está desfocada ou escura. Segure firme e tente novamente.",
     "multipleTypes": "Há vários tipos de frutas, verduras e legumes. Foque em apenas um tipo.",
     "analysisFailed": "Não foi possível concluir a análise. Tente novamente.",
-    "rateLimited": "Limite diário de análises atingido. Volte amanhã!",
+    "rateLimited": "Limite de análises ou capacidade do serviço atingido. Tente novamente mais tarde.",
     "unclearPhotoTitle": "A foto não está nítida",
     "unclearPhotoTip": "Segure o celular firme, toque para focar e evite reflexos ou pouca luz.",
     "unclearPhotoCta": "Tirar outra foto",
@@ -76,7 +76,8 @@
     "similarMaturityTip": "Isso não confirma qualidade igual por dentro. Aproxime a câmera para comparar cada item.",
     "similarMaturityCta": "Nova comparação",
     "similarMaturityEyebrow": "Maturação visível semelhante",
-    "similarMaturityPill": "Comparação"
+    "similarMaturityPill": "Comparação",
+    "rateLimitedTip": "Seu limite de análises ou a capacidade do serviço está indisponível no momento. Tente novamente mais tarde."
   },
   "language": {
     "label": "Idioma",

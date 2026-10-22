@@ -72,6 +72,14 @@ describe("Gateway production routing and usage scenarios", () => {
     expect(response.headers.get("access-control-expose-headers")).toContain("X-Pomona-Request-Id");
     expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "model_usage", requestId, success: true, usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 } }));
     expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_usage", requestId, attempts: 1, status: "insufficient_evidence" }));
+    expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_received", requestId,
+      imagePayloadSha256: expect.stringMatching(/^[a-f0-9]{64}$/) }));
+    expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "model_response", requestId,
+      response: expect.objectContaining({ status: "insufficient_evidence" }) }));
+    expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_response", requestId,
+      response: expect.objectContaining({ status: "insufficient_evidence" }) }));
+    expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_complete", requestId,
+      httpStatus: 200, durationMs: expect.any(Number) }));
     expect(JSON.stringify(metrics(log))).not.toMatch(/test-gateway-token|test-google-key|test-openai-key|YWJj|systemPrompt|imageBase64/);
   });
 

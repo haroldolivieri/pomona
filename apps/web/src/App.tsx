@@ -323,17 +323,18 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     try {
       telemetry.capture("scan_started", { round });
 
-      // Downsample and compress photo to <= 768px JPEG/WebP so it stays lightweight and within body limits
-      const { base64: base64Data, mimeType } = await downsampleDataUrl(photoDataUrl, 768, 0.8);
-      console.log(
-        `[scan] Prepared payload: round ${round}, ${mimeType}, base64 length: ${base64Data.length} chars`
-      );
-
       // Ensure focusPolygon is simplified to <=32 points so it never exceeds the schema limit of 40 points
       const safePolygon: Point[] | null =
         focusPolygon && focusPolygon.length >= 3
           ? (simplifyPath(focusPolygon as [number, number][], 32) as Point[])
           : null;
+
+      // Downsample and compress photo to <= 768px JPEG/WebP so it stays lightweight and within body limits
+      // Mask the uploaded copy only; retain the full frame and original photo for UI box alignment.
+      const { base64: base64Data, mimeType } = await downsampleDataUrl(photoDataUrl, 768, 0.8, safePolygon);
+      console.log(
+        `[scan] Prepared payload: round ${round}, ${mimeType}, base64 length: ${base64Data.length} chars`
+      );
 
       const request: ScanRequest = {
         schemaVersion: "1.0",

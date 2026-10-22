@@ -7,6 +7,7 @@ export interface GatewayRouting {
 }
 
 export function getGatewayRouting(env: Env, provider: "google" | "openai"): GatewayRouting | undefined {
+  if (env.LOCAL_CLEF_TEST === "true") return undefined;
   const accountId = env.AI_GATEWAY_ACCOUNT_ID?.trim();
   const gatewayId = env.AI_GATEWAY_ID?.trim();
   if (!accountId && !gatewayId && !env.AI_GATEWAY_TOKEN) return undefined;

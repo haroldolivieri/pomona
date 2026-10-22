@@ -53,7 +53,7 @@
     "unclearPhoto": "Photo was too blurry or dim. Please hold steady and try again.",
     "multipleTypes": "Multiple types of produce detected. Focus on one crate.",
     "analysisFailed": "Produce analysis could not be completed. Please try again.",
-    "rateLimited": "Daily scan limit reached. Please come back tomorrow!",
+    "rateLimited": "Scan allowance or service capacity reached. Please try again later.",
     "unclearPhotoTitle": "Photo isn't clear enough",
     "unclearPhotoTip": "Hold your phone steady, tap to focus on the produce, and ensure good lighting without harsh glare.",
     "unclearPhotoCta": "Retake Photo",
@@ -75,7 +75,8 @@
     "similarMaturityTip": "This does not confirm equal quality inside. Try a closer view to compare individual items.",
     "similarMaturityCta": "Scan Another Selection",
     "similarMaturityEyebrow": "Similar Visible Maturity",
-    "similarMaturityPill": "Comparison"
+    "similarMaturityPill": "Comparison",
+    "rateLimitedTip": "Your scan allowance or service capacity is currently unavailable. Please try again later."
   },
   "language": {
     "label": "Language",

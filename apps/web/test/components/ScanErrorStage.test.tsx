@@ -7,6 +7,12 @@ import "../../src/i18n";
 import en from "../../src/i18n/locales/en.json";
 
 describe("ScanErrorStage", () => {
+  it("does not claim a gate capacity limit resets with the device daily quota", () => {
+    render(<ScanErrorStage status="rate_limited" photoDataUrl={null} onRetake={vi.fn()}
+      errorMessage="Scan allowance or service capacity reached. Please try again later." />);
+    expect(screen.getByText(/Scan allowance or service capacity reached/)).toBeInTheDocument();
+    expect(screen.queryByText(/reset.*tomorrow|used all daily scans/i)).not.toBeInTheDocument();
+  });
   it("shows similar visible maturity as a distinct notice without claiming equal quality", () => {
     const onRetake = vi.fn();
     render(<ScanErrorStage status="insufficient_evidence" abstentionReason="assessed_tie"

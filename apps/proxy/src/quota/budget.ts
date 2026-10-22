@@ -44,6 +44,10 @@ interface ModelPricing {
 }
 
 const MODEL_PRICING: Record<string, ModelPricing> = {
+  "@cf/cloudflare/clef-flash": {
+    promptMicroCentsPerToken: 0.0038,
+    completionMicroCentsPerToken: 0,
+  },
   "gemini-3.8-flash": {
     promptMicroCentsPerToken: 0.0075,
     completionMicroCentsPerToken: 0.03,

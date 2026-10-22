@@ -425,17 +425,26 @@ export async function prepareScanImageFromCanvas(
 /**
  * Downsamples any image data URL to fit within maxEdge (default 768px) and encodes as JPEG or WebP.
  * Guarantees mobile camera uploads stay small (<250KB) and never trigger 413 Payload Too Large.
+ * A supplied focus polygon masks outside pixels in black without cropping or changing frame coordinates.
  */
 export async function downsampleDataUrl(
   dataUrl: string,
   maxEdge = 768,
-  quality = 0.8
+  quality = 0.8,
+  focusPolygon: Point[] | null = null
 ): Promise<{ base64: string; mimeType: "image/jpeg" | "image/webp" }> {
+  if (focusPolygon && (
+    focusPolygon.some(([x, y]) => !Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 1000 || y < 0 || y > 1000) ||
+    !normalizeFreehandPolygon(focusPolygon).valid
+  )) {
+    throw new Error("Invalid focus polygon. Draw the selection again.");
+  }
   if (
     typeof document === "undefined" ||
     typeof Image === "undefined" ||
     (typeof navigator !== "undefined" && navigator.userAgent?.includes("jsdom"))
   ) {
+    if (focusPolygon) throw new Error("Could not prepare the selected area. Please try again.");
     const isJpeg = dataUrl.includes("image/jpeg");
     const comma = dataUrl.indexOf(",");
     return {
@@ -444,7 +453,7 @@ export async function downsampleDataUrl(
     };
   }
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       try {
@@ -458,6 +467,7 @@ export async function downsampleDataUrl(
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         if (!ctx) {
+          if (focusPolygon) throw new Error("Canvas context unavailable");
           const comma = dataUrl.indexOf(",");
           resolve({
             base64: comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl,
@@ -466,6 +476,20 @@ export async function downsampleDataUrl(
           return;
         }
         ctx.drawImage(img, 0, 0, width, height);
+
+        if (focusPolygon) {
+          // Fill only the complement of the actual loop, including concave exclusions.
+          // Keep full-frame geometry so normalized model boxes still align with the original photo.
+          ctx.beginPath();
+          ctx.rect(0, 0, width, height);
+          ctx.moveTo(focusPolygon[0][0] * width / 1000, focusPolygon[0][1] * height / 1000);
+          for (const [x, y] of focusPolygon.slice(1)) {
+            ctx.lineTo(x * width / 1000, y * height / 1000);
+          }
+          ctx.closePath();
+          ctx.fillStyle = "#000000";
+          ctx.fill("evenodd");
+        }
 
         let outMime: "image/jpeg" | "image/webp" = "image/jpeg";
         let outUrl = canvas.toDataURL("image/jpeg", quality);
@@ -486,6 +510,10 @@ export async function downsampleDataUrl(
           mimeType: outMime,
         });
       } catch {
+        if (focusPolygon) {
+          reject(new Error("Could not prepare the selected area. Please try again."));
+          return;
+        }
         const comma = dataUrl.indexOf(",");
         resolve({
           base64: comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl,
@@ -494,6 +522,10 @@ export async function downsampleDataUrl(
       }
     };
     img.onerror = () => {
+      if (focusPolygon) {
+        reject(new Error("Could not load the selected photo. Please retake it."));
+        return;
+      }
       const comma = dataUrl.indexOf(",");
       resolve({
         base64: comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl,

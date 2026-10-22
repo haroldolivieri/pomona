@@ -1,9 +1,11 @@
 {
   "name": "@pomona/web",
-  "version": "1.0.0",
+  "version": "1.1.0",
+  "releaseDescription": "Masked scans; Clef gate at 0.85; model scores/responses and tracing; preserves Portuguese and offline support",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:clef:local": "vite --config vite.clef-local.config.ts",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",

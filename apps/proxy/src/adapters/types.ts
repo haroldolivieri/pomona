@@ -1,6 +1,7 @@
 import type { ScanRequest, ScanResponse } from "@pomona/contract";
 import type { PromptConfig } from "../prompts";
 import { verifyAndResolveScanResponse } from "../verifier/verify-response";
+import { traceStage, logScanResponse, type ScanTracing } from "../observability/scan-trace";
 
 export interface TokenUsage {
   promptTokens: number;
@@ -67,6 +68,7 @@ export async function runVerifiedVisionScan(
   promptConfig: PromptConfig,
   signal?: AbortSignal,
   requestId: string = crypto.randomUUID(),
+  tracing?: ScanTracing,
 ): Promise<{
   response: ScanResponse;
   usage: TokenUsage;
@@ -94,7 +96,10 @@ export async function runVerifiedVisionScan(
     };
     const startedAt = Date.now();
     try {
-      const result = await adapter.analyzeProduce({ ...input, trace }, signal);
+      const result = await traceStage(tracing, "scan.gemini_or_provider", {
+        requestId, provider: adapter.providerId, model: adapter.modelId, attempt,
+      }, () => adapter.analyzeProduce({ ...input, trace }, signal));
+      logScanResponse("model_response", { ...trace, provider: adapter.providerId, model: adapter.modelId }, result.object);
       console.log(JSON.stringify({
         event: "model_usage", ...trace, provider: adapter.providerId, model: adapter.modelId,
         durationMs: Date.now() - startedAt, success: true, usage: result.usage,

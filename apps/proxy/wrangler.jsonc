@@ -1,9 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "pomona-proxy",
-  "main": "src/index.ts",
+  "main": "src/worker.ts",
   "compatibility_date": "2026-03-01",
   "compatibility_flags": ["nodejs_compat"],
+  "ai": { "binding": "AI" },
   "kv_namespaces": [
     {
       "binding": "POMONA_QUOTA_KV",
@@ -17,6 +18,9 @@
     "run_worker_first": ["/", "/index.html"]
   },
   "vars": {
+    "VISION_GATE_ENABLED": "true",
+    "AI_GATEWAY_ACCOUNT_ID": "553fb87d04f36b2f088f1250f34503cc",
+    "AI_GATEWAY_ID": "pomona",
     "ACTIVE_PROMPT_VERSION": "v1",
     "ACTIVE_PROVIDER": "gemini",
     "DEFAULT_MODEL": "gemini-3.1-flash-lite"
