@@ -18,6 +18,7 @@ export interface ResultStageProps {
   onStartFinalCheck: () => void;
   onReset: () => void;
   onSetTargetRipeness?: (target: TargetRipenessWindow) => void;
+  onDeepScan?: () => void;
 }
 
 export const ResultStage: React.FC<ResultStageProps> = ({
@@ -26,6 +27,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   onStartFinalCheck,
   onReset,
   onSetTargetRipeness,
+  onDeepScan,
 }) => {
   const { t } = useTranslation();
   // 3-way bottom sheet snap mode:
@@ -1545,6 +1547,53 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             <span>{confirmationBanner}</span>
           </div>
         )}
+
+        {/* Deep Scan banner for marginal single-fruit verdicts */}
+        {Boolean(onDeepScan) &&
+          lastResponse.candidates?.length === 1 &&
+          lastResponse.verdict?.confidence === "low" && (
+            <div
+              data-testid="ds-banner"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                background: "var(--surface-hint-ok)",
+                border: "1px solid var(--surface-hint-ok-border)",
+                borderRadius: "14px",
+                padding: "10px 12px",
+                margin: "4px 0",
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-primary)" }}>
+                  {t("deepScan.bannerTitle")}
+                </div>
+                <div style={{ fontSize: "11px", color: "var(--text-primary)", opacity: 0.8 }}>
+                  {t("deepScan.bannerBody")}
+                </div>
+              </div>
+              <button
+                onClick={onDeepScan}
+                data-testid="ds-banner-cta"
+                style={{
+                  flex: 0,
+                  padding: "10px 14px",
+                  borderRadius: "12px",
+                  border: "none",
+                  backgroundColor: "#F5D547",
+                  color: "#132418",
+                  fontFamily: "Inter, system-ui, sans-serif",
+                  fontWeight: 700,
+                  fontSize: "13px",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                ✦ {t("deepScan.preciseScanCta")}
+              </button>
+            </div>
+          )}
 
         {/* Divider 3: Before Primary Action Button */}
         <div

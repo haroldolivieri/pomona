@@ -2,9 +2,14 @@ import { currentDisplayLocale } from "./i18n/copy";
 import { useTranslation } from "react-i18next";
 import { uiCopy } from "./i18n/copy";
 import React, { useReducer, useState, useEffect, useRef } from "react";
-import type { ScanRequest, Point, ScanResponse } from "@pomona/contract";
+import type { ScanRequest, Point, ScanResponse, DeepScanRequest, DeepScanResponse } from "@pomona/contract";
 import type { PomonaApiClient } from "./lib/api-client";
 import type { TelemetryProvider } from "./lib/telemetry";
+import {
+  assembleDeepScanPayload,
+  DeepScanLocalReject,
+  type CollectedFrame,
+} from "./lib/deep-scan-capture";
 import {
   initialScanMachineState,
   scanMachineReducer,
@@ -32,6 +37,8 @@ import { AnalysingStage } from "./components/AnalysingStage";
 import { ResultStage } from "./components/ResultStage";
 import { FlipCameraStage } from "./components/FlipCameraStage";
 import { ScanErrorStage } from "./components/ScanErrorStage";
+import { DeepScanViewfinder } from "./components/DeepScanViewfinder";
+import { DeepScanResultStage } from "./components/DeepScanResultStage";
 import { Toast } from "./components/Toast";
 import "./styles/index.css";
 
@@ -380,6 +387,41 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     executeScan(photoDataUrl, null, targetRound, state);
   };
 
+  const handleDeepScanComplete = async (collected: CollectedFrame[]) => {
+    if (collected.length === 0) {
+      dispatch({ type: "DS_CAPTURE_REJECTED", reason: "all_blurry" });
+      return;
+    }
+    try {
+      const payload = await assembleDeepScanPayload(collected);
+      dispatch({
+        type: "DS_CAPTURE_COMPLETED",
+        composite: payload.composite,
+        sampleCount: payload.sampleCount,
+        stats: payload.stats,
+      });
+      const request: DeepScanRequest = {
+        schemaVersion: "1.0",
+        sessionId: generateUuid(),
+        locale: currentDisplayLocale(),
+        imageBase64: payload.composite.dataUrl.replace(/^data:image\/[a-z]+;base64,/, ""),
+        imageMimeType: "image/jpeg",
+        sampleCount: payload.sampleCount,
+      };
+      const response: DeepScanResponse = await activeApiClient.submitDeepScan(request);
+      dispatch({ type: "DS_SCAN_SUCCEEDED", response });
+    } catch (err) {
+      if (err instanceof DeepScanLocalReject) {
+        dispatch({ type: "DS_CAPTURE_REJECTED", reason: err.reason });
+        return;
+      }
+      dispatch({
+        type: "DS_SCAN_FAILED",
+        error: uiCopy("errors.analysisFailed"),
+      });
+    }
+  };
+
   const handleCompareWithRunnerUp = () => {
     telemetry.capture("compare_with_runner_up_clicked");
     dispatch({ type: "COMPARE_WITH_RUNNER_UP" });
@@ -447,6 +489,36 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
                 ? () => dispatch({ type: "DRAW_FOCUS_AFTER_ERROR" })
                 : undefined
             }
+            onDeepScan={() => {
+              telemetry.capture("deep_scan_entered", { origin: "insufficient" });
+              dispatch({ type: "ENTER_DEEP_SCAN", origin: "insufficient" });
+            }}
+          />
+        );
+
+      case "S_DS_Capture":
+        return (
+          <DeepScanViewfinder
+            onComplete={handleDeepScanComplete}
+            onCancel={() => dispatch({ type: "DS_CANCEL" })}
+            notice={state.errorMessage}
+          />
+        );
+
+      case "S_DS_Analysing":
+        return (
+          <AnalysingStage
+            photoDataUrl={state.dsComposite?.dataUrl || null}
+            onCancel={() => dispatch({ type: "DS_CANCEL" })}
+          />
+        );
+
+      case "S_DS_Result":
+        return (
+          <DeepScanResultStage
+            response={state.dsResult}
+            errorMessage={state.errorMessage}
+            onNewScan={() => dispatch({ type: "RESET" })}
           />
         );
 
@@ -464,6 +536,10 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             onSetTargetRipeness={(targetRipeness) => {
               telemetry.capture("target_ripeness_selected", { targetRipeness });
               dispatch({ type: "SET_TARGET_RIPENESS", targetRipeness });
+            }}
+            onDeepScan={() => {
+              telemetry.capture("deep_scan_entered", { origin: "result_banner" });
+              dispatch({ type: "ENTER_DEEP_SCAN", origin: "result_banner" });
             }}
           />
         );

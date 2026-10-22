@@ -79,6 +79,37 @@
     "similarMaturityPill": "Comparação",
     "rateLimitedTip": "Seu limite de análises ou a capacidade do serviço está indisponível no momento. Tente novamente mais tarde."
   },
+  "deepScan": {
+    "cancel": "Cancelar",
+    "captureIdleTitle": "Coloque uma fruta no círculo",
+    "capturePhaseStem": "Mostre o lado do cabinho",
+    "capturePhaseRotate": "Gire devagar",
+    "localTooBlurry": "Está tremido demais — segure mais firme a fruta e tente de novo",
+    "localTooDark": "Luz insuficiente — encontre um lugar mais claro",
+    "preciseScanCta": "Varredura precisa",
+    "bannerTitle": "Tente a Varredura precisa",
+    "bannerBody": "Alguns ângulos girados valem mais que uma foto só.",
+    "outcomeVerdictHeader": "Veredito da varredura precisa",
+    "outcomeNotEnoughTitle": "As vistas mostram quase o mesmo lado",
+    "manualChecksHeader": "Confira pelo tato (de quebra)",
+    "startNewScan": "Começar uma nova varredura",
+    "failureTitle": "A varredura precisa falhou",
+    "confidenceLabel": "de confiança",
+    "recommendationLabel": "Pronto em:",
+    "state": {
+      "unripe": "Ainda não está pronto",
+      "nearly_ripe": "Quase pronto",
+      "ripe": "Pronto para comer",
+      "overripe": "Coma em breve",
+      "spoiled": "Passou do ponto",
+      "unknown": "Não tenho certeza"
+    },
+    "recommendation": {
+      "today_or_tomorrow": "Hoje ou amanhã",
+      "in_a_few_days": "Em alguns dias",
+      "avoid": "Dispense"
+    }
+  },
   "language": {
     "label": "Idioma",
     "english": "English",

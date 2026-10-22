@@ -175,7 +175,11 @@ export function scanMachineReducer(
       return {
         ...state,
         phase: "S_DS_Capture",
-        errorMessage: uiCopy("deepScan.capture.tryAgain", undefined, currentDisplayLocale()),
+        errorMessage: uiCopy(
+          action.reason === "too_dark_or_bright" ? "deepScan.localTooDark" : "deepScan.localTooBlurry",
+          undefined,
+          currentDisplayLocale()
+        ),
       };
 
     case "DS_CAPTURE_COMPLETED":

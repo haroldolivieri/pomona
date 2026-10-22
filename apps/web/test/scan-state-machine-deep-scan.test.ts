@@ -43,7 +43,9 @@ describe("deep scan state machine phases", () => {
     const entered = run(initialScanMachineState(), { type: "ENTER_DEEP_SCAN", origin: "tie" });
     const rejected = run(entered, { type: "DS_CAPTURE_REJECTED", reason: "all_blurry" });
     expect(rejected.phase).toBe("S_DS_Capture");
-    expect(rejected.errorMessage).toBe(uiCopy("deepScan.capture.tryAgain"));
+    expect(rejected.errorMessage).toBe(uiCopy("deepScan.localTooBlurry"));
+    const dark = run(entered, { type: "DS_CAPTURE_REJECTED", reason: "too_dark_or_bright" });
+    expect(dark.errorMessage).toBe(uiCopy("deepScan.localTooDark"));
     expect(rejected.dsOrigin).toBe("tie");
   });
 

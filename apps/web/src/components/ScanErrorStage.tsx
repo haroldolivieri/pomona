@@ -10,6 +10,7 @@ export interface ScanErrorStageProps {
   photoDataUrl: string | null;
   onRetake: () => void;
   onDrawFocus?: () => void;
+  onDeepScan?: () => void;
 }
 
 export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
@@ -18,6 +19,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
   photoDataUrl,
   onRetake,
   onDrawFocus,
+  onDeepScan,
 }) => {
   const { t } = useTranslation();
   const similarMaturity = status === "insufficient_evidence" && abstentionReason === "assessed_tie";
@@ -362,6 +364,28 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
 
         {/* Actions */}
         <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
+          {onDeepScan && (
+            <button
+              onClick={onDeepScan}
+              data-testid="error-deep-scan-cta"
+              style={{
+                flex: 1,
+                padding: "14px 12px",
+                borderRadius: "14px",
+                border: "none",
+                backgroundColor: "#F5D547",
+                color: "#132418",
+                fontFamily: "Inter, system-ui, sans-serif",
+                fontWeight: 700,
+                fontSize: "14px",
+                cursor: "pointer",
+                boxShadow: "0 4px 14px rgba(245, 213, 71, 0.35)",
+                textAlign: "center",
+              }}
+            >
+              ✦ {uiCopy("deepScan.preciseScanCta")}
+            </button>
+          )}
           {showDrawButton && onDrawFocus && (
             <button
               onClick={onDrawFocus}

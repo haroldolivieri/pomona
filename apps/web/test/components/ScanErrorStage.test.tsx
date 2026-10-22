@@ -128,3 +128,35 @@ describe("ScanErrorStage", () => {
     expect(handleDraw).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("ScanErrorStage deep-scan CTA row", () => {
+  it("shows a filled gold Precise scan CTA beside the filled action, both flex:1", () => {
+    render(
+      <ScanErrorStage
+        status="insufficient_evidence"
+        abstentionReason="missing_evidence"
+        photoDataUrl={null}
+        onRetake={vi.fn()}
+        onDeepScan={vi.fn()}
+      />
+    );
+    const gold = screen.getByTestId("error-deep-scan-cta");
+    expect(gold).toHaveTextContent("✦ Precise scan");
+    expect(gold).toHaveStyle({ backgroundColor: "rgb(245, 213, 71)", flex: "1 1 0%" });
+    const green = screen.getByTestId("error-primary-cta");
+    expect(green).toHaveStyle({ flex: "1 1 0%" });
+    expect(gold.nextElementSibling === green || green.previousElementSibling === gold).toBe(true);
+  });
+
+  it("hides the deep-scan CTA when no handler is wired", () => {
+    render(
+      <ScanErrorStage
+        status="insufficient_evidence"
+        abstentionReason="missing_evidence"
+        photoDataUrl={null}
+        onRetake={vi.fn()}
+      />
+    );
+    expect(screen.queryByTestId("error-deep-scan-cta")).not.toBeInTheDocument();
+  });
+});

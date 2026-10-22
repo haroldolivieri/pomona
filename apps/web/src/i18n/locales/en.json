@@ -78,6 +78,37 @@
     "similarMaturityPill": "Comparison",
     "rateLimitedTip": "Your scan allowance or service capacity is currently unavailable. Please try again later."
   },
+  "deepScan": {
+    "cancel": "Cancel",
+    "captureIdleTitle": "Put one fruit in the circle",
+    "capturePhaseStem": "Show the stem side",
+    "capturePhaseRotate": "Rotate slowly",
+    "localTooBlurry": "Too blurry — hold the fruit steadier and go again",
+    "localTooDark": "Lighting too dark — find a brighter spot",
+    "preciseScanCta": "Precise scan",
+    "bannerTitle": "Try the Precise scan",
+    "bannerBody": "A few rotated angles beat one shot.",
+    "outcomeVerdictHeader": "Deep scan verdict",
+    "outcomeNotEnoughTitle": "The views mostly show the same side",
+    "manualChecksHeader": "Check it by touch (while you're at it)",
+    "startNewScan": "Start a new scan",
+    "failureTitle": "Deep scan hit a snag",
+    "confidenceLabel": "confidence",
+    "recommendationLabel": "Ready by:",
+    "state": {
+      "unripe": "Not ready yet",
+      "nearly_ripe": "Nearly ready",
+      "ripe": "Ready to eat",
+      "overripe": "Eat it soon",
+      "spoiled": "Too far gone",
+      "unknown": "Not sure"
+    },
+    "recommendation": {
+      "today_or_tomorrow": "Today or tomorrow",
+      "in_a_few_days": "In a few days",
+      "avoid": "Skip it"
+    }
+  },
   "language": {
     "label": "Language",
     "english": "English",

@@ -632,3 +632,63 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(photoViewport.style.transform).not.toBe("translate3d(0, 0px, 0)");
   });
 });
+
+describe("ResultStage deep-scan banner", () => {
+  const marginalFirstPick = {
+    id: "c1",
+    box: [360, 240, 680, 560] as [number, number, number, number],
+    score: 4.8,
+    initialScore: 4.8,
+    ripeness: "ripe" as const,
+    traits: [],
+    flipSummary: null,
+    anglesInspected: 1,
+    role: "first_pick" as const,
+  };
+  const singleResponse = {
+    schemaVersion: "1.0" as const,
+    promptVersion: "v1",
+    modelId: "test",
+    round: 1 as const,
+    status: "ok" as const,
+    message: null,
+    produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+    candidates: [
+      { id: "c1", box: [360, 240, 680, 560] as [number, number, number, number], score: 4.8, ripeness: "ripe" as const, traits: [], flipSummary: null },
+    ],
+    verdict: { winnerId: "c1", runnerUpId: "c1", confidence: "low" as const, headline: "Hard to say." },
+    followUp: null,
+    afterPurchase: null,
+  };
+  const marginalState = {
+    ...initialScanMachineState(),
+    phase: "S4_InitialResult" as const,
+    firstPick: marginalFirstPick,
+    lastResponse: singleResponse,
+  };
+
+  it("offers the Precise scan banner for a marginal single-candidate verdict", () => {
+    const onDeepScan = vi.fn();
+    render(<ResultStage state={marginalState} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} onDeepScan={onDeepScan} />);
+    const banner = screen.getByTestId("ds-banner");
+    expect(banner).toBeInTheDocument();
+    expect(banner).toHaveTextContent("Try the Precise scan");
+    fireEvent.click(screen.getByTestId("ds-banner-cta"));
+    expect(onDeepScan).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays hidden without a wired handler and for a confident verdict", () => {
+    const { container } = render(<ResultStage state={marginalState} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} />);
+    expect(container.querySelector('[data-testid="ds-banner"]')).toBeNull();
+
+    const confident = {
+      ...marginalState,
+      lastResponse: {
+        ...singleResponse,
+        verdict: { winnerId: "c1", runnerUpId: "c1", confidence: "high" as const, headline: "Buy it." },
+      },
+    };
+    const { container: strong } = render(<ResultStage state={confident} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} onDeepScan={vi.fn()} />);
+    expect(strong.querySelector('[data-testid="ds-banner"]')).toBeNull();
+  });
+});
