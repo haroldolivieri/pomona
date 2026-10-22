@@ -584,6 +584,7 @@ export { createGeminiVisionAdapter } from "./adapters/gemini";
 export { createOpenAIVisionAdapter } from "./adapters/openai";
 export { getPromptConfig } from "./prompts";
 export { v1PromptConfig } from "./prompts/v1";
+export { deepScanPromptConfig, deepScanProviderSchema } from "./prompts/deep-scan";
 export { getGatewayRouting } from "./adapters/gateway";
 export { traceStage, traceResponse, logScanResponse } from "./observability/scan-trace";
 export { createInMemoryQuotaStore, calculateTokenSpendMicroCents } from "./quota/budget";

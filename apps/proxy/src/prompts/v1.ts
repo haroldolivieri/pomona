@@ -1,12 +1,14 @@
-import type { ScanRequest } from "@pomona/contract";
+import type { ScanRequest, DeepScanRequest } from "@pomona/contract";
 import { buildRoundOneSystemPrompt, buildRoundOneUserPrompt } from "./round-one";
 import { renderPrompt } from "./render";
 
+export type PromptConfigRequest = ScanRequest | DeepScanRequest;
+
 export interface PromptConfig {
   readonly version: string;
-  buildSystemPrompt(request: ScanRequest): string;
-  buildUserPrompt(request: ScanRequest, repairErrors?: string[]): string;
-  buildRepairPrompt?(request: ScanRequest, repairErrors: string[]): string;
+  buildSystemPrompt(request: PromptConfigRequest): string;
+  buildUserPrompt(request: PromptConfigRequest, repairErrors?: string[]): string;
+  buildRepairPrompt?(request: PromptConfigRequest, repairErrors: string[]): string;
 }
 
 function describeFocusPolygonBounds(polygon: [number, number][]): string {
