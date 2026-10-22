@@ -20,17 +20,21 @@ const output = (scores: number[]) => ({
 });
 
 async function scan(run: ReturnType<typeof vi.fn>, options: {
-  gradingOutput?: unknown; gradingError?: Error; enabled?: string; body?: Record<string, unknown>; store?: ReturnType<typeof createInMemoryQuotaStore>;
+  defaultModel?: string; factoryError?: Error; models?: string[]; gradingOutput?: unknown; gradingError?: Error; enabled?: string; body?: Record<string, unknown>; store?: ReturnType<typeof createInMemoryQuotaStore>;
   noBinding?: boolean; gatewayId?: string; local?: boolean; tracing?: NonNullable<Parameters<typeof createProxyApp>[0]>["tracing"];
 } = {}) {
   const grade = vi.fn().mockResolvedValue({ object: options.gradingOutput ?? abstention, usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 } });
   if (options.gradingError) grade.mockRejectedValue(options.gradingError);
   const store = options.store ?? createInMemoryQuotaStore();
-  const app = createProxyApp({ quotaStore: store, tracing: options.tracing, adapterFactory: modelId => ({ providerId: "google", modelId, analyzeProduce: grade }) });
+  const app = createProxyApp({ quotaStore: store, tracing: options.tracing, adapterFactory: modelId => {
+    if (options.factoryError) throw options.factoryError;
+    options.models?.push(modelId);
+    return { providerId: "google", modelId, analyzeProduce: grade };
+  } });
   const response = await app.request("/api/v1/scan", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...request, ...options.body }),
-  }, { COOKIE_SIGNING_SECRET: "test-secret", VISION_GATE_ENABLED: options.enabled ?? "true",
+  }, { DEFAULT_MODEL: options.defaultModel, COOKIE_SIGNING_SECRET: "test-secret", VISION_GATE_ENABLED: options.enabled ?? "true",
     ...(!options.noBinding ? { AI: { run } } : {}), AI_GATEWAY_ID: options.gatewayId,
     LOCAL_CLEF_TEST: options.local ? "true" : undefined });
   return { response, json: await response.json(), grade, store };
@@ -169,10 +173,10 @@ describe("Clef visibility gate acceptance and failure scenarios", () => {
     expect(grade).not.toHaveBeenCalled();
   });
 
-  it("a gate accounting failure does not authorize another paid call", async () => {
+  it("a gate-only accounting failure does not authorize another paid call", async () => {
     const store = createInMemoryQuotaStore();
     store.incrementMonthlySpendMicroCents = async () => { throw new Error("KV unavailable"); };
-    const { json, grade } = await scan(vi.fn().mockResolvedValue(Response.json(output([0.01, 0.01, 0.01]))), { store });
+    const { json, grade } = await scan(vi.fn().mockResolvedValue(Response.json(output([0.99, 0.01, 0.01]))), { store });
     expect(json.status).toBe("analysis_failed");
     expect(grade).not.toHaveBeenCalled();
   });
@@ -281,4 +285,59 @@ it("Gemini provider failure counts once as non-ok after a valid Clef pass", asyn
     expect(flowEvents(log)).toEqual([expect.objectContaining({ gateDecision: "pass_to_grading",
       gradingStatus: "analysis_failed", clefPassGeminiNonOk: true, nonOkValue: 1 })]);
   } finally { log.mockRestore(); }
+});
+
+
+it("combines gate and fast grading costs in one monthly KV update", async () => {
+  const store = createInMemoryQuotaStore();
+  const increment = store.incrementMonthlySpendMicroCents.bind(store);
+  const writes = vi.fn().mockImplementation(increment);
+  store.incrementMonthlySpendMicroCents = async (...args) => {
+    if (writes.mock.calls.length) throw new Error("429: second write to same KV key");
+    return writes(...args);
+  };
+  const { json, grade } = await scan(vi.fn().mockResolvedValue(Response.json(output([0.1, 0.1, 0.1]))), { store });
+  expect(json.status).toBe("insufficient_evidence");
+  expect(grade).toHaveBeenCalledOnce();
+  const gateSpend = calculateTokenSpendMicroCents("@cf/cloudflare/clef-flash", { promptTokens: 1500, completionTokens: 0, totalTokens: 1500 });
+  const gradingSpend = calculateTokenSpendMicroCents("gemini-3.1-flash-lite", { promptTokens: 10, completionTokens: 5, totalTokens: 15 });
+  expect(writes).toHaveBeenCalledExactlyOnceWith(expect.any(String), gateSpend + gradingSpend);
+});
+
+it("preserves gate-only spend when Gemini fails before reporting usage", async () => {
+  const store = createInMemoryQuotaStore();
+  const writes = vi.spyOn(store, "incrementMonthlySpendMicroCents");
+  await scan(vi.fn().mockResolvedValue(Response.json(output([0.1, 0.1, 0.1]))), { store, gradingError: new Error("Provider unavailable") });
+  expect(writes).toHaveBeenCalledExactlyOnceWith(expect.any(String), 6);
+});
+
+
+it("preserves gate spend when adapter configuration fails", async () => {
+  const store = createInMemoryQuotaStore();
+  const writes = vi.spyOn(store, "incrementMonthlySpendMicroCents");
+  const { json } = await scan(vi.fn().mockResolvedValue(Response.json(output([0.1, 0.1, 0.1]))), { store, factoryError: new Error("Invalid Gateway configuration") });
+  expect(json.status).toBe("analysis_failed");
+  expect(writes).toHaveBeenCalledExactlyOnceWith(expect.any(String), 6);
+});
+
+it("pending gate spend can trigger the existing soft-cap model downgrade", async () => {
+  const store = createInMemoryQuotaStore();
+  await store.setMonthlySpendMicroCents(new Date().toISOString().slice(0, 7), 949999);
+  const models: string[] = [];
+  await scan(vi.fn().mockResolvedValue(Response.json(output([0.1, 0.1, 0.1]))), { store, models, defaultModel: "gemini-3.8-flash" });
+  expect(models).toEqual(["gemini-3.1-flash-lite"]);
+});
+
+
+it("a failed combined spend write does not consume the daily success quota", async () => {
+  const store = createInMemoryQuotaStore();
+  store.incrementMonthlySpendMicroCents = async () => { throw new Error("KV write failed"); };
+  const gradingOutput = annotatedOutput({ expectedInventory: { required: [
+    { id: "a", box: [250, 250, 450, 450], ripeness: ["ripe"] },
+    { id: "b", box: [500, 500, 700, 700], ripeness: ["almost_ripe"] },
+  ] } });
+  const daily = vi.spyOn(store, "incrementDailyDeviceCount");
+  const { json } = await scan(vi.fn().mockResolvedValue(Response.json(output([0.1, 0.1, 0.1]))), { store, gradingOutput });
+  expect(json.status).toBe("analysis_failed");
+  expect(daily).not.toHaveBeenCalled();
 });

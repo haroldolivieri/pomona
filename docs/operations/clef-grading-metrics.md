@@ -26,4 +26,4 @@ The charts must be configured and verified in the native Cloudflare UI after the
 
 ## Release policy
 
-Production deploys only through `.github/workflows/deploy.yml` on main after source is pushed. `scripts/deploy-production.mjs` rejects ordinary local execution. CI validates version and release description, passes both to Wrangler's deployment message, and writes them with commit SHA to the GitHub Actions job summary. Every release bumps the version.
+Production deploys only through `.github/workflows/deploy.yml` on main after source is pushed. CI validates version and release description, passes both to Wrangler's deployment message, and writes them with commit SHA to the GitHub Actions job summary. Every release bumps the version.

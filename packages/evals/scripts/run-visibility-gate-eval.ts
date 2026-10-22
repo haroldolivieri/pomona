@@ -87,7 +87,7 @@ async function main() {
       }, request, crypto.randomUUID());
       const expected = ["no_produce", "unclear_photo", "multiple_types"].includes(scene.groundTruth.expectedStatus)
         ? scene.groundTruth.expectedStatus : null;
-      const pass = outcome.usage !== null && outcome.status === expected;
+      const pass = outcome.scores !== null && outcome.usage !== null && outcome.status === expected;
       const row = { id, pass, expected, actual: outcome.status, durationMs: Date.now() - startedAt,
         rawResult,
         usage: outcome.usage, estimatedUsd: outcome.usage ? outcome.usage.promptTokens * 0.038 / 1000000 : null };

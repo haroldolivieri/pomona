@@ -121,7 +121,9 @@ describe("Gateway production routing and usage scenarios", () => {
       { AI_GATEWAY_ACCOUNT_ID: "invalid", AI_GATEWAY_ID: "valid" },
       { AI_GATEWAY_ACCOUNT_ID: "a".repeat(32), AI_GATEWAY_ID: "../other" },
     ]) {
-      expect((await scan({ ...directEnv, ...config })).status).toBe(500);
+      const failure = await scan({ ...directEnv, ...config });
+      expect(failure.status).toBe(200);
+      expect((await failure.json()).status).toBe("analysis_failed");
     }
     expect(fetch).not.toHaveBeenCalled();
     const local = await scan(directEnv);

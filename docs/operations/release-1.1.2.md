@@ -4,7 +4,7 @@ The Clef gate uses the evaluated Direct questions and a 0.70 rejection threshold
 
 The native Workers Observability event `gate_grading_outcome` joins a valid Clef pass with the final Gemini grading status. Its numeric `nonOkValue` supports count and rate charts. Error fallbacks and invalid Clef output are separate categories. See [dashboard definitions](clef-grading-metrics.md).
 
-Production deployment is restricted to the GitHub Actions main workflow. The deployment message and job summary include the version and release change description. Local production deployment is rejected before network or deployment work.
+Production deployment is restricted to the GitHub Actions main workflow. The deployment message and job summary include the version and release change description. The provisioning script configures resources only; deployment remains in the existing CI workflow.
 
 Live Direct eval on 16 browser-prepared 768px images: 13 expected decisions, zero false rejections, zero inference errors/timeouts. The supplied carrot photo now rejects as `unclear_photo`. Blur, cereal, and potato scenes still pass to Gemini because multiple failure scores exceed the cutoff. These remain accuracy failures against desired gate rejections; they are not presented as passing cases. Report: `/tmp/pomona-clef-direct-070.json`.
 

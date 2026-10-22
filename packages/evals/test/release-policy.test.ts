@@ -1,39 +1,47 @@
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { expect, it } from "vitest";
 
-it("production requires a greater version and a versioned change description", () => {
-  const code = `import { assertVersionBump, releaseMessage } from './scripts/release-policy.mjs';
-    const cases=[];
-    for(const [next,previous] of [['1.1.0','1.0.0'],['1.0.1','1.0.0'],['1.0.0','1.0.0'],['0.5.0','1.0.0'],['1.0.0','1.1.0'],['bad','1.0.0']]) {
-      try { assertVersionBump(next,previous);cases.push(true); } catch { cases.push(false); }
-    }
-    const messages=[];
-    for(const description of ['Masked scans; Clef gate and tracing','',undefined,'x'.repeat(121),'line one\\nline two']) {
-      try { messages.push(releaseMessage('1.1.0',description)); } catch { messages.push(null); }
-    }
-    process.stdout.write(JSON.stringify({cases,messages}));`;
-  const result = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "-e", code],
-    { cwd: new URL("../../..", import.meta.url), encoding: "utf8" }));
-  expect(result.cases).toEqual([true, true, false, false, false, false]);
-  expect(result.messages).toEqual(["v1.1.0: Masked scans; Clef gate and tracing", null, null, null, null]);
+const root = new URL("../../../", import.meta.url);
+const workflow = fs.readFileSync(new URL(".github/workflows/deploy.yml", root), "utf8");
+
+it.each([
+  ["1.1.2", "1.1.1", "Direct gate and metrics", true],
+  ["1.1.1", "1.1.1", "Direct gate and metrics", false],
+  ["1.0.0", "1.1.1", "Direct gate and metrics", false],
+  ["bad", "1.1.1", "Direct gate and metrics", false],
+  ["1.1.2", "1.1.1", "", false],
+  ["1.1.2", "1.1.1", "x".repeat(121), false],
+  ["1.1.2", "1.1.1", "line one\nline two", false],
+])("CI release metadata %s over %s validates the actual workflow", (version, previous, releaseDescription, valid) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "pomona-release-"));
+  try {
+    fs.mkdirSync(path.join(directory, "apps/web/dist"), { recursive: true });
+    fs.writeFileSync(path.join(directory, "apps/web/package.json"), JSON.stringify({ version, releaseDescription }));
+    fs.writeFileSync(path.join(directory, "apps/web/dist/version.json"), JSON.stringify({ version, changes: releaseDescription }));
+    const inline = workflow.split("node --input-type=module <<'NODE'\n")[1].split("          NODE")[0]
+      .replace("import { execFileSync } from 'node:child_process';", `const execFileSync = () => JSON.stringify({version: '${previous}'});\nglobalThis.fetch = async () => ({ok:true,json:async()=>({version:'${previous}'})});`);
+    const run = () => execFileSync(process.execPath, ["--input-type=module", "-e", inline], {
+      cwd: directory, stdio: "pipe", env: { ...process.env, GITHUB_OUTPUT: path.join(directory, "outputs"), GITHUB_STEP_SUMMARY: path.join(directory, "summary") },
+    });
+    if (valid) {
+      expect(run).not.toThrow();
+      expect(fs.readFileSync(path.join(directory, "outputs"), "utf8")).toContain(`message=v${version}: ${releaseDescription}`);
+    } else expect(run).toThrow();
+  } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });
 
-
-it("only main push or manual GitHub Actions releases can deploy production", () => {
-  const code = `import { assertCiDeployment } from './scripts/release-policy.mjs';
-    const valid = { GITHUB_ACTIONS:'true', GITHUB_REPOSITORY:'haroldolivieri/pomona', GITHUB_REF:'refs/heads/main', GITHUB_EVENT_NAME:'push' };
-    const inputs = [{}, valid, {...valid,GITHUB_EVENT_NAME:'workflow_dispatch'}, {...valid,GITHUB_REF:'refs/heads/test'}, {...valid,GITHUB_EVENT_NAME:'pull_request'}, {...valid,GITHUB_REPOSITORY:'other/repo'}];
-    process.stdout.write(JSON.stringify(inputs.map(env => { try { assertCiDeployment(env);return true; } catch { return false; } })));`;
-  expect(JSON.parse(execFileSync(process.execPath, ["--input-type=module", "-e", code],
-    { cwd: new URL("../../..", import.meta.url), encoding: "utf8" }))).toEqual([false, true, true, false, false, false]);
+it("keeps deployment in main CI and removes local deployment from provisioning", () => {
+  expect(workflow).toContain("github.ref == 'refs/heads/main'");
+  expect(workflow).toContain('--tag "v$RELEASE_VERSION" --message "$RELEASE_MESSAGE"');
+  const setup = fs.readFileSync(new URL("scripts/setup-cloudflare.sh", root), "utf8");
+  expect(setup).not.toMatch(/wrangler\s+deploy/);
 });
-
 
 it("CI pnpm setup matches the pinned package manager", () => {
-  const root = new URL("../../..", import.meta.url);
-  const pkg = JSON.parse(fs.readFileSync(new URL("package.json", root.href + "/"), "utf8"));
-  const workflow = fs.readFileSync(new URL(".github/workflows/deploy.yml", root.href + "/"), "utf8");
+  const pkg = JSON.parse(fs.readFileSync(new URL("package.json", root), "utf8"));
   const versions = [...workflow.matchAll(/uses: pnpm\/action-setup@v4\s+with:\s+version: ([^\s]+)/g)].map(match => match[1]);
   expect(versions.length).toBeGreaterThan(0);
   expect(versions.every(version => `pnpm@${version}` === pkg.packageManager)).toBe(true);

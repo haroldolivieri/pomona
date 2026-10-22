@@ -18,6 +18,7 @@ import {
   createInMemoryQuotaStore,
   checkQuotaAndSelectModel,
   recordScanOutcome,
+  calculateTokenSpendMicroCents,
   formatDateKey,
   formatMonthKey,
   MONTHLY_HARD_CAP_MICRO_CENTS,
@@ -370,7 +371,14 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
       return c.json(rateLimitedResponse, 200);
     }
 
-    const modelId = quotaResult.modelId;
+    let modelId = quotaResult.modelId;
+    let pendingGateSpend = 0;
+    const recordGateSpend = async () => {
+      if (!pendingGateSpend) return;
+      const spend = pendingGateSpend;
+      pendingGateSpend = 0;
+      await store.incrementMonthlySpendMicroCents(formatMonthKey(new Date()), spend);
+    };
     if (c.env.VISION_GATE_ENABLED === "true" && scanRequest.round === 1) {
       const startedAt = Date.now();
       let receivedGateOutput = false;
@@ -409,21 +417,24 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
         receivedGateOutput = true;
         c.set("gateDecision", gate.scores ? gate.status ?? "pass_to_grading" : "invalid_output_fallback");
         if (gate.usage) {
-          await recordScanOutcome(store, { deviceId, ip, modelId: VISIBILITY_GATE_MODEL,
-            usage: gate.usage, status: gate.status ?? "analysis_failed" });
+          pendingGateSpend = calculateTokenSpendMicroCents(VISIBILITY_GATE_MODEL, gate.usage);
         }
         if (gate.status) {
+          await recordGateSpend();
           c.header(REMAINING_SCANS_HEADER, quotaResult.remainingDeviceScans.toString());
           return c.json(visibilityGateResponse(gate.status, scanRequest, promptVersion), 200);
         }
         // Include the gate's spend before starting another paid model call.
-        const afterGate = await checkQuotaAndSelectModel(store, { deviceId, ip, defaultModel: modelId,
+        const afterGate = await checkQuotaAndSelectModel(store, { deviceId, ip, defaultModel: modelId, pendingSpendMicroCents: pendingGateSpend,
           deviceDailyLimit: Number.isFinite(parsedDeviceLimitPost) ? parsedDeviceLimitPost : undefined });
         if (!afterGate.allowed) {
+          await recordGateSpend();
           c.header(REMAINING_SCANS_HEADER, afterGate.remainingDeviceScans.toString());
           return c.json(visibilityGateResponse("rate_limited", scanRequest, promptVersion), 200);
         }
+        modelId = afterGate.modelId;
       } catch (error) {
+        await recordGateSpend();
         const denial = receivedGateOutput ? "analysis_failed" : gateDenialStatus(error);
         if (receivedGateOutput) console.log(JSON.stringify({ event: "gate_accounting_failure", requestId,
           model: VISIBILITY_GATE_MODEL, outcome: "analysis_failed", usage: null }));
@@ -434,29 +445,29 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
         }
       }
     }
-    const adapterFactory = deps.adapterFactory ?? defaultAdapterFactory;
-    const adapter = adapterFactory(modelId, c.env);
-    const promptConfig = getPromptConfig(promptVersion);
-
-    // Adapters may have different analyzeProduce signatures (pure VisionProviderAdapter
-    // returns { object, usage }, while test mocks might return { rawOutput, usage }).
-    // We normalize to handle both.
-    const normalizedAdapter: VisionProviderAdapter = {
-      providerId: adapter.providerId,
-      modelId: adapter.modelId,
-      async analyzeProduce(input, signal) {
-        const res: any = await adapter.analyzeProduce(input, signal);
-        if (res && "rawOutput" in res && !("object" in res)) {
-          return {
-            object: res.rawOutput,
-            usage: res.usage ?? { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-          };
-        }
-        return res;
-      },
-    };
-
     try {
+      const adapterFactory = deps.adapterFactory ?? defaultAdapterFactory;
+      const adapter = adapterFactory(modelId, c.env);
+      const promptConfig = getPromptConfig(promptVersion);
+
+      // Adapters may have different analyzeProduce signatures (pure VisionProviderAdapter
+      // returns { object, usage }, while test mocks might return { rawOutput, usage }).
+      // We normalize to handle both.
+      const normalizedAdapter: VisionProviderAdapter = {
+        providerId: adapter.providerId,
+        modelId: adapter.modelId,
+        async analyzeProduce(input, signal) {
+          const res: any = await adapter.analyzeProduce(input, signal);
+          if (res && "rawOutput" in res && !("object" in res)) {
+            return {
+              object: res.rawOutput,
+              usage: res.usage ?? { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+            };
+          }
+          return res;
+        },
+      };
+
       c.set("gradingStarted", adapter.providerId === "google");
       const scanOutcome = await runVerifiedVisionScan(
         scanRequest,
@@ -479,12 +490,16 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
         attempts: scanOutcome.attempts, status: scanOutcome.response.status, usage: scanOutcome.usage,
       }));
 
+      const gateSpend = pendingGateSpend;
+      pendingGateSpend = 0;
+      // One monthly KV write for both models; the pre-grading check includes pending gate spend.
       const recordResult = await recordScanOutcome(store, {
         deviceId,
         ip,
         modelId,
         usage: scanOutcome.usage,
         status: scanOutcome.response.status,
+        additionalSpendMicroCents: gateSpend,
       });
 
       c.header(REMAINING_SCANS_HEADER, recordResult.remainingDeviceScans.toString());
@@ -511,6 +526,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
       return c.json({ ...baseResponse, seasonality } satisfies ScanResponse, 200);
 
     } catch (err: any) {
+      await recordGateSpend();
       // Catch upstream provider rate limits (429) and translate to status: "rate_limited"
       const is429 =
         err?.statusCode === 429 ||

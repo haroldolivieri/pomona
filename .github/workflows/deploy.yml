@@ -240,9 +240,35 @@ jobs:
       - name: Build web client & worker
         run: pnpm build
 
-      - name: Validate release message
+      - name: Validate release metadata
+        id: release
+        env:
+          RELEASE_BASE_REF: ${{ github.event_name == 'push' && github.event.before || 'HEAD^' }}
         run: |
-          node --input-type=module -e 'import fs from "node:fs"; import { releaseMessage } from "./scripts/release-policy.mjs"; const p = JSON.parse(fs.readFileSync("apps/web/package.json", "utf8")); console.log(releaseMessage(p.version, p.releaseDescription));'
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { execFileSync } from 'node:child_process';
+          const pkg = JSON.parse(fs.readFileSync('apps/web/package.json', 'utf8'));
+          const previous = JSON.parse(execFileSync('git', ['show', `${process.env.RELEASE_BASE_REF}:apps/web/package.json`], {encoding: 'utf8'})).version;
+          const parse = version => {
+            if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) throw new Error('Invalid release version');
+            return version.split('.').map(BigInt);
+          };
+          const increased = (next, base) => {
+            const n = parse(next), p = parse(base);
+            return n[0] > p[0] || n[0] === p[0] && (n[1] > p[1] || n[1] === p[1] && n[2] > p[2]);
+          };
+          if (!increased(pkg.version, previous)) throw new Error('Release version must increase');
+          if (typeof pkg.releaseDescription !== 'string' || pkg.releaseDescription.trim().length < 10) throw new Error('Release change description required');
+          const message = `v${pkg.version}: ${pkg.releaseDescription.trim()}`;
+          if (message.length > 120 || /[\r\n]/.test(message)) throw new Error('Invalid deployment message');
+          const built = JSON.parse(fs.readFileSync('apps/web/dist/version.json', 'utf8'));
+          if (built.version !== pkg.version || built.changes !== pkg.releaseDescription) throw new Error('Built release metadata differs');
+          const current = await fetch('https://pomona-proxy.pomona-app.workers.dev/version.json', {cache: 'no-store'});
+          if (current.ok ? !increased(pkg.version, (await current.json()).version) : current.status !== 404) throw new Error('Cannot release over current production version');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${pkg.version}\nmessage=${message}\n`);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Production release\n\n${message}\n`);
+          NODE
 
       - name: Deploy to Cloudflare Workers
         run: |
@@ -250,9 +276,13 @@ jobs:
             echo "Set the AI_GATEWAY_ID repository variable before deploying production."
             exit 1
           fi
-          node scripts/deploy-production.mjs
+          pnpm --filter @pomona/proxy exec wrangler deploy \
+            --keep-vars --tag "v$RELEASE_VERSION" --message "$RELEASE_MESSAGE" \
+            --var "AI_GATEWAY_ACCOUNT_ID:$AI_GATEWAY_ACCOUNT_ID" \
+            --var "AI_GATEWAY_ID:$AI_GATEWAY_ID"
         env:
-          RELEASE_BASE_REF: ${{ github.event_name == 'push' && github.event.before || 'HEAD^' }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          RELEASE_MESSAGE: ${{ steps.release.outputs.message }}
           AI_GATEWAY_ID: ${{ vars.AI_GATEWAY_ID }}
           AI_GATEWAY_ACCOUNT_ID: ${{ vars.AI_GATEWAY_ACCOUNT_ID || secrets.CLOUDFARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID || '553fb87d04f36b2f088f1250f34503cc' }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFARE_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
