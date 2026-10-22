@@ -1,0 +1,64 @@
+[
+  {
+    "id": "ds-01-ideal-avocado",
+    "description": "Numbered 2x3 montage with six clear views of one avocado backing the focal oval; confident ripeness call expected on both locales.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "ok",
+        "expectedState": "nearly_ripe",
+        "expectManualChecks": false
+      },
+      {
+        "locale": "pt-BR",
+        "expectedStatus": "ok",
+        "expectedState": "nearly_ripe",
+        "expectManualChecks": false
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-01-ideal-avocado.jpg",
+    "arm": "live"
+  },
+  {
+    "id": "ds-02-empty-oval",
+    "description": "Montage of numbered cream tiles with no produce inside; the Clef gate must deny with no_produce, no Gemini call.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "no_produce",
+        "expectedState": null,
+        "expectManualChecks": false
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-02-empty-oval.jpg",
+    "arm": "gate"
+  },
+  {
+    "id": "ds-03-blurry-avocado",
+    "description": "Montage with heavy motion blur on every tile; gate denies with unclear_photo.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "unclear_photo",
+        "expectedState": null,
+        "expectManualChecks": false
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-03-blurry-avocado.jpg",
+    "arm": "gate"
+  },
+  {
+    "id": "ds-04-dark-avocado",
+    "description": "Montage rendered nearly black on every tile; gate denies with unclear_photo.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "unclear_photo",
+        "expectedState": null,
+        "expectManualChecks": false
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-04-dark-avocado.jpg",
+    "arm": "gate"
+  }
+]
