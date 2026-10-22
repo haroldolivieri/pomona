@@ -123,7 +123,11 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
   async function resolveDeviceIdentity(
     c: any
   ): Promise<{ deviceId: string; token: string; isNew: boolean }> {
-    const secret = c.env.COOKIE_SIGNING_SECRET || "default-dev-signing-secret-key-32";
+    const secret = c.env.COOKIE_SIGNING_SECRET;
+    if (!secret) {
+      throw new Error("CRITICAL: COOKIE_SIGNING_SECRET environment variable is missing.");
+    }
+
     const headerToken = c.req.header(DEVICE_TOKEN_HEADER);
     const cookieToken = getCookie(c, DEVICE_TOKEN_COOKIE);
     const candidateToken = headerToken || cookieToken;
