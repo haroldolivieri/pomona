@@ -81,7 +81,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
       icon = "⏳";
       title = uiCopy("copy.scanLimitReached");
       explanation = t("errors.rateLimited");
-      tip = uiCopy("copy.youHaveUsedAllDailyScansFor");
+      tip = t("errors.rateLimitedTip");
       primaryCtaLabel = uiCopy("copy.backToCamera");
       primaryAction = onRetake;
       break;

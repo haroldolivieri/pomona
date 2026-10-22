@@ -7,7 +7,7 @@ const defaultCopy = JSON.parse(readFileSync(new URL("../../packages/contract/src
 
 const webPkg = JSON.parse(
   readFileSync(new URL("./package.json", import.meta.url), "utf8")
-) as { version: string };
+) as { version: string; releaseDescription: string };
 
 export default defineConfig({
   plugins: [react(), basicSsl(), {
@@ -23,6 +23,7 @@ export default defineConfig({
       return html.replace("%POMONA_TITLE%", defaultCopy.metadata.title).replace("%POMONA_DESCRIPTION%", defaultCopy.metadata.description);
     },
     generateBundle(_options, bundle) {
+      this.emitFile({ type: "asset", fileName: "version.json", source: JSON.stringify({ version: webPkg.version, changes: webPkg.releaseDescription }) });
       const offlineAssets = Object.keys(bundle).filter((file) => file.startsWith("assets/") && /\.(?:js|css)$/.test(file)).map((file) => `/${file}`);
       this.emitFile({ type: "asset", fileName: "offline-assets.json", source: JSON.stringify(offlineAssets) });
       const shell = bundle["index.html"];

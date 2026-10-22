@@ -99,5 +99,12 @@
     "finalBanner": "O primeiro lugar ({{score}}) só foi visto por cima. Vire {{produce}} para conferir.",
     "finalHeadline": "Vire o primeiro lugar: {{produce}}",
     "finalInstruction": "Vire o primeiro lugar, {{produce}}, para mostrar a parte de baixo."
+  },
+  "gate": {
+    "noProduce": "Não há frutas, verduras ou legumes frescos visíveis. Fotografe os itens que deseja comparar.",
+    "unclearPhoto": "Não é possível ver bem os alimentos. Tire uma foto mais nítida mostrando a superfície.",
+    "multipleTypes": "Há vários tipos de alimentos na foto. Contorne apenas um tipo ou aproxime a câmera.",
+    "rateLimited": "Limite de análises ou capacidade do serviço atingido. Tente novamente mais tarde.",
+    "failed": "A verificação da foto está indisponível. Tente novamente mais tarde."
   }
 }

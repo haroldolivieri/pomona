@@ -9,8 +9,7 @@ set -euo pipefail
 # 2. KV Namespaces (POMONA_QUOTA_KV & preview namespace)
 # 3. Patching apps/proxy/wrangler.jsonc with created KV IDs
 # 4. Setting required secrets (GEMINI_API_KEY, OPENAI_API_KEY, COOKIE_SIGNING_SECRET)
-# 5. Building @pomona/web client bundle
-# 6. Deploying proxy worker via wrangler deploy
+# Production builds and deployments run only through GitHub Actions.
 # ==============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -133,20 +132,8 @@ if [ -z "${COOKIE_SIGNING_SECRET:-}" ]; then
 fi
 prompt_or_use_env "COOKIE_SIGNING_SECRET" "Cookie HMAC Signing Secret"
 
-# 5. Build @pomona/web client
-echo ""
-echo "--> Building @pomona/web client..."
-pnpm --filter @pomona/web build
-echo "✓ @pomona/web client build complete."
-
-# 6. Deploy Worker & Assets
-echo ""
-echo "--> Deploying Cloudflare Worker via Wrangler..."
-(cd "${ROOT_DIR}/apps/proxy" && npx wrangler deploy \
-  --var "AI_GATEWAY_ACCOUNT_ID:${AI_GATEWAY_ACCOUNT_ID}" \
-  --var "AI_GATEWAY_ID:${AI_GATEWAY_ID}")
-
 echo ""
 echo "=============================================="
-echo "✓ Pomona successfully provisioned and deployed!"
+echo "✓ Pomona Cloudflare resources provisioned."
+echo "Commit the configuration changes and use the GitHub Actions deployment workflow on main."
 echo "=============================================="

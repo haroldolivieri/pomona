@@ -44,6 +44,10 @@ interface ModelPricing {
 }
 
 const MODEL_PRICING: Record<string, ModelPricing> = {
+  "@cf/cloudflare/clef-flash": {
+    promptMicroCentsPerToken: 0.0038,
+    completionMicroCentsPerToken: 0,
+  },
   "gemini-3.8-flash": {
     promptMicroCentsPerToken: 0.0075,
     completionMicroCentsPerToken: 0.03,
@@ -254,6 +258,7 @@ export async function checkQuotaAndSelectModel(
     defaultModel?: string;
     deviceDailyLimit?: number;
     ipDailyLimit?: number;
+    pendingSpendMicroCents?: number;
   }
 ): Promise<CheckQuotaResult> {
   const now = params.now ?? new Date();
@@ -269,10 +274,11 @@ export async function checkQuotaAndSelectModel(
     store.getMonthlySpendMicroCents(monthStr),
   ]);
 
+  const effectiveMonthlySpend = monthlySpend + (params.pendingSpendMicroCents ?? 0);
   const remainingDeviceScans = Math.max(0, deviceLimit - deviceCount);
 
   // Layer 3 hard circuit breaker: Monthly spend cap ($10.00)
-  if (monthlySpend >= MONTHLY_HARD_CAP_MICRO_CENTS) {
+  if (effectiveMonthlySpend >= MONTHLY_HARD_CAP_MICRO_CENTS) {
     return {
       allowed: false,
       reason: "monthly_budget_cap",
@@ -305,13 +311,13 @@ export async function checkQuotaAndSelectModel(
   // Monthly soft cap: Downgrade model at >= $9.50 (950_000 micro-cents)
   const defaultModel = params.defaultModel ?? DEFAULT_MODEL_ID;
   const modelId =
-    monthlySpend >= MONTHLY_SOFT_CAP_MICRO_CENTS ? DOWNGRADE_MODEL_ID : defaultModel;
+    effectiveMonthlySpend >= MONTHLY_SOFT_CAP_MICRO_CENTS ? DOWNGRADE_MODEL_ID : defaultModel;
 
   return {
     allowed: true,
     modelId,
     remainingDeviceScans,
-    monthlySpendMicroCents: monthlySpend,
+    monthlySpendMicroCents: effectiveMonthlySpend,
   };
 }
 
@@ -329,6 +335,7 @@ export async function recordScanOutcome(
     modelId: string;
     usage: TokenUsage;
     status: ScanStatus;
+    additionalSpendMicroCents?: number;
     now?: Date;
   }
 ): Promise<{ remainingDeviceScans: number; monthlySpendMicroCents: number }> {
@@ -336,13 +343,14 @@ export async function recordScanOutcome(
   const dateStr = formatDateKey(now);
   const monthStr = formatMonthKey(now);
 
-  const deltaMicroCents = calculateTokenSpendMicroCents(params.modelId, params.usage);
+  const deltaMicroCents = calculateTokenSpendMicroCents(params.modelId, params.usage) + (params.additionalSpendMicroCents ?? 0);
 
   const spendPromise =
     deltaMicroCents > 0
       ? store.incrementMonthlySpendMicroCents(monthStr, deltaMicroCents)
       : store.getMonthlySpendMicroCents(monthStr);
 
+  const monthlySpendMicroCents = await spendPromise;
   let newDeviceCount: number;
   if (params.status === "ok") {
     const [dCount] = await Promise.all([
@@ -356,7 +364,6 @@ export async function recordScanOutcome(
 
   const customLimit = await store.getDeviceDailyLimit(params.deviceId);
   const activeLimit = customLimit ?? DEVICE_DAILY_LIMIT;
-  const monthlySpendMicroCents = await spendPromise;
   const remainingDeviceScans = Math.max(0, activeLimit - newDeviceCount);
 
   return {

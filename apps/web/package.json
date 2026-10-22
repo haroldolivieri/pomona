@@ -1,9 +1,11 @@
 {
   "name": "@pomona/web",
-  "version": "1.0.0",
+  "version": "1.1.2",
+  "releaseDescription": "Direct Clef gate at 0.70; grading mismatch metrics; CI-only production releases",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:clef:local": "vite --config vite.clef-local.config.ts",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",

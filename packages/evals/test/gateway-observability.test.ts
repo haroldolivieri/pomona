@@ -72,6 +72,14 @@ describe("Gateway production routing and usage scenarios", () => {
     expect(response.headers.get("access-control-expose-headers")).toContain("X-Pomona-Request-Id");
     expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "model_usage", requestId, success: true, usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 } }));
     expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_usage", requestId, attempts: 1, status: "insufficient_evidence" }));
+    expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_received", requestId,
+      selectionPresent: false }));
+    expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "model_response", requestId,
+      response: expect.objectContaining({ status: "insufficient_evidence" }) }));
+    expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_response", requestId,
+      response: expect.objectContaining({ status: "insufficient_evidence" }) }));
+    expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_complete", requestId,
+      httpStatus: 200, durationMs: expect.any(Number) }));
     expect(JSON.stringify(metrics(log))).not.toMatch(/test-gateway-token|test-google-key|test-openai-key|YWJj|systemPrompt|imageBase64/);
   });
 
@@ -113,7 +121,9 @@ describe("Gateway production routing and usage scenarios", () => {
       { AI_GATEWAY_ACCOUNT_ID: "invalid", AI_GATEWAY_ID: "valid" },
       { AI_GATEWAY_ACCOUNT_ID: "a".repeat(32), AI_GATEWAY_ID: "../other" },
     ]) {
-      expect((await scan({ ...directEnv, ...config })).status).toBe(500);
+      const failure = await scan({ ...directEnv, ...config });
+      expect(failure.status).toBe(200);
+      expect((await failure.json()).status).toBe("analysis_failed");
     }
     expect(fetch).not.toHaveBeenCalled();
     const local = await scan(directEnv);

@@ -43,7 +43,7 @@ pomona/
 │   └── evals/         # Promptfoo offline vision eval dataset & contract assertions
 ├── scripts/
 │   ├── tunnel.sh      # Cloudflare quick tunnel for physical mobile device testing
-│   └── setup-cloudflare.sh  # Automated Cloudflare KV & Worker provisioning
+│   └── setup-cloudflare.sh  # Automated Cloudflare KV and secrets provisioning
 └── .github/workflows/ # GitHub Actions CI/CD deploying to Cloudflare Workers
 ```
 
@@ -162,19 +162,15 @@ The application asks Gateway to retain metadata logs and skip request/response p
 
 Worker observability is enabled in Wrangler configuration. Structured `model_usage` logs cover each provider attempt; `scan_usage` logs record the final application status and aggregate token usage. These events share the request ID and omit provider keys, device tokens, IP addresses, photos and prompt text. An SDK call that throws has an error event with unknown token usage; Gateway remains the source for individual HTTP attempts and any available usage data.
 
-With both gateway identifiers unset, local development continues to call providers directly. Partial gateway configuration is rejected. Once Gateway routing is configured, provider errors never cause a silent direct-provider fallback. Manual deployments must supply the same variables:
-
-```bash
-pnpm --filter @pomona/proxy exec wrangler deploy \
-  --var "AI_GATEWAY_ACCOUNT_ID:$CLOUDFLARE_ACCOUNT_ID" \
-  --var "AI_GATEWAY_ID:$AI_GATEWAY_ID"
-```
+With both gateway identifiers unset, local development continues to call providers directly. Partial gateway configuration is rejected. Once Gateway routing is configured, provider errors never cause a silent direct-provider fallback. Production deployment runs only through GitHub Actions on main, using the configured repository variables.
 
 ### Manual Provisioning
-To provision Cloudflare KV namespaces, configure secrets, and deploy from the command line:
+To provision Cloudflare KV namespaces and configure secrets:
 ```bash
 bash scripts/setup-cloudflare.sh
 ```
+
+This provisions resources and secrets only. Commit generated configuration changes, then deploy through the GitHub Actions workflow on main. Deployment messages include the app version and change description.
 
 ---
 

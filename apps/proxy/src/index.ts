@@ -18,6 +18,7 @@ import {
   createInMemoryQuotaStore,
   checkQuotaAndSelectModel,
   recordScanOutcome,
+  calculateTokenSpendMicroCents,
   formatDateKey,
   formatMonthKey,
   MONTHLY_HARD_CAP_MICRO_CENTS,
@@ -32,6 +33,11 @@ import { createGeminiVisionAdapter } from "./adapters/gemini";
 import { createOpenAIVisionAdapter } from "./adapters/openai";
 import { getGatewayRouting } from "./adapters/gateway";
 import { verifyAndResolveScanResponse } from "./verifier/verify-response";
+import { runVisibilityGate, visibilityGateResponse, gateDenialStatus, VISIBILITY_GATE_MODEL, VISIBILITY_GATE_THRESHOLD } from "./gate/visibility";
+
+import { traceStage, traceResponse, logScanResponse, type ScanTracing } from "./observability/scan-trace";
+
+type AppEnv = { Bindings: Env; Variables: { requestId: string; gateDecision: string; gradingStarted: boolean } };
 
 export interface VisionAdapterLike {
   readonly providerId: string;
@@ -43,6 +49,7 @@ export interface VisionAdapterLike {
 }
 
 export interface CreateProxyAppOptions {
+  tracing?: ScanTracing;
   quotaStore?: QuotaStore;
   adapterFactory?: (modelId: string, env: Env) => VisionAdapterLike;
 }
@@ -86,8 +93,37 @@ function getClientIp(req: Request): string {
   );
 }
 
-export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Bindings: Env }> {
-  const app = new Hono<{ Bindings: Env }>();
+export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
+  const app = new Hono<AppEnv>();
+
+  app.use("/api/v1/scan", async (c, next) => {
+    const requestId = crypto.randomUUID();
+    c.set("requestId", requestId);
+    c.header("X-Pomona-Request-Id", requestId);
+    const startedAt = Date.now();
+    await traceStage(deps.tracing, "scan.request", { requestId }, async span => {
+      try {
+        await next();
+        const response = await c.res.clone().json().catch(() => null);
+        traceResponse(span, "scan", response);
+        span?.setAttributes({ "http.status": c.res.status });
+        logScanResponse("scan_response", { requestId }, response);
+        if (c.get("gradingStarted") && c.get("gateDecision")) {
+          const gateDecision = c.get("gateDecision");
+          const status = typeof response?.status === "string" ? response.status : "analysis_failed";
+          const mismatch = gateDecision === "pass_to_grading" && status !== "ok";
+          span?.setAttributes({ "flow.gate_decision": gateDecision, "flow.grading_status": status,
+            "flow.clef_pass_gemini_non_ok": mismatch });
+          console.log(JSON.stringify({ event: "gate_grading_outcome", requestId,
+            gateDecision, gradingStatus: status, clefPassGeminiNonOk: mismatch, nonOkValue: mismatch ? 1 : 0 }));
+
+        }
+      } finally {
+        console.log(JSON.stringify({ event: "scan_complete", requestId,
+          durationMs: Date.now() - startedAt, httpStatus: c.res.status }));
+      }
+    });
+  });
 
   // CORS middleware: allow web client origins and expose custom headers
   app.use(
@@ -297,8 +333,10 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
     }
 
     const scanRequest: ScanRequest = parseResult.data;
-    const requestId = crypto.randomUUID();
-    c.header("X-Pomona-Request-Id", requestId);
+    const requestId = c.get("requestId");
+    console.log(JSON.stringify({ event: "scan_received", requestId, sessionId: scanRequest.sessionId,
+      round: scanRequest.round, mimeType: scanRequest.imageMimeType, imagePayloadCharacters: scanRequest.imageBase64.length,
+      selectionPresent: !!scanRequest.focusPolygon }));
     console.log(
       `[proxy] Scan request valid: round ${scanRequest.round}, mime: ${scanRequest.imageMimeType}, base64 length: ${scanRequest.imageBase64.length} chars, focusPolygon: ${scanRequest.focusPolygon ? `${scanRequest.focusPolygon.length} pts` : "null"}`
     );
@@ -333,36 +371,111 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
       return c.json(rateLimitedResponse, 200);
     }
 
-    const modelId = quotaResult.modelId;
-    const adapterFactory = deps.adapterFactory ?? defaultAdapterFactory;
-    const adapter = adapterFactory(modelId, c.env);
-    const promptConfig = getPromptConfig(promptVersion);
-
-    // Adapters may have different analyzeProduce signatures (pure VisionProviderAdapter
-    // returns { object, usage }, while test mocks might return { rawOutput, usage }).
-    // We normalize to handle both.
-    const normalizedAdapter: VisionProviderAdapter = {
-      providerId: adapter.providerId,
-      modelId: adapter.modelId,
-      async analyzeProduce(input, signal) {
-        const res: any = await adapter.analyzeProduce(input, signal);
-        if (res && "rawOutput" in res && !("object" in res)) {
-          return {
-            object: res.rawOutput,
-            usage: res.usage ?? { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-          };
-        }
-        return res;
-      },
+    let modelId = quotaResult.modelId;
+    let pendingGateSpend = 0;
+    const recordGateSpend = async () => {
+      if (!pendingGateSpend) return;
+      const spend = pendingGateSpend;
+      pendingGateSpend = 0;
+      await store.incrementMonthlySpendMicroCents(formatMonthKey(new Date()), spend);
     };
-
+    if (c.env.VISION_GATE_ENABLED === "true" && scanRequest.round === 1) {
+      const startedAt = Date.now();
+      let receivedGateOutput = false;
+      if (!c.env.AI) {
+        c.header(REMAINING_SCANS_HEADER, quotaResult.remainingDeviceScans.toString());
+        return c.json(visibilityGateResponse("analysis_failed", scanRequest, promptVersion), 200);
+      }
+      try {
+        const gate = await traceStage(deps.tracing, "scan.clef", {
+          requestId, model: VISIBILITY_GATE_MODEL, "gate.timeout_ms": 3000, "gate.threshold": VISIBILITY_GATE_THRESHOLD,
+          "image.payload_characters": scanRequest.imageBase64.length,
+          "image.selection_present": !!scanRequest.focusPolygon,
+        }, async span => {
+          try {
+            const result = await runVisibilityGate(c.env.AI!, scanRequest, requestId,
+              c.env.LOCAL_CLEF_TEST !== "true" && c.env.AI_GATEWAY_ID
+                ? { id: c.env.AI_GATEWAY_ID, token: c.env.AI_GATEWAY_TOKEN } : undefined);
+            span?.setAttributes({ "gate.decision": result.status ?? "pass_to_grading",
+              "gate.scores": JSON.stringify(result.scores),
+              "gate.usage_known": result.usage !== null, "gate.timed_out": false,
+              ...(result.usage ? { "tokens.input": result.usage.promptTokens, "tokens.output": result.usage.completionTokens } : {}) });
+            console.log(JSON.stringify({ event: "gate_usage", requestId, sessionId: scanRequest.sessionId,
+              model: VISIBILITY_GATE_MODEL, durationMs: Date.now() - startedAt,
+              status: result.status ?? "pass_to_grading", scores: result.scores, threshold: VISIBILITY_GATE_THRESHOLD, usage: result.usage }));
+            return result;
+          } catch (error) {
+            const outcome = gateDenialStatus(error) ?? "pass_to_grading";
+            const timedOut = error instanceof Error && error.name === "TimeoutError";
+            span?.setAttributes({ "gate.decision": outcome, "gate.timed_out": timedOut });
+            console.log(JSON.stringify({ event: "gate_failure", requestId, model: VISIBILITY_GATE_MODEL,
+              durationMs: Date.now() - startedAt, outcome, timedOut, timeoutMs: 3000,
+              errorType: error instanceof Error ? error.name : "UnknownError", usage: null }));
+            throw error;
+          }
+        });
+        receivedGateOutput = true;
+        c.set("gateDecision", gate.scores ? gate.status ?? "pass_to_grading" : "invalid_output_fallback");
+        if (gate.usage) {
+          pendingGateSpend = calculateTokenSpendMicroCents(VISIBILITY_GATE_MODEL, gate.usage);
+        }
+        if (gate.status) {
+          await recordGateSpend();
+          c.header(REMAINING_SCANS_HEADER, quotaResult.remainingDeviceScans.toString());
+          return c.json(visibilityGateResponse(gate.status, scanRequest, promptVersion), 200);
+        }
+        // Include the gate's spend before starting another paid model call.
+        const afterGate = await checkQuotaAndSelectModel(store, { deviceId, ip, defaultModel: modelId, pendingSpendMicroCents: pendingGateSpend,
+          deviceDailyLimit: Number.isFinite(parsedDeviceLimitPost) ? parsedDeviceLimitPost : undefined });
+        if (!afterGate.allowed) {
+          await recordGateSpend();
+          c.header(REMAINING_SCANS_HEADER, afterGate.remainingDeviceScans.toString());
+          return c.json(visibilityGateResponse("rate_limited", scanRequest, promptVersion), 200);
+        }
+        modelId = afterGate.modelId;
+      } catch (error) {
+        await recordGateSpend();
+        const denial = receivedGateOutput ? "analysis_failed" : gateDenialStatus(error);
+        if (receivedGateOutput) console.log(JSON.stringify({ event: "gate_accounting_failure", requestId,
+          model: VISIBILITY_GATE_MODEL, outcome: "analysis_failed", usage: null }));
+        if (!denial) c.set("gateDecision", "error_fallback");
+        if (denial) {
+          c.header(REMAINING_SCANS_HEADER, quotaResult.remainingDeviceScans.toString());
+          return c.json(visibilityGateResponse(denial, scanRequest, promptVersion), 200);
+        }
+      }
+    }
     try {
+      const adapterFactory = deps.adapterFactory ?? defaultAdapterFactory;
+      const adapter = adapterFactory(modelId, c.env);
+      const promptConfig = getPromptConfig(promptVersion);
+
+      // Adapters may have different analyzeProduce signatures (pure VisionProviderAdapter
+      // returns { object, usage }, while test mocks might return { rawOutput, usage }).
+      // We normalize to handle both.
+      const normalizedAdapter: VisionProviderAdapter = {
+        providerId: adapter.providerId,
+        modelId: adapter.modelId,
+        async analyzeProduce(input, signal) {
+          const res: any = await adapter.analyzeProduce(input, signal);
+          if (res && "rawOutput" in res && !("object" in res)) {
+            return {
+              object: res.rawOutput,
+              usage: res.usage ?? { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+            };
+          }
+          return res;
+        },
+      };
+
+      c.set("gradingStarted", adapter.providerId === "google");
       const scanOutcome = await runVerifiedVisionScan(
         scanRequest,
         normalizedAdapter,
         promptConfig,
         undefined,
-        requestId
+        requestId,
+        deps.tracing
       );
 
       console.log(
@@ -377,12 +490,16 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
         attempts: scanOutcome.attempts, status: scanOutcome.response.status, usage: scanOutcome.usage,
       }));
 
+      const gateSpend = pendingGateSpend;
+      pendingGateSpend = 0;
+      // One monthly KV write for both models; the pre-grading check includes pending gate spend.
       const recordResult = await recordScanOutcome(store, {
         deviceId,
         ip,
         modelId,
         usage: scanOutcome.usage,
         status: scanOutcome.response.status,
+        additionalSpendMicroCents: gateSpend,
       });
 
       c.header(REMAINING_SCANS_HEADER, recordResult.remainingDeviceScans.toString());
@@ -409,6 +526,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<{ Binding
       return c.json({ ...baseResponse, seasonality } satisfies ScanResponse, 200);
 
     } catch (err: any) {
+      await recordGateSpend();
       // Catch upstream provider rate limits (429) and translate to status: "rate_limited"
       const is429 =
         err?.statusCode === 429 ||
@@ -466,4 +584,9 @@ export { createGeminiVisionAdapter } from "./adapters/gemini";
 export { createOpenAIVisionAdapter } from "./adapters/openai";
 export { getPromptConfig } from "./prompts";
 export { v1PromptConfig } from "./prompts/v1";
+export { getGatewayRouting } from "./adapters/gateway";
+export { traceStage, traceResponse, logScanResponse } from "./observability/scan-trace";
+export { createInMemoryQuotaStore, calculateTokenSpendMicroCents } from "./quota/budget";
+export { buildVisibilityGateInput, resolveVisibilityGate, runVisibilityGate, VISIBILITY_GATE_MODEL, VISIBILITY_GATE_THRESHOLD } from "./gate/visibility";
+export type { VisibilityGateRequest } from "./gate/visibility";
 

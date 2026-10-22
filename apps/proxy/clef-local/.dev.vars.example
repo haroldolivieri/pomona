@@ -1,0 +1,3 @@
+# Optional dedicated test-provider key for Gemini fallback. Do not copy production secrets.
+# GEMINI_API_KEY=dedicated_test_key
+COOKIE_SIGNING_SECRET=local-clef-test-only-signing-secret-32

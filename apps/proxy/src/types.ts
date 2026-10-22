@@ -1,7 +1,11 @@
 import type { KVNamespaceLike } from "./quota/budget";
+import type { GateAiBinding } from "./gate/visibility";
 
 export interface Env {
   ASSETS?: { fetch(request: Request): Promise<Response> };
+  AI?: GateAiBinding;
+  VISION_GATE_ENABLED?: string;
+  LOCAL_CLEF_TEST?: string;
   POMONA_QUOTA_KV?: KVNamespaceLike;
   GEMINI_API_KEY?: string;
   OPENAI_API_KEY?: string;

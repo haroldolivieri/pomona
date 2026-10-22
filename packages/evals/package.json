@@ -7,13 +7,18 @@
     "typecheck": "tsc --noEmit",
     "generate:dataset": "node scripts/generate-dataset.mjs",
     "prompts:export": "npx tsx scripts/export-prompts.ts",
-    "eval:live": "npx tsx scripts/run-live-eval.ts"
+    "eval:live": "npx tsx scripts/run-live-eval.ts",
+    "eval:mask": "playwright test --config playwright.mask.config.ts",
+    "eval:gate:live": "node --import tsx scripts/run-visibility-gate-eval.ts",
+    "dev:clef:local": "node --import tsx scripts/dev-clef-local.ts",
+    "dev:clef:stack": "node --import tsx scripts/dev-clef-local.ts --stack"
   },
   "dependencies": {
     "@pomona/contract": "workspace:*",
     "@pomona/proxy": "workspace:*"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "promptfoo": "^0.113.0",
     "tsx": "^4.23.15",
     "typescript": "^5.8.2",
