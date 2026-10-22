@@ -155,3 +155,17 @@ for (const status of ["no_produce", "unclear_photo", "multiple_types", "insuffic
     }
   });
 }
+
+for (const target of ["in_2_3_days", "later_this_week"]) {
+  test(`Portuguese storage flip instruction reads naturally (${target})`, async ({page}) => {
+    await page.route("**/api/v1/scan", route => route.fulfill({json:successfulScan(1)}));
+    await page.goto("/");
+    await page.getByTestId("shutter-button").click();
+    await page.getByTestId("whole-photo-button").click();
+    await page.getByTestId("sheet-drag-area").click();
+    await page.getByTestId(`target-tab-${target}`).click();
+    await page.getByTestId("cta-compare-runner-up").click();
+    await expect(page.getByText(/antes de guardar por vários dias/)).toBeVisible();
+    await expect(page.getByText(/guardar por (Nesta semana|Em 2)/)).toHaveCount(0);
+  });
+}

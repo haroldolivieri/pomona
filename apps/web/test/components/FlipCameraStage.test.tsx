@@ -88,7 +88,7 @@ describe("FlipCameraStage (Mockup Parity)", () => {
     expect(goalPill).toHaveTextContent("In 2–3 days");
 
     // Subtitle copy tailored to storage target
-    expect(screen.getByTestId("flip-instruction-card")).toHaveTextContent(/check the underside for hidden bruises or uneven ripening/i);
+    expect(screen.getByTestId("flip-instruction-card")).toHaveTextContent(/check for bruises or uneven ripening before storing for several days/i);
   });
 
   it("disables flip shutter button when offline and re-enables when back online", () => {

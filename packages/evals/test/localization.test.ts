@@ -96,3 +96,13 @@ it("Portuguese ranking labels consistently use primeiro and segundo lugar", asyn
   expect(shared.verifier.finalHeadline).toContain("primeiro lugar");
   expect(JSON.stringify([web, shared])).not.toMatch(/primeira opção|segunda opção/i);
 });
+
+it("storage instructions avoid joining tab labels into prose and winner headings avoid repetition", async () => {
+  const { readFileSync } = await import("node:fs");
+  for (const locale of ["en", "pt-BR"]) {
+    const catalog=JSON.parse(readFileSync(new URL(`../../../apps/web/src/i18n/locales/${locale}.json`, import.meta.url), "utf8"));
+    expect(catalog.copy.showTheHiddenUndersideSoPomonaCan).not.toContain("{{value1}}");
+    expect(catalog.copy["1stWinnerWinsBeatsRunnerUpVs"]).not.toMatch(/VENCE · SUPERA|WINS · BEATS/);
+    if(locale === "pt-BR") expect(catalog.copy.showTheHiddenUndersideSoPomonaCan).toContain("antes de guardar por vários dias");
+  }
+});

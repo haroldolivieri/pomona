@@ -49,7 +49,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
   const headline = rawHeadline.replace(/1st\s*pick/gi, uiCopy("copy.1stWinner")).replace(/first\s*pick/gi, uiCopy("copy.firstWinner"));
   let rawInstruction = followUp?.instruction || uiCopy("copy.turnOverToInspectTheUnderside");
   if (targetRipeness !== "ready_now") {
-    rawInstruction = uiCopy("copy.showTheHiddenUndersideSoPomonaCan", { value1: targetRipeness === "in_2_3_days" ? uiCopy("copy.in23Days") : uiCopy("copy.laterThisWeek") });
+    rawInstruction = uiCopy("copy.showTheHiddenUndersideSoPomonaCan");
   }
   const instruction = rawInstruction.replace(/1st\s*pick/gi, uiCopy("copy.1stWinner")).replace(/first\s*pick/gi, uiCopy("copy.firstWinner"));
   
