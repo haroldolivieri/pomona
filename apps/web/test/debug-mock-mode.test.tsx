@@ -13,6 +13,7 @@ describe("Debug mock mode and shake detection", () => {
       getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
       overrideQuota: vi.fn().mockResolvedValue({ success: true, remainingDeviceScans: 10 }),
       submitScan: vi.fn(),
+      submitDeepScan: vi.fn(),
     };
     render(
       <PomonaApp
@@ -32,6 +33,7 @@ describe("Debug mock mode and shake detection", () => {
       getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
       overrideQuota: vi.fn().mockResolvedValue({ success: true, remainingDeviceScans: 10 }),
       submitScan: vi.fn(),
+      submitDeepScan: vi.fn(),
     };
     render(
       <PomonaApp
@@ -60,6 +62,7 @@ describe("Debug mock mode and shake detection", () => {
       getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
       overrideQuota: vi.fn().mockResolvedValue({ success: true, remainingDeviceScans: 10 }),
       submitScan: vi.fn(),
+      submitDeepScan: vi.fn(),
     };
     render(
       <PomonaApp

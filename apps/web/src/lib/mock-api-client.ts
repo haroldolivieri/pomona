@@ -1,7 +1,6 @@
-import { isSupportedLocale } from "@pomona/contract";
-import { uiCopy } from "../i18n/copy";
-import { lookupProduceSeasonality, type ScanRequest, type ScanResponse } from "@pomona/contract";
+import { isSupportedLocale, lookupProduceSeasonality, type ScanRequest, type ScanResponse, type DeepScanRequest, type DeepScanResponse } from "@pomona/contract";
 import type { PomonaApiClient, QuotaInfo } from "./api-client";
+import { uiCopy } from "../i18n/copy";
 
 function mockSeasonality(request: ScanRequest) {
   return lookupProduceSeasonality("watermelon", { locale: request.locale }, new Date().getMonth() + 1, isSupportedLocale(request.locale) ? request.locale : "en-GB");
@@ -296,6 +295,90 @@ export function createMockApiClient(): PomonaApiClient {
           },
           seasonality: mockSeasonality(request),
         },
+      };
+    },
+
+    async submitDeepScan(request: DeepScanRequest): Promise<DeepScanResponse> {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const locale = isSupportedLocale(request.locale) ? request.locale : "en-GB";
+      const pt = locale === "pt-BR";
+      const forced = (() => {
+        try {
+          if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+            return localStorage.getItem("pomona-force-ds-error");
+          }
+        } catch {}
+        return null;
+      })();
+
+      if (forced === "no_produce") {
+        return {
+          schemaVersion: "1.0",
+          promptVersion: "deep_scan_v1",
+          modelId: "gemini-3.1-flash-lite (mocked)",
+          status: "insufficient_evidence",
+          abstentionReason: null,
+          message: uiCopy("errors.noProduce", undefined, locale),
+          produce: { type: "unknown", displayName: pt ? "Fruta não identificada" : "Unidentified fruit", variety: null },
+          ripeness: { state: "unknown", confidence: 0.1 },
+          evidence: [],
+          quality: { sufficientVisualEvidence: false, viewCoverage: "poor", reason: null },
+          manualChecks: [],
+          recommendation: null,
+        };
+      }
+
+      if (forced === "same_side") {
+        return {
+          schemaVersion: "1.0",
+          promptVersion: "deep_scan_v1",
+          modelId: "gemini-3.1-flash-lite (mocked)",
+          status: "insufficient_evidence",
+          abstentionReason: "same_side_only",
+          message: null,
+          produce: { type: "avocado", displayName: pt ? "Abacate" : "Avocado", variety: null },
+          ripeness: { state: "unknown", confidence: 0.3 },
+          evidence: [],
+          quality: { sufficientVisualEvidence: false, viewCoverage: "fair", reason: null },
+          manualChecks: [
+            {
+              trait: pt ? "Firmeza" : "Firmness",
+              how: pt ? "Aperte levemente até sentir uma boa Cedência" : "Squeeze gently with your fingertips",
+              whatItMeans: pt ? "Mole demais = muito maduro; duro = ainda verde" : "Too soft = overripe; hard = still unripe",
+            },
+            {
+              trait: pt ? "Cheirinho" : "Smell",
+              how: pt ? "Sinta o aroma perto do cabinho" : "Sniff close to the stem",
+              whatItMeans: pt ? "Aroma adocicado e forte = pronto pra comer" : "Sweet and strong = ready to eat",
+            },
+          ],
+          recommendation: null,
+        };
+      }
+
+      return {
+        schemaVersion: "1.0",
+        promptVersion: "deep_scan_v1",
+        modelId: "gemini-3.1-flash-lite (mocked)",
+        status: "ok",
+        abstentionReason: null,
+        message: null,
+        produce: { type: "avocado", displayName: pt ? "Abacate" : "Avocado", variety: "Hass (mocked)" },
+        ripeness: { state: "nearly_ripe", confidence: 0.86 },
+        evidence: pt
+          ? [
+              "Vista 1: casca perde o verde e ganha tons mais escuros",
+              "Vista 4: colheita uniforme, sem manchas",
+              "Vista 6: brilho pequeno no cabinho, típico de 'quase pronto'",
+            ]
+          : [
+              "View 1: skin losing green, moving toward darker tones",
+              "View 4: even color across sides, no blemishes",
+              "View 6: slight sheen near the stem, typical of almost ready",
+            ],
+        quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
+        manualChecks: null,
+        recommendation: { eatWhen: "in_a_few_days" },
       };
     },
   };

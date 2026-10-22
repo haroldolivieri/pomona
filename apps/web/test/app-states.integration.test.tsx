@@ -110,6 +110,7 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
       getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
       overrideQuota: vi.fn().mockResolvedValue({ success: true, deviceId: "d1", deviceLimit: 10, remainingDeviceScans: 10 }),
       submitScan: mockScan,
+      submitDeepScan: vi.fn(),
     };
 
     render(<PomonaApp apiClient={apiClient} telemetry={createNoopTelemetry()} />);
@@ -158,6 +159,7 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
       getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
       overrideQuota: vi.fn().mockResolvedValue({ success: true, deviceId: "d1", deviceLimit: 10, remainingDeviceScans: 10 }),
       submitScan: vi.fn().mockRejectedValue(new Error("Scan request failed (413): Request body too large")),
+      submitDeepScan: vi.fn(),
     };
 
     render(
@@ -221,6 +223,7 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
         return { success: true, deviceId: "d1", deviceLimit: 10, remainingDeviceScans: remaining };
       }),
       submitScan: mockScan,
+      submitDeepScan: vi.fn(),
     };
 
     render(
@@ -293,6 +296,7 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     const apiClient = {
       getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
       submitScan: vi.fn().mockResolvedValue({ remainingScans: 9, response }),
+      submitDeepScan: vi.fn(),
     };
 
     render(<PomonaApp apiClient={apiClient as any} telemetry={createNoopTelemetry()} />);

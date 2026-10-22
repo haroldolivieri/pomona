@@ -1,5 +1,5 @@
 import { uiCopy } from "../i18n/copy";
-import type { ScanRequest, ScanResponse } from "@pomona/contract";
+import type { ScanRequest, ScanResponse, DeepScanRequest, DeepScanResponse } from "@pomona/contract";
 
 export class ApiClientError extends Error {
   readonly copyKey = "errors.analysisFailed";
@@ -28,6 +28,7 @@ export interface PomonaApiClient {
     remainingScans: number;
     response: ScanResponse;
   }>;
+  submitDeepScan(request: DeepScanRequest): Promise<DeepScanResponse>;
 }
 
 export function createFetchApiClient(baseUrl: string = ""): PomonaApiClient {
@@ -98,6 +99,36 @@ export function createFetchApiClient(baseUrl: string = ""): PomonaApiClient {
         remainingScans: isNaN(parsedRemaining) ? 10 : parsedRemaining,
         response: scanResponse,
       };
+    },
+
+    async submitDeepScan(request: DeepScanRequest): Promise<DeepScanResponse> {
+      const res = await fetch(`${baseUrl}/api/v1/deep-scan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(request),
+      });
+      if (!res.ok) {
+        let errorDetail = res.statusText || "";
+        try {
+          const errorJson = await res.json();
+          errorDetail =
+            errorJson.error ||
+            errorJson.message ||
+            (Array.isArray(errorJson.details) ? JSON.stringify(errorJson.details) : "") ||
+            JSON.stringify(errorJson);
+        } catch {
+          try {
+            const errorText = await res.text();
+            if (errorText) errorDetail = errorText;
+          } catch {
+            // ignore
+          }
+        }
+        console.error(`[api-client] Deep scan request failed (${res.status}): ${errorDetail}`);
+        throw new ApiClientError(res.status, uiCopy("copy.scanRequestFailed", { value1: res.status, value2: errorDetail || uiCopy("errors.analysisFailed") }));
+      }
+      return res.json();
     },
   };
 }
