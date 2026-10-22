@@ -589,5 +589,6 @@ export { getGatewayRouting } from "./adapters/gateway";
 export { traceStage, traceResponse, logScanResponse } from "./observability/scan-trace";
 export { createInMemoryQuotaStore, calculateTokenSpendMicroCents } from "./quota/budget";
 export { buildVisibilityGateInput, resolveVisibilityGate, runVisibilityGate, VISIBILITY_GATE_MODEL, VISIBILITY_GATE_THRESHOLD } from "./gate/visibility";
+export { buildDeepScanGateInput, resolveDeepScanGate } from "./gate/visibility";
 export type { VisibilityGateRequest } from "./gate/visibility";
 

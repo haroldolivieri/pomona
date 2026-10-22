@@ -105,3 +105,37 @@ export function gateDenialStatus(error: unknown): "rate_limited" | "analysis_fai
   if (code === 401 || code === 403) return "analysis_failed";
   return null;
 }
+
+const deepScanReasons = ["no_produce", "unclear_photo"] as const;
+export type DeepScanGateStatus = typeof deepScanReasons[number];
+export type DeepScanGateScores = Record<DeepScanGateStatus, number>;
+
+const DEEP_SCAN_PREAMBLE = "This is a grid of multiple views of one fruit.";
+
+export function buildDeepScanGateInput(imageBase64: string, imageMimeType: string) {
+  const base = buildVisibilityGateInput({
+    imageBase64,
+    imageMimeType: imageMimeType as VisibilityGateRequest["imageMimeType"],
+    focusPolygon: null,
+  });
+  const { multiple_types: _multipleTypes, ...questions } = base.questions;
+  return { ...base, state: `${base.state} ${DEEP_SCAN_PREAMBLE}`, questions };
+}
+
+export function resolveDeepScanGate(raw: unknown): { status: DeepScanGateStatus | null; usage: TokenUsage | null; scores: DeepScanGateScores | null } {
+  const envelope = z.object({ answers: z.unknown().optional(), usage: z.unknown().optional() }).safeParse(raw);
+  if (!envelope.success) return { status: null, usage: null, scores: null };
+  const parsedUsage = usageSchema.safeParse(envelope.data.usage);
+  const usage = parsedUsage.success ? {
+    promptTokens: parsedUsage.data.input_tokens, completionTokens: parsedUsage.data.output_tokens,
+    totalTokens: parsedUsage.data.input_tokens + parsedUsage.data.output_tokens,
+  } : null;
+  const answers = z.object({ no_produce: answer, unclear_photo: answer }).safeParse(envelope.data.answers);
+  if (!answers.success || !usage) return { status: null, usage, scores: null };
+  const failures = deepScanReasons.filter(reason => answers.data[reason].noul >= VISIBILITY_GATE_THRESHOLD);
+  return {
+    status: failures.length === 1 ? failures[0] : null,
+    usage,
+    scores: { no_produce: answers.data.no_produce.noul, unclear_photo: answers.data.unclear_photo.noul },
+  };
+}
