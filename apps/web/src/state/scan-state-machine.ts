@@ -7,6 +7,7 @@ import {
   type ScanRequest,
   type ScanStatus,
   type TargetRipenessWindow,
+  type DeepScanResponse,
   resolveCandidatesForTarget,
 } from "@pomona/contract";
 import { remapBoxFromCropToFrame, type CropRect } from "../lib/image-pipeline";
@@ -22,7 +23,22 @@ export type ScanPhase =
   | "S5B2_RunnerUpTookLead"
   | "S6_FlipFirstPickCamera"
   | "S7A_FirstPickWonFinal"
-  | "S7B_FirstPickLostFinal";
+  | "S7B_FirstPickLostFinal"
+  | "S_DS_Capture"
+  | "S_DS_Analysing"
+  | "S_DS_Result";
+
+export interface DeepScanComposite {
+  dataUrl: string;
+  tileCount: number;
+}
+
+export interface DeepScanSampleMeta {
+  sampleCount: number;
+  stats: { rejectedBlur: number; rejectedExposure: number; rejectedSimilarity: number };
+}
+
+export type DeepScanOrigin = "insufficient" | "tie" | "result_banner";
 
 export interface PreservedCandidate extends Candidate {
   initialScore: number;
@@ -45,6 +61,10 @@ export interface ScanMachineState {
   allCandidatesRound1: Candidate[];
   targetRipeness: TargetRipenessWindow;
   round1FollowUp: ScanResponse["followUp"] | null;
+  dsOrigin: DeepScanOrigin | null;
+  dsComposite: DeepScanComposite | null;
+  dsSampleMeta: DeepScanSampleMeta | null;
+  dsResult: DeepScanResponse | null;
 }
 
 export type ScanMachineAction =
@@ -62,6 +82,12 @@ export type ScanMachineAction =
   | { type: "COMPARE_WITH_RUNNER_UP" }
   | { type: "FOLLOW_UP_CAPTURED"; photoDataUrl: string }
   | { type: "START_FINAL_CHECK_ON_FIRST_PICK" }
+  | { type: "ENTER_DEEP_SCAN"; origin: DeepScanOrigin }
+  | { type: "DS_CAPTURE_COMPLETED"; composite: DeepScanComposite; sampleCount: number; stats: DeepScanSampleMeta["stats"] }
+  | { type: "DS_CAPTURE_REJECTED"; reason: "all_blurry" | "too_dark_or_bright" }
+  | { type: "DS_SCAN_SUCCEEDED"; response: DeepScanResponse }
+  | { type: "DS_SCAN_FAILED"; error: string }
+  | { type: "DS_CANCEL" }
   | { type: "RESET" };
 
 export function initialScanMachineState(): ScanMachineState {
@@ -80,6 +106,10 @@ export function initialScanMachineState(): ScanMachineState {
     allCandidatesRound1: [],
     targetRipeness: "ready_now",
     round1FollowUp: null,
+    dsOrigin: null,
+    dsComposite: null,
+    dsSampleMeta: null,
+    dsResult: null,
   };
 }
 
@@ -128,6 +158,73 @@ export function scanMachineReducer(
   switch (action.type) {
     case "RESET":
       return initialScanMachineState();
+
+    case "ENTER_DEEP_SCAN":
+      return {
+        ...state,
+        phase: "S_DS_Capture",
+        dsOrigin: action.origin,
+        dsComposite: null,
+        dsSampleMeta: null,
+        dsResult: null,
+        errorMessage: null,
+        status: null,
+      };
+
+    case "DS_CAPTURE_REJECTED":
+      return {
+        ...state,
+        phase: "S_DS_Capture",
+        errorMessage: uiCopy("deepScan.capture.tryAgain", undefined, currentDisplayLocale()),
+      };
+
+    case "DS_CAPTURE_COMPLETED":
+      return {
+        ...state,
+        phase: "S_DS_Analysing",
+        dsComposite: action.composite,
+        dsSampleMeta: { sampleCount: action.sampleCount, stats: action.stats },
+        errorMessage: null,
+        status: null,
+      };
+
+    case "DS_SCAN_SUCCEEDED":
+      return {
+        ...state,
+        phase: "S_DS_Result",
+        dsResult: action.response,
+        errorMessage: null,
+        status: null,
+      };
+
+    case "DS_SCAN_FAILED":
+      return {
+        ...state,
+        phase: "S_DS_Result",
+        dsResult: null,
+        status: "analysis_failed",
+        errorMessage: action.error,
+      };
+
+    case "DS_CANCEL": {
+      const originPhase: ScanPhase =
+        state.dsOrigin === "tie"
+          ? "S5B1_RunnerUpBeaten"
+          : state.dsOrigin === "insufficient"
+            ? "S_ScanError"
+            : state.dsOrigin === "result_banner"
+              ? "S4_InitialResult"
+              : "S1_LiveCamera";
+      return {
+        ...state,
+        phase: originPhase,
+        dsComposite: null,
+        dsSampleMeta: null,
+        dsResult: null,
+        errorMessage: null,
+        status: null,
+      };
+    }
 
     case "FRAME_CAPTURED": {
       return {
