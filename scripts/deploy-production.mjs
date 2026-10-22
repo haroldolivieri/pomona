@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { parseEnv } from "node:util";
 import { execFileSync, spawnSync } from "node:child_process";
 import { assertVersionBump, releaseMessage, assertCiDeployment } from "./release-policy.mjs";
 
@@ -18,8 +17,7 @@ try {
   const message = releaseMessage(pkg.version, pkg.releaseDescription);
   const built = JSON.parse(fs.readFileSync(`${root}/apps/web/dist/version.json`, "utf8"));
   if (built.version !== pkg.version || built.changes !== pkg.releaseDescription) throw new Error("Rebuild the app: release metadata differs from the source");
-  const local = fs.existsSync(`${root}/.env`) ? parseEnv(fs.readFileSync(`${root}/.env`, "utf8")) : {};
-  const token = process.env.CLOUDFLARE_API_TOKEN || local.CLOUDFLARE_API_TOKEN || local.CLOUDFARE_API_TOKEN;
+  const token = process.env.CLOUDFLARE_API_TOKEN;
   const account = process.env.CLOUDFLARE_ACCOUNT_ID || "553fb87d04f36b2f088f1250f34503cc";
   if (!token) throw new Error("Cloudflare API token missing");
   // Public metadata prevents publishing an equal/lower version even before GitHub is updated.

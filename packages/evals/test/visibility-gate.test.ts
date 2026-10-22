@@ -106,6 +106,7 @@ describe("Clef visibility gate acceptance and failure scenarios", () => {
     expect(input.state).toContain("not");
     expect(input.questions.no_produce.instructions).toBe("Is there no real fresh produce in the foreground?");
     expect(input.state).toContain("Missing underside views are OK");
+    expect(input.questions.unclear_photo.instructions).toBe("Do blur, glare, or packaging hide most produce surfaces?");
   });
 
   it.each([[0.01, 0.01, 0.01], [0.6999, 0.01, 0.01], [0.70, 0.70, 0.01]])(

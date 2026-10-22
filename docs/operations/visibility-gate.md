@@ -1,6 +1,6 @@
 # Clef Flash visibility gate
 
-Release v1.1.0 enables the short neutral gate in the production `pomona-proxy` Worker through its AI binding and existing `pomona` AI Gateway. Local experiments remain isolated under `pomona-proxy-test`. Production activation is explicitly authorized by the user. No login feature or new per-user budgets are introduced.
+Release v1.1.2 enables the Direct gate in the production `pomona-proxy` Worker through its AI binding and existing `pomona` AI Gateway. Local experiments remain isolated under `pomona-proxy-test`. Production activation is explicitly authorized by the user. No login feature or new per-user budgets are introduced.
 
 ## Scan behavior
 
@@ -27,14 +27,8 @@ Real Clef inference is remote: it uses the declared test account's Workers AI al
 
 ## Cost and rollback
 
-Run `pnpm --filter @pomona/evals eval:gate:compare` for exactly three contenders (baseline detailed, short neutral, minimal terse), 13 fixed round-one images, and three repetitions each. It rotates prompt order, uses the current application threshold (0.70 from v1.1.2) and the runtime's timeout (3 seconds from v1.1.1), saves raw scores, and preflights all captures. Report: `/tmp/pomona-clef-prompt-comparison.json`. Missing captures or provider denials stop the comparison; inference errors make its exit status nonzero.
-
-On 2026-10-22, short was the preferred tradeoff: baseline and short each classified 12/13 distinct images correctly on completed responses; minimal classified 11/13. Completed-request correctness was 31/34 baseline, 33/35 short, and 31/37 minimal, with 5, 4, and 2 timeouts respectively. All three missed the potato-packaging case; minimal also missed the cereal box. No completed response falsely rejected a valid image. Repeated successful responses were stable. The short prompt reduced input tokens for the same 13-image mix from 17,191 to 16,690 (2.9%); minimal used 16,248 but lost accuracy. These normalized costs use one observed token count per image; aborted requests have unknown billed usage. The command returned nonzero because of timeouts. The v1.1.0 release promotes the short contender into the application.
-
-To compare a shorter experimental prompt without changing the application, run `pnpm --filter @pomona/evals eval:gate:live --short-prompt`. Its report is `/tmp/pomona-clef-short-report.json`; the baseline report remains `/tmp/pomona-clef-gate-report.json`. Both reports include raw scores. The six-case comparison on 2026-10-22 passed both variants at 0.85; the candidate used 6,912 input tokens versus 7,161 for the baseline. This small sample does not establish broader accuracy. The v1.1.0 release uses the short prompt; the comparison runner preserves the detailed baseline as a frozen contender.
-
 Known gate token usage is recorded under `@cf/cloudflare/clef-flash`, separately from Gemini, at the currently documented $0.038 per million input tokens with no output charge. Non-ok gate decisions do not consume the daily successful-scan allowance. Missing usage and aborted/failed requests are logged as unknown, not asserted to be free. Gateway/provider records remain necessary for actual billed spend.
 
-Stop the local process to end the experiment. For production rollback, restore the deployment recorded before releasing v1.1.0, or disable `VISION_GATE_ENABLED` in the production configuration and redeploy. A frontend rollback is needed to undo masking; disabling the gate alone leaves masked Gemini uploads enabled.
+Stop the local process to end the experiment. For production rollback, restore the prior known-good deployment through Cloudflare deployment rollback, or disable `VISION_GATE_ENABLED` in the production configuration and redeploy. A frontend rollback is needed to undo masking; disabling the gate alone leaves masked Gemini uploads enabled.
 
 References: [Clef Flash schema](https://developers.cloudflare.com/workers-ai/models/clef-flash/), [Workers AI binding](https://developers.cloudflare.com/workers-ai/configuration/bindings/), [native error/raw-response behavior](https://github.com/cloudflare/workerd/blob/main/src/cloudflare/internal/ai-api.ts).

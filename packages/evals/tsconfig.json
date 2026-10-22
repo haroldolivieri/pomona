@@ -5,6 +5,6 @@
     "outDir": "./dist",
     "noEmit": true
   },
-  "include": ["assertions/**/*", "test/**/*", "browser/**/*", "playwright.mask.config.ts", "scripts/run-visibility-gate-eval.ts", "scripts/dev-clef-local.ts", "scripts/compare-gate-prompts.ts", "scripts/compare-gate-image-size.ts"],
+  "include": ["assertions/**/*", "test/**/*", "browser/**/*", "playwright.mask.config.ts", "scripts/run-visibility-gate-eval.ts", "scripts/dev-clef-local.ts"],
   "exclude": ["node_modules", "dist"]
 }

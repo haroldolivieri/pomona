@@ -5,7 +5,6 @@ import { spawnSync } from "node:child_process";
 import { runVisibilityGate, VISIBILITY_GATE_MODEL } from "@pomona/proxy";
 import type { VisibilityGateRequest } from "@pomona/proxy";
 import { clefLocalEnvironment, clefTestInferenceUrl } from "./clef-test-isolation";
-import { shortVisibilityPrompt } from "./short-visibility-prompt";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(directory, "../../..");
@@ -23,7 +22,6 @@ function wranglerJson(args: string[]): Record<string, any> | null {
 }
 
 async function main() {
-  const shortPrompt = process.argv.includes("--short-prompt");
   const env = clefLocalEnvironment(process.env);
   let inferenceUrl: string;
   try { inferenceUrl = clefTestInferenceUrl(env); }
@@ -78,7 +76,7 @@ async function main() {
         async run(_model, input, options) {
           const response = await fetch(inferenceUrl, {
             method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify(shortPrompt ? shortVisibilityPrompt(input) : input), signal: options?.signal,
+            body: JSON.stringify(input), signal: options?.signal,
           });
           if (!response.ok) return response;
           const body = await response.json() as { success: boolean; result: unknown };
@@ -106,9 +104,9 @@ async function main() {
       }
     }
   }
-  const reportPath = process.env.EVAL_REPORT_PATH || (shortPrompt ? "/tmp/pomona-clef-short-report.json" : "/tmp/pomona-clef-gate-report.json");
+  const reportPath = process.env.EVAL_REPORT_PATH || "/tmp/pomona-clef-gate-report.json";
   const report = { model: VISIBILITY_GATE_MODEL, timestamp: new Date().toISOString(),
-    promptVariant: shortPrompt ? "short" : "baseline",
+    promptVariant: "direct",
     passed: results.filter(item => item.pass).length, total: results.length, results,
     limitation: "Six smoke scenarios do not establish production accuracy or total cost savings. No Gemini calls were made." };
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));

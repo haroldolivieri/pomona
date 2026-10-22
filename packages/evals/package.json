@@ -9,8 +9,6 @@
     "prompts:export": "npx tsx scripts/export-prompts.ts",
     "eval:live": "npx tsx scripts/run-live-eval.ts",
     "eval:mask": "playwright test --config playwright.mask.config.ts",
-    "eval:gate:image-size": "node --import tsx scripts/compare-gate-image-size.ts",
-    "eval:gate:compare": "node --import tsx scripts/compare-gate-prompts.ts",
     "eval:gate:live": "node --import tsx scripts/run-visibility-gate-eval.ts",
     "dev:clef:local": "node --import tsx scripts/dev-clef-local.ts",
     "dev:clef:stack": "node --import tsx scripts/dev-clef-local.ts --stack"

@@ -73,7 +73,7 @@ describe("Gateway production routing and usage scenarios", () => {
     expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "model_usage", requestId, success: true, usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 } }));
     expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_usage", requestId, attempts: 1, status: "insufficient_evidence" }));
     expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_received", requestId,
-      imagePayloadSha256: expect.stringMatching(/^[a-f0-9]{64}$/) }));
+      selectionPresent: false }));
     expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "model_response", requestId,
       response: expect.objectContaining({ status: "insufficient_evidence" }) }));
     expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_response", requestId,

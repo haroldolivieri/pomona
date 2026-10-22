@@ -333,11 +333,9 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
 
     const scanRequest: ScanRequest = parseResult.data;
     const requestId = c.get("requestId");
-    const imageHash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(scanRequest.imageBase64));
     console.log(JSON.stringify({ event: "scan_received", requestId, sessionId: scanRequest.sessionId,
       round: scanRequest.round, mimeType: scanRequest.imageMimeType, imagePayloadCharacters: scanRequest.imageBase64.length,
-      imagePayloadSha256: Array.from(new Uint8Array(imageHash), byte => byte.toString(16).padStart(2, "0")).join(""),
-      focusPolygon: scanRequest.focusPolygon, selectionPresent: !!scanRequest.focusPolygon }));
+      selectionPresent: !!scanRequest.focusPolygon }));
     console.log(
       `[proxy] Scan request valid: round ${scanRequest.round}, mime: ${scanRequest.imageMimeType}, base64 length: ${scanRequest.imageBase64.length} chars, focusPolygon: ${scanRequest.focusPolygon ? `${scanRequest.focusPolygon.length} pts` : "null"}`
     );
