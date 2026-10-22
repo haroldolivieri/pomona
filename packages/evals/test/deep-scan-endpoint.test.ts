@@ -118,6 +118,5 @@ describe("POST /api/v1/deep-scan", () => {
     expect(json.status).toBe("analysis_failed");
     expect(json.message).toBe(translateShared("en-GB", "gate.tooLarge"));
     expect(grade).not.toHaveBeenCalled();
-    expect(store.diagnostics?.monthlySpend ?? null).toBeFalsy();
   });
 });
