@@ -73,7 +73,7 @@ export const DeepScanViewfinder: React.FC<DeepScanViewfinderProps> = ({
   const collectRef = useRef(collect);
   const onGoRef = useRef(() => {});
   const [running, setRunning] = useState(false);
-  const progressEllipseRef = useRef<SVGEllipseElement | null>(null);
+  const progressPathRef = useRef<SVGPathElement | null>(null);
   const progressRafRef = useRef<number | null>(null);
   const DURATION_MS = 5000;
 
@@ -93,10 +93,10 @@ export const DeepScanViewfinder: React.FC<DeepScanViewfinderProps> = ({
       progressRafRef.current = null;
       const progress = Math.min(1, Math.max(0, (now - startedAt) / DURATION_MS));
       const offset = String(100 * (1 - progress));
-      const ellipse = progressEllipseRef.current;
-      if (ellipse) {
-        ellipse.style.strokeDashoffset = offset;
-        ellipse.setAttribute("stroke-dashoffset", offset);
+      const path = progressPathRef.current;
+      if (path) {
+        path.style.strokeDashoffset = offset;
+        path.setAttribute("stroke-dashoffset", offset);
       }
       if (progress < 1) progressRafRef.current = requestAnimationFrame(tick);
     };
@@ -202,12 +202,9 @@ export const DeepScanViewfinder: React.FC<DeepScanViewfinderProps> = ({
             pointerEvents: "none",
           }}
         >
-          <ellipse
-            ref={progressEllipseRef}
-            cx="50"
-            cy="66.67"
-            rx="49"
-            ry="65.7"
+          <path
+            ref={progressPathRef}
+            d="M 50 0.97 A 49 65.7 0 1 1 49.99 0.97"
             pathLength={100}
             strokeDasharray={100}
             strokeDashoffset={100}
@@ -215,7 +212,6 @@ export const DeepScanViewfinder: React.FC<DeepScanViewfinderProps> = ({
             strokeWidth="5"
             fill="none"
             strokeLinecap="round"
-            transform="rotate(-90 50 66.67)"
           />
         </svg>
       ) : null}
@@ -251,26 +247,37 @@ export const DeepScanViewfinder: React.FC<DeepScanViewfinderProps> = ({
       </div>
 
       <div
-        data-testid="ds-prompt-card"
+        data-testid="ds-prompt-sheet"
         style={{
           position: "absolute",
-          left: "50%",
-          bottom: "24%",
-          transform: "translateX(-50%)",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "var(--surface-sheet, #FBFAF6)",
+          color: "var(--text-primary, #1A261D)",
+          borderRadius: "26px 26px 0 0",
+          paddingTop: "16px",
+          paddingLeft: "20px",
+          paddingRight: "20px",
+          paddingBottom: "max(28px, env(safe-area-inset-bottom))",
+          boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.25)",
           zIndex: 20,
-          width: "min(84vw, 340px)",
-          background: "#FBFAF6",
-          color: "#132418",
-          borderRadius: "16px",
-          padding: "14px 16px",
-          textAlign: "center",
           fontFamily: "Inter, system-ui, sans-serif",
-          boxShadow: "0 6px 24px rgba(0,0,0,0.35)",
         }}
       >
-        <div style={{ fontSize: "15px", fontWeight: 700 }}>{uiCopy("deepScan.captureIdleTitle")}</div>
-        <div style={{ fontSize: "12px", marginTop: "4px" }}>{uiCopy("deepScan.capturePhaseStem")}</div>
-        <div style={{ fontSize: "12px" }}>{uiCopy("deepScan.capturePhaseRotate")}</div>
+        <div
+          style={{
+            width: "36px",
+            height: "4px",
+            borderRadius: "4px",
+            backgroundColor: "var(--text-muted, #6B7268)",
+            opacity: 0.35,
+            margin: "-4px auto 12px",
+          }}
+        />
+        <div style={{ fontSize: "18px", fontWeight: 800 }}>{uiCopy("deepScan.captureIdleTitle")}</div>
+        <div style={{ fontSize: "12px", fontWeight: 500, marginTop: "4px" }}>{uiCopy("deepScan.capturePhaseStem")}</div>
+        <div style={{ fontSize: "12px", fontWeight: 500 }}>{uiCopy("deepScan.capturePhaseRotate")}</div>
         {notice ? (
           <div
             data-testid="ds-notice"

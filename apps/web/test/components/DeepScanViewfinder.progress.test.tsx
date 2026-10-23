@@ -17,8 +17,8 @@ function frame(sequence: number): CollectedFrame {
 
 const offsetOf = (): number => {
   const ellipse = screen.getByTestId("ds-oval-progress").querySelector(
-    "ellipse"
-  ) as SVGEllipseElement;
+    "path"
+  ) as SVGPathElement;
   return Number(ellipse.getAttribute("stroke-dashoffset") ?? ellipse.style.strokeDashoffset);
 };
 

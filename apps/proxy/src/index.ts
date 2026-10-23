@@ -15,6 +15,7 @@ import {
   type ScanResponse,
   type SeasonalityInfo,
   type DeepScanResponse,
+  type DeepScanRequest,
 } from "@pomona/contract";
 import type { Env } from "./types";
 import {
@@ -588,6 +589,40 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
    * (TODO: add deep-scan pricing to MODEL_PRICING before charging).
    */
   const DEEP_SCAN_BODY_BYTES = 1_048_576;
+  const DEEP_SCAN_STORAGE_TTL_SECONDS = 604800;
+  const deepScanStorageEnabled = (env: Env) => env.DEEP_SCAN_STORAGE_ENABLED === "true";
+
+  const storeDeepScanCapture = async (
+    env: Env,
+    request: DeepScanRequest,
+    outcome: Record<string, unknown>
+  ) => {
+    if (!deepScanStorageEnabled(env) || !env.POMONA_QUOTA_KV) return null;
+    const requestId = outcome.requestId;
+    delete outcome.requestId;
+    const key = `deep-scan:${requestId}`;
+    const record = {
+      key,
+      requestId,
+      sessionId: request.sessionId,
+      locale: request.locale,
+      mimeType: request.imageMimeType,
+      sampleCount: request.sampleCount,
+      compositeImageBase64: request.imageBase64,
+      storedAt: new Date().toISOString(),
+      outcome,
+    };
+    try {
+      await env.POMONA_QUOTA_KV.put(key, JSON.stringify(record), {
+        expirationTtl: DEEP_SCAN_STORAGE_TTL_SECONDS,
+      });
+      console.log(JSON.stringify({ event: "deep_scan_stored", requestId, key, bytes: record.compositeImageBase64.length }));
+      return key;
+    } catch (error) {
+      console.warn("[proxy] deep-scan capture storing failed:", error instanceof Error ? error.message : error);
+      return null;
+    }
+  };
   const DEEP_SCAN_PROMPT_VERSION = "deep_scan_v1";
 
   app.use(
@@ -744,11 +779,35 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
         framesSubmitted: deepScanRequest.sampleCount, compositeImageBytes: resultSizeBytes,
         usage: scanOutcome.usage,
       }));
+      await storeDeepScanCapture(c.env, deepScanRequest, {
+        requestId,
+        outcome: "graded",
+        status: scanOutcome.response.status,
+        attempts: scanOutcome.attempts,
+        provider: adapter.providerId,
+        model: adapter.modelId,
+        produce: scanOutcome.response.produce?.displayName ?? null,
+        ripeness: scanOutcome.response.ripeness?.state ?? null,
+        confidence: scanOutcome.response.ripeness?.confidence ?? null,
+      });
 
       return c.json(scanOutcome.response, 200);
     } catch (err) {
       console.warn("[proxy] deep-scan analysis error:", err instanceof Error ? err.message : err);
       return respondDeepScan("analysis_failed", "gate.failed");
+    }
+  });
+
+  app.get("/api/v1/deep-scan/storage/:id", async (c) => {
+    if (!deepScanStorageEnabled(c.env) || !c.env.POMONA_QUOTA_KV) {
+      return c.json({ error: "Deep-scan storage is disabled" }, 404);
+    }
+    const raw = await c.env.POMONA_QUOTA_KV.get(`deep-scan:${c.req.param("id")}`, "text");
+    if (!raw) return c.json({ error: "Deep-scan capture not found" }, 404);
+    try {
+      return c.json(JSON.parse(raw), 200);
+    } catch {
+      return c.json({ error: "Stored deep-scan capture is unreadable" }, 500);
     }
   });
 

@@ -55,13 +55,14 @@ export function similarityScore(a: Float32Array, b: Float32Array): number {
 export function selectFrames(
   samples: FrameSample[],
   params: DeepScanSelectionParams
-): { kept: FrameSample[]; stats: DeepScanSelectionStats } {
+): { kept: FrameSample[]; stats: DeepScanSelectionStats; keptScores: number[] } {
   const stats: DeepScanSelectionStats = {
     sampled: samples.length,
     rejectedBlur: 0,
     rejectedExposure: 0,
     rejectedSimilarity: 0,
   };
+  const keptScores: number[] = [];
 
   const survivors: { sample: FrameSample; sharp: number; exposure: number }[] = [];
   for (const sample of samples) {
@@ -87,6 +88,9 @@ export function selectFrames(
     if (kept.length >= params.max) break;
     if (kept.length === 0) {
       kept.push(candidate.sample);
+      keptScores.push(
+        params.weights.sharpness * candidate.sharp + params.weights.exposure * candidate.exposure
+      );
       continue;
     }
     const lastThumb = kept[kept.length - 1].thumb;
@@ -102,8 +106,9 @@ export function selectFrames(
       params.weights.sharpness * candidate.sharp +
       params.weights.exposure * candidate.exposure +
       params.weights.spread * spread;
-    if (score >= KEEP_SCORE_MIN) kept.push(candidate.sample);
+    keptScores.push(score);
+    kept.push(candidate.sample);
   }
 
-  return { kept, stats };
+  return { kept, stats, keptScores };
 }

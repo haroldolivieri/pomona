@@ -5,6 +5,7 @@ export interface Env {
   ASSETS?: { fetch(request: Request): Promise<Response> };
   AI?: GateAiBinding;
   VISION_GATE_ENABLED?: string;
+  DEEP_SCAN_STORAGE_ENABLED?: string;
   LOCAL_CLEF_TEST?: string;
   POMONA_QUOTA_KV?: KVNamespaceLike;
   GEMINI_API_KEY?: string;

@@ -74,4 +74,38 @@ describe("Debug deep-scan entry", () => {
     expect(await screen.findByTestId("stage-S_DS_Capture")).toBeTruthy();
     expect(events.filter((e) => e.name === "deep_scan_started")).toHaveLength(0);
   });
+
+  it("mock mode accepts even a dark, unusable capture and reaches the mocked result", async () => {
+    render(
+      <PomonaApp
+        apiClient={stubClient as any}
+        telemetry={recordingTelemetry().provider}
+        enableDebugOverride={true}
+        deepScanCollect={async (video) => {
+          void video;
+          return [0, 1, 2].map((i) => ({
+            sequence: i,
+            gray: new Float32Array(24 * 24).fill(4), // nearly black: real screening would reject
+            grayW: 24,
+            grayH: 24,
+            thumb: new Float32Array(24 * 24).fill(4),
+            dataUrl: `data:image/png;base64,DARK${i}`,
+          }));
+        }}
+        deepScanBuild={fakeBuild}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId("dev-deep-scan-button"));
+    expect(await screen.findByTestId("stage-S_DS_Capture")).toBeTruthy();
+    fireEvent.click(screen.getByTestId("ds-go-button"));
+
+    expect(await screen.findByTestId("stage-S_DS_Analysing")).toBeTruthy();
+    expect(screen.getByTestId("ds-analysing-oval")).toBeInTheDocument();
+    expect(screen.getByTestId("ds-scanning-beam")).toBeInTheDocument();
+    expect(await screen.findByTestId("stage-S_DS_Result")).toBeTruthy();
+    expect(screen.getByTestId("ds-verdict-card")).toBeInTheDocument(); // mocked canned data
+  });
 });
+
+const fakeBuild = async () => ({ dataUrl: "data:image/png;base64,QUJD", tileCount: 3, bytes: 4000 });

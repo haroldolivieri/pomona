@@ -13,6 +13,20 @@ export interface CollectedFrame extends FrameSample {
   dataUrl: string;
 }
 
+// Valid 1x1 RGB PNG (150,140,120) — drawable by canvas in the mock composite.
+const FRAME_PART_MIME = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGOY1lMBAANWAZvtO/S2AAAAAElFTkSuQmCC";
+
+export function mockDeepScanFrames(count = 6): CollectedFrame[] {
+  return Array.from({ length: count }, (_, i) => ({
+    sequence: i,
+    gray: new Float32Array(24 * 24).fill(i % 2 === 0 ? 110 : 140),
+    grayW: 24,
+    grayH: 24,
+    thumb: new Float32Array(24 * 24).fill(i % 2 === 0 ? 105 : 150),
+    dataUrl: FRAME_PART_MIME,
+  }));
+}
+
 export type DeepScanLocalRejectReason = "all_blurry" | "too_dark_or_bright";
 
 export class DeepScanLocalReject extends Error {
@@ -30,6 +44,8 @@ export interface DeepScanPayload {
   composite: { dataUrl: string; tileCount: number };
   sampleCount: number;
   stats: DeepScanSelectionStats;
+  keptDataUrls: string[];
+  bestDataUrl: string;
 }
 
 const MIN_KEPT = 2;
@@ -51,9 +67,11 @@ export async function assembleDeepScanPayload(
 
   let kept: FrameSample[];
   let stats: DeepScanSelectionStats;
+  let keptScores: number[];
   if (deps.stats) {
     stats = deps.stats;
     kept = [];
+    keptScores = [];
   } else {
     const selection = select(
       collected,
@@ -61,6 +79,7 @@ export async function assembleDeepScanPayload(
     );
     kept = selection.kept;
     stats = selection.stats;
+    keptScores = selection.keptScores ?? kept.map(() => 0);
   }
 
   const keptUrls = collected
@@ -74,9 +93,47 @@ export async function assembleDeepScanPayload(
   }
 
   const composite = await build(keptUrls);
+  const bestIndex = keptScores.length > 0 ? keptScores.indexOf(Math.max(...keptScores)) : -1;
+  const bestDataUrl =
+    bestIndex >= 0 && bestIndex < keptUrls.length ? keptUrls[bestIndex] : keptUrls[0];
   return {
     composite: { dataUrl: composite.dataUrl, tileCount: composite.tileCount },
     sampleCount: collected.length,
     stats,
+    keptDataUrls: keptUrls,
+    bestDataUrl,
   };
+}
+
+export interface DeepScanDebugCaptureRecord {
+  sessionId: string;
+  at: string;
+  sampleCount: number;
+  keptDataUrls: string[];
+  compositeDataUrl: string;
+}
+
+const DEBUG_CAPTURES_KEY = "pomona-ds-captures";
+const DEBUG_CAPTURES_LIMIT = 5;
+
+export function saveDeepScanDebugCapture(record: DeepScanDebugCaptureRecord): void {
+  try {
+    if (typeof localStorage === "undefined") return;
+    const prev = JSON.parse(localStorage.getItem(DEBUG_CAPTURES_KEY) ?? "[]") as DeepScanDebugCaptureRecord[];
+    localStorage.setItem(
+      DEBUG_CAPTURES_KEY,
+      JSON.stringify([record, ...prev].slice(0, DEBUG_CAPTURES_LIMIT))
+    );
+  } catch {
+    // Storage may be unavailable (privacy modes, test environments): inspection is best-effort.
+  }
+}
+
+export function loadDeepScanDebugCaptures(): DeepScanDebugCaptureRecord[] {
+  try {
+    if (typeof localStorage === "undefined") return [];
+    return JSON.parse(localStorage.getItem(DEBUG_CAPTURES_KEY) ?? "[]") as DeepScanDebugCaptureRecord[];
+  } catch {
+    return [];
+  }
 }
