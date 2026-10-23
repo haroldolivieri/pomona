@@ -51,31 +51,31 @@ export const DeepScanAnalysingStage: React.FC<DeepScanAnalysingStageProps> = ({
         }
       </style>
 
+      {backgroundUrl ? (
+        <img
+          data-testid="ds-analysing-image"
+          src={backgroundUrl}
+          alt={uiCopy("copy.analysingProduce")}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+        />
+      ) : null}
+
       <div
         data-testid="ds-analysing-oval"
         style={{
           ...ovalLayout,
           borderRadius: "50%",
           overflow: "hidden",
-          boxShadow: "0 0 0 9999px rgba(8, 14, 9, 0.72)",
           pointerEvents: "none",
+          zIndex: 5,
         }}
       >
-        {backgroundUrl ? (
-          <img
-            data-testid="ds-analysing-image"
-            src={backgroundUrl}
-            alt={uiCopy("copy.analysingProduce")}
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              filter: "brightness(0.75)",
-            }}
-          />
-        ) : null}
         <div
           data-testid="ds-scanning-beam"
           style={{
@@ -119,7 +119,17 @@ export const DeepScanAnalysingStage: React.FC<DeepScanAnalysingStageProps> = ({
         </div>
       </div>
 
-      <div data-testid="ds-analysing-oval-outline" style={{ ...ovalLayout, border: "3px solid rgba(251, 250, 246, 0.9)", borderRadius: "50%", pointerEvents: "none", zIndex: 10 }} />
+      <div
+        data-testid="ds-analysing-oval-outline"
+        style={{
+          ...ovalLayout,
+          border: "3px solid rgba(251, 250, 246, 0.9)",
+          borderRadius: "50%",
+          boxShadow: "0 0 0 9999px rgba(8, 14, 9, 0.35)",
+          pointerEvents: "none",
+          zIndex: 10,
+        }}
+      />
 
       <div
         style={{

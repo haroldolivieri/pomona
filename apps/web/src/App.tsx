@@ -168,6 +168,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
   const [remainingScans, setRemainingScans] = useState<number>(initialRemainingScans ?? 10);
   const [dsDebugCapture, setDsDebugCapture] = useState<DeepScanDebugCaptureRecord | null>(null);
   const [dsBackgroundPhoto, setDsBackgroundPhoto] = useState<string | null>(null);
+  const [dsFrozenFrame, setDsFrozenFrame] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if URL has ?scans=N to override backend limit for this device
@@ -407,6 +408,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
       dispatch({ type: "DS_CAPTURE_REJECTED", reason: "all_blurry" });
       return;
     }
+    setDsFrozenFrame(frames[frames.length - 1]?.dataUrl ?? null);
     try {
       const sessionId = generateUuid();
       const payload = await assembleDeepScanPayload(frames, {
@@ -468,6 +470,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
   const handleDeepScanCancel = () => {
     telemetry.capture("deep_scan_abandoned", { phase: state.phase });
     setDsBackgroundPhoto(null);
+    setDsFrozenFrame(null);
     dispatch({ type: "DS_CANCEL" });
   };
 
@@ -483,6 +486,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
 
   const handleReset = () => {
     telemetry.capture("session_reset");
+    setDsFrozenFrame(null);
     dispatch({ type: "RESET" });
   };
 
@@ -566,7 +570,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
         return (
           <>
             <DeepScanAnalysingStage
-              backgroundUrl={dsBackgroundPhoto}
+              backgroundUrl={dsFrozenFrame}
               onCancel={handleDeepScanCancel}
             />
             {isDevMode && isLocalBuild ? <DeepScanCaptureInspector record={dsDebugCapture} /> : null}
@@ -584,6 +588,7 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
                 telemetry.capture(state.dsResult ? "deep_scan_accepted" : "deep_scan_rescanned", {
                   status: state.dsResult?.status ?? state.status,
                 });
+                setDsFrozenFrame(null);
                 dispatch({ type: "RESET" });
               }}
             />
