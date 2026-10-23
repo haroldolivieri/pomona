@@ -30,10 +30,11 @@ const dsConfident: DeepScanResponse = {
   message: null,
   produce: { type: "avocado", displayName: "Avocado", variety: null },
   ripeness: { state: "nearly_ripe", confidence: 0.86 },
-  evidence: ["View 1: skin losing green"],
+  evidence: ["Skin losing green"],
   quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
   manualChecks: null,
   recommendation: null,
+  afterPurchase: null,
 };
 
 const fakeCollect = () =>

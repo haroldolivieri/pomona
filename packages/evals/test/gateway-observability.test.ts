@@ -58,6 +58,15 @@ describe("Deep Scan scan_usage telemetry", () => {
     ripeness: { state: "nearly_ripe", confidence: 0.85 },
     evidence: ["Tile 2: color lift"], quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
     manualChecks: null, recommendation: null,
+    afterPurchase: {
+      readyInDays: { min: 1, max: 2 },
+      eatWithinDays: { min: 3, max: 4 },
+      eatWithinLabel: "3-4 days",
+      storage: {
+        beforeCut: { where: "counter", whereLabel: "Counter", summary: "Whole on the counter", tip: "Softens daily" },
+        afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Sealed in the fridge", tip: "Keep chilled" },
+      },
+    },
   };
   const dsClef = {
     model: "clef-flash",

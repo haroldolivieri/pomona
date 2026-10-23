@@ -22,6 +22,15 @@ const okModel: DeepScanResponseModel = {
   quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
   manualChecks: null,
   recommendation: null,
+    afterPurchase: {
+      readyInDays: { min: 1, max: 2 },
+      eatWithinDays: { min: 3, max: 4 },
+      eatWithinLabel: "3-4 days",
+      storage: {
+        beforeCut: { where: "counter", whereLabel: "Counter", summary: "Whole on the counter", tip: "Softens daily" },
+        afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Sealed in the fridge", tip: "Keep chilled" },
+      },
+    },
 };
 
 const clef = (scores: Record<string, number>) => ({
@@ -79,6 +88,24 @@ describe("POST /api/v1/deep-scan", () => {
     expect(grade).toHaveBeenCalledTimes(1);
     expect(incrementDailyDeviceCount).not.toHaveBeenCalled();
     expect(response.headers.get("X-Pomona-Remaining-Scans")).toBeNull();
+    expect(json.afterPurchase).toMatchObject({
+      eatWithinLabel: "3-4 days",
+      storage: { afterCut: { where: "fridge" } },
+    });
+    // Seasonality comes straight from the same server dataset the normal scan uses.
+    expect(json.seasonality).not.toBeNull();
+    expect(json.seasonality.produceSlug).toBe("avocado");
+    expect(json.seasonality.month).toBe(new Date().getMonth() + 1);
+  });
+
+  it("canonicalizes gate-denied outcomes with a null afterPurchase envelope", async () => {
+    const { json, grade } = await deepScan({
+      bindingRun: vi.fn().mockResolvedValue(Response.json(clef({ no_produce: 0.9, unclear_photo: 0.1 }))),
+    });
+    expect(json.status).toBe("insufficient_evidence");
+    expect(json.afterPurchase).toBeNull();
+    expect(json.seasonality).toBeUndefined();
+    expect(grade).not.toHaveBeenCalled();
   });
 
   it("denies through the two-question Clef gate with the localized copy, skipping Gemini", async () => {

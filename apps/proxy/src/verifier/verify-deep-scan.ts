@@ -48,6 +48,12 @@ export function verifyAndResolveDeepScanResponse(
   if (pre && typeof pre === "object") {
     const obj = { ...(pre as Record<string, unknown>) };
     if (typeof obj.message === "string") obj.message = obj.message.trim();
+    // Shoppers experienced one continuous scan: strip any tile/view framing the model slipped in.
+    if (Array.isArray(obj.evidence)) {
+      obj.evidence = (obj.evidence as unknown[]).map((item) =>
+        typeof item === "string" ? item.replace(/\b(tiles?|views?|frames?)\s*#?\s*\d+\s*:\s*/i, "") : item
+      );
+    }
     const rawStatus = typeof obj.status === "string" ? obj.status : "analysis_failed";
     const produce = obj.produce as Record<string, unknown> | undefined;
     if (rawStatus !== "ok" && (!produce || typeof produce.type !== "string" || produce.type === "")) {
@@ -110,9 +116,9 @@ export function verifyAndResolveDeepScanResponse(
 
   const isPlainNonOk = data.status === "no_produce" || data.status === "unclear_photo" || data.status === "analysis_failed";
   const canonical = isPlainNonOk
-    ? { ...data, produce: UNKNOWN_PLACEHOLDER, evidence: [], manualChecks: [], recommendation: null, abstentionReason: null }
-    : data.status === "insufficient_evidence" && (!data.manualChecks || data.manualChecks.length === 0)
-      ? { ...data, manualChecks: null }
+    ? { ...data, produce: UNKNOWN_PLACEHOLDER, evidence: [], manualChecks: [], recommendation: null, afterPurchase: null, abstentionReason: null }
+    : data.status === "insufficient_evidence"
+      ? { ...data, afterPurchase: null, ...(data.manualChecks && data.manualChecks.length === 0 ? { manualChecks: null } : {}) }
       : data;
 
   const finalMessage = canonical.message ?? (canonical.status === "ok" ? null : fallbackMessage(canonical.status, displayLocale));

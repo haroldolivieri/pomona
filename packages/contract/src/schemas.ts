@@ -213,6 +213,8 @@ export const DeepScanResponseModelSchema = z.object({
   }),
   manualChecks: z.array(ManualCheckSchema).min(0).max(3).nullable(),
   recommendation: z.object({ eatWhen: z.enum(["today_or_tomorrow", "in_a_few_days", "avoid"]).nullable() }).nullable(),
+  // Same purchase guidance the normal scan returns; reuses the identical AfterPurchaseSchema (not a new data source).
+  afterPurchase: AfterPurchaseSchema.nullable(),
 });
 
 // Full deep-scan response schema: model body with server-injected metadata and rate_limited status
@@ -221,6 +223,8 @@ export const DeepScanResponseSchema = DeepScanResponseModelSchema.extend({
   promptVersion: z.string(),
   modelId: z.string(),
   status: ScanStatusSchema,
+  // Server-injected deterministically from the same seasonality dataset as the normal scan.
+  seasonality: SeasonalityInfoSchema.nullable().optional(),
 });
 
 export const ScanResponseSchema = z.object({

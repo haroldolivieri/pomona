@@ -27,6 +27,15 @@ function modelPayload(overrides: Partial<DeepScanResponseModel> = {}): DeepScanR
     quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
     manualChecks: null,
     recommendation: null,
+    afterPurchase: {
+      readyInDays: { min: 1, max: 2 },
+      eatWithinDays: { min: 3, max: 4 },
+      eatWithinLabel: "3-4 days",
+      storage: {
+        beforeCut: { where: "counter", whereLabel: "Counter", summary: "Whole on the counter", tip: "Softens daily" },
+        afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Sealed in the fridge", tip: "Keep chilled" },
+      },
+    },
     ...overrides,
   };
 }
@@ -71,6 +80,32 @@ describe("verifyAndResolveDeepScanResponse", () => {
     const out = verifyAndResolveDeepScanResponse(modelPayload({ ripeness: { state: "unknown", confidence: 0.4 } }), ctx);
     expect(out.ok).toBe(false);
     if (!out.ok) expect(out.errors.join(" ")).toMatch(/unknown/i);
+  });
+
+  it("canonical output strips supplier-facing tile/view framing from evidence", () => {
+    const out = verifyAndResolveDeepScanResponse(modelPayload(), ctx);
+    expect(out.ok).toBe(true);
+    if (out.ok) {
+      expect(out.response.evidence).toEqual([
+        "field color moved to green-brown",
+        "matte skin",
+      ]);
+    }
+  });
+
+  it("nulls afterPurchase on every canonical non-ok outcome", () => {
+    const leaning = modelPayload({
+      status: "insufficient_evidence",
+      abstentionReason: "same_side_only",
+      message: "Most sides were not captured.",
+      produce: UNKNOWN_PLACEHOLDER,
+      ripeness: { state: "unknown", confidence: 0.3 },
+      quality: { sufficientVisualEvidence: false, viewCoverage: "poor", reason: null },
+      manualChecks: [{ trait: "Underside", how: "Rotate gently and retake", whatItMeans: "Field color judges ripeness" }],
+    });
+    const out = verifyAndResolveDeepScanResponse(leaning, ctx);
+    expect(out.ok).toBe(true);
+    if (out.ok) expect(out.response.afterPurchase).toBeNull();
   });
 
   it("a confident verdict with padded manualChecks is stripped, not failed", () => {

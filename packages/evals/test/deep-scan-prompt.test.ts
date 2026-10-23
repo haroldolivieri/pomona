@@ -40,6 +40,21 @@ describe("deep_scan_v1 prompt config", () => {
     expect(system.toLowerCase()).toContain("no cutting");
   });
 
+  it("reuse check: the DS prompt inlines the exact normal-scan storage rules from v1, not a rewritten copy", () => {
+    const system = deepScanPromptConfig.buildSystemPrompt(request);
+    expect(system).toContain(
+      "Provide readyInDays (0 <= min <= max), eatWithinDays (1 <= min <= max <= 60), eatWithinLabel, and beforeCut/afterCut storage."
+    );
+    expect(system).toContain("eatWithinLabel<=28; storage whereLabel<=24, summary<=32, tip<=90");
+    expect(system).toContain("afterPurchase free-text value");
+    expect(system).toContain("never a substitute for a verdict: no afterPurchase value may reference tiles, views or the capture.");
+  });
+
+  it("shopper-facing language rule: evidence must name visible traits and never tiles/views/frames", () => {
+    const system = deepScanPromptConfig.buildSystemPrompt(request);
+    expect(system).toContain("NEVER mention tiles, views, frames, the composite or the capture process.");
+  });
+
   it("interpolates the request locale and covers evidence limits", () => {
     const user = deepScanPromptConfig.buildUserPrompt(request);
     expect(user).toContain("pt-BR");
@@ -69,6 +84,15 @@ describe("deepScanProviderSchema", () => {
       quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
       manualChecks: null,
       recommendation: null,
+    afterPurchase: {
+      readyInDays: { min: 1, max: 2 },
+      eatWithinDays: { min: 3, max: 4 },
+      eatWithinLabel: "3-4 days",
+      storage: {
+        beforeCut: { where: "counter", whereLabel: "Counter", summary: "Whole on the counter", tip: "Softens daily" },
+        afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Sealed in the fridge", tip: "Keep chilled" },
+      },
+    },
     };
     expect(deepScanProviderSchema.safeParse(payload)).toMatchObject({ success: true });
   });

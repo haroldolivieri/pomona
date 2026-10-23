@@ -6,6 +6,11 @@ function mockSeasonality(request: ScanRequest) {
   return lookupProduceSeasonality("watermelon", { locale: request.locale }, new Date().getMonth() + 1, isSupportedLocale(request.locale) ? request.locale : "en-GB");
 }
 
+// Same deterministic dataset the proxy injects for deep scan — no second data source.
+function mockDeepScanSeasonality(request: DeepScanRequest) {
+  return lookupProduceSeasonality("avocado", { locale: request.locale }, new Date().getMonth() + 1, isSupportedLocale(request.locale) ? request.locale : "en-GB");
+}
+
 export interface MockApiClientOptions {
   deepScanLatencyMs?: number;
 }
@@ -347,6 +352,7 @@ export function createMockApiClient(options: MockApiClientOptions = {}): PomonaA
           quality: { sufficientVisualEvidence: false, viewCoverage: "poor", reason: null },
           manualChecks: [],
           recommendation: null,
+          afterPurchase: null,
         };
       }
 
@@ -375,6 +381,7 @@ export function createMockApiClient(options: MockApiClientOptions = {}): PomonaA
             },
           ],
           recommendation: null,
+          afterPurchase: null,
         };
       }
 
@@ -389,18 +396,38 @@ export function createMockApiClient(options: MockApiClientOptions = {}): PomonaA
         ripeness: { state: "nearly_ripe", confidence: 0.86 },
         evidence: pt
           ? [
-              "Vista 1: casca perde o verde e ganha tons mais escuros",
-              "Vista 4: colheita uniforme, sem manchas",
-              "Vista 6: brilho pequeno no cabinho, típico de 'quase pronto'",
+              "Casca perdendo o verde em tons mais escuros",
+              "Cor uniforme entre os lados, sem manchas",
+              "Pequeno brilho perto do cabinho, típico de 'quase pronto'",
             ]
           : [
-              "View 1: skin losing green, moving toward darker tones",
-              "View 4: even color across sides, no blemishes",
-              "View 6: slight sheen near the stem, typical of almost ready",
+              "Skin losing green, moving toward darker tones",
+              "Even color across sides, no blemishes",
+              "Slight sheen near the stem, typical of almost ready",
             ],
         quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
         manualChecks: null,
         recommendation: { eatWhen: "in_a_few_days" },
+        afterPurchase: {
+          readyInDays: { min: 1, max: 2 },
+          eatWithinDays: { min: 3, max: 4 },
+          eatWithinLabel: pt ? "3 a 4 dias" : "3-4 days",
+          storage: {
+            beforeCut: {
+              where: "counter",
+              whereLabel: pt ? "Bancada" : "Counter",
+              summary: pt ? "Inteiro na bancada" : "Whole on the counter",
+              tip: pt ? "Amolece a cada dia" : "Softens a little every day",
+            },
+            afterCut: {
+              where: "fridge",
+              whereLabel: pt ? "Geladeira" : "Fridge",
+              summary: pt ? "Selado na geladeira" : "Sealed in the fridge",
+              tip: pt ? "Manter gelado em um recipiente" : "Keep chilled in a container",
+            },
+          },
+        },
+        seasonality: mockDeepScanSeasonality(request),
       };
     },
   };

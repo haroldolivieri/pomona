@@ -144,6 +144,7 @@ export async function runVerifiedDeepScan(
     quality: { sufficientVisualEvidence: false, viewCoverage: "poor", reason: null },
     manualChecks: null,
     recommendation: null,
+    afterPurchase: null,
   };
   return { response: fallbackResponse, usage: totalUsage, attempts: 2 };
 }

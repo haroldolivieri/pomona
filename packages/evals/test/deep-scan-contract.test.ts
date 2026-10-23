@@ -50,6 +50,7 @@ describe("DeepScanResponseModelSchema", () => {
       quality: { sufficientVisualEvidence: false, viewCoverage: "poor", reason: null },
       manualChecks,
       recommendation: null,
+      afterPurchase: null,
     };
     expect(() => DeepScanResponseModelSchema.parse(model)).not.toThrowError();
     const parsed = DeepScanResponseModelSchema.parse(model);
@@ -73,6 +74,105 @@ describe("DeepScanResponseModelSchema", () => {
         { trait: "j", how: "k", whatItMeans: "l" },
       ],
       recommendation: null,
+      afterPurchase: null,
+    };
+    expect(() => DeepScanResponseModelSchema.parse(model)).toThrowError();
+  });
+
+  it("rejects a deep-scan model without the afterPurchase field (contract parity with the normal scan)", () => {
+    const model: Record<string, unknown> = {
+      status: "ok",
+      abstentionReason: null,
+      message: null,
+      produce: { type: "avocado", displayName: "Avocado", variety: null },
+      ripeness: { state: "nearly_ripe", confidence: 0.85 },
+      evidence: ["Skin losing green"],
+      quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
+      manualChecks: null,
+      recommendation: null,
+    };
+    expect(() => DeepScanResponseModelSchema.parse(model)).toThrowError();
+  });
+
+  it("accepts a deep-scan ok verdict reusing the normal scan's afterPurchase shape", () => {
+    const model = {
+      status: "ok",
+      abstentionReason: null,
+      message: null,
+      produce: { type: "avocado", displayName: "Avocado", variety: "Hass" },
+      ripeness: { state: "nearly_ripe", confidence: 0.85 },
+      evidence: ["Skin losing green", "Slight sheen near the stem"],
+      quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
+      manualChecks: null,
+      recommendation: { eatWhen: "in_a_few_days" },
+        afterPurchase: {
+    readyInDays: { min: 1, max: 2 },
+    eatWithinDays: { min: 3, max: 4 },
+    eatWithinLabel: "3-4 days",
+    storage: {
+      beforeCut: {
+        where: "counter",
+        whereLabel: "Counter",
+        summary: "Whole on the counter",
+        tip: "Softens a little every day",
+      },
+      afterCut: {
+        where: "fridge",
+        whereLabel: "Fridge",
+        summary: "Sealed in the fridge",
+        tip: "Keep chilled in a container",
+      },
+    },
+  },
+};
+    const parsed = DeepScanResponseModelSchema.parse(model);
+    expect(parsed.afterPurchase?.eatWithinLabel).toBe("3-4 days");
+  });
+
+  it("rejects afterPurchase storage with an out-of-enum where value", () => {
+    const model = {
+      status: "ok",
+      abstentionReason: null,
+      message: null,
+      produce: { type: "avocado", displayName: "Avocado", variety: null },
+      ripeness: { state: "ripe", confidence: 0.9 },
+      evidence: ["Gives to gentle pressure"],
+      quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
+      manualChecks: null,
+      recommendation: null,
+      afterPurchase: {
+        readyInDays: { min: 0, max: 0 },
+        eatWithinDays: { min: 2, max: 3 },
+        eatWithinLabel: "2-3 days",
+        storage: {
+          beforeCut: { where: "bathroom", whereLabel: "Bathroom", summary: "s", tip: "t" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "s", tip: "t" },
+        },
+      },
+    };
+    expect(() => DeepScanResponseModelSchema.parse(model)).toThrowError();
+  });
+
+  it("rejects an eatWithinLabel beyond the shared 28-char bound", () => {
+    const model = {
+      status: "ok",
+      abstentionReason: null,
+      message: null,
+      produce: { type: "avocado", displayName: "Avocado", variety: null },
+      ripeness: { state: "nearly_ripe", confidence: 0.85 },
+      evidence: ["Skin losing green"],
+      quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
+      manualChecks: null,
+      recommendation: null,
+      afterPurchase: {
+        readyInDays: { min: 1, max: 2 },
+        eatWithinDays: { min: 3, max: 4 },
+        eatWithinLabel: "x".repeat(29),
+        storage: {
+          beforeCut: { where: "counter", whereLabel: "Counter", summary: "s", tip: "t" },
+          afterCut: { where: "fridge", whereLabel: "Fridge", summary: "s", tip: "t" },
+        },
+      },
     };
     expect(() => DeepScanResponseModelSchema.parse(model)).toThrowError();
   });

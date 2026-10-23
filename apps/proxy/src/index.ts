@@ -100,6 +100,30 @@ function getClientIp(req: Request): string {
   );
 }
 
+// Deterministic seasonality enrichment shared by the scan and deep-scan endpoints —
+// a single dataset source (contract seasonality data), never part of an LLM prompt.
+function deterministicSeasonality(
+  produce: { type?: string | null; displayName?: string | null } | null,
+  cf: { country?: string; latitude?: string } | undefined,
+  locale: string
+): SeasonalityInfo | null {
+  if (!produce || !(produce.type || produce.displayName)) return null;
+  const regionInput = {
+    cfCountry: cf?.country,
+    cfLatitude: cf?.latitude,
+    locale,
+  };
+  const currentMonth = new Date().getUTCMonth() + 1;
+  let seasonality: SeasonalityInfo | null = null;
+  if (produce.type) {
+    seasonality = lookupProduceSeasonality(produce.type, regionInput, currentMonth, isSupportedLocale(locale) ? locale : "en-GB");
+  }
+  if (!seasonality && produce.displayName) {
+    seasonality = lookupProduceSeasonality(produce.displayName, regionInput, currentMonth, isSupportedLocale(locale) ? locale : "en-GB");
+  }
+  return seasonality;
+}
+
 export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
@@ -515,22 +539,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
 
       // Deterministic seasonality enrichment: never part of the LLM prompt or model schema.
       const baseResponse = scanOutcome.response;
-      let seasonality: SeasonalityInfo | null = null;
-      if (baseResponse.status === "ok" && (baseResponse.produce?.type || baseResponse.produce?.displayName)) {
-        const cf = (c.req.raw as { cf?: { country?: string; latitude?: string } }).cf;
-        const regionInput = {
-          cfCountry: cf?.country,
-          cfLatitude: cf?.latitude,
-          locale: scanRequest.locale,
-        };
-        const currentMonth = new Date().getUTCMonth() + 1;
-        if (baseResponse.produce?.type) {
-          seasonality = lookupProduceSeasonality(baseResponse.produce.type, regionInput, currentMonth, isSupportedLocale(scanRequest.locale) ? scanRequest.locale : "en-GB");
-        }
-        if (!seasonality && baseResponse.produce?.displayName) {
-          seasonality = lookupProduceSeasonality(baseResponse.produce.displayName, regionInput, currentMonth, isSupportedLocale(scanRequest.locale) ? scanRequest.locale : "en-GB");
-        }
-      }
+      const seasonality = deterministicSeasonality(baseResponse.produce, (c.req.raw as { cf?: { country?: string; latitude?: string } }).cf, scanRequest.locale);
       console.log(`[proxy:seasonality] produce=${JSON.stringify(baseResponse.produce)}, seasonality=${seasonality ? seasonality.produceSlug + ' (' + seasonality.status + ')' : 'null'}`);
       return c.json({ ...baseResponse, seasonality } satisfies ScanResponse, 200);
 
@@ -673,6 +682,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
       quality: { sufficientVisualEvidence: false, viewCoverage: "poor", reason: null },
       manualChecks: null,
       recommendation: null,
+      afterPurchase: null,
     } as DeepScanResponse, 200);
 
     if (gateEnabled) {
@@ -729,6 +739,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
             quality: { sufficientVisualEvidence: false, viewCoverage: "poor", reason: null },
             manualChecks: null,
             recommendation: null,
+            afterPurchase: null,
           } as DeepScanResponse, 200);
         }
       } catch (error) {
@@ -791,7 +802,10 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
         confidence: scanOutcome.response.ripeness?.confidence ?? null,
       });
 
-      return c.json(scanOutcome.response, 200);
+      // Same deterministic seasonality dataset as the normal scan (server-side only).
+      const seasonality = deterministicSeasonality(scanOutcome.response.produce, (c.req.raw as { cf?: { country?: string; latitude?: string } }).cf, deepScanRequest.locale);
+      console.log(`[proxy:seasonality] stage=deep-scan produce=${JSON.stringify(scanOutcome.response.produce)}, seasonality=${seasonality ? seasonality.produceSlug + ' (' + seasonality.status + ')' : 'null'}`);
+      return c.json({ ...scanOutcome.response, seasonality }, 200);
     } catch (err) {
       console.warn("[proxy] deep-scan analysis error:", err instanceof Error ? err.message : err);
       return respondDeepScan("analysis_failed", "gate.failed");

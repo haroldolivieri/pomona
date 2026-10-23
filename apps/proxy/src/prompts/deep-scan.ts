@@ -6,6 +6,29 @@ import {
 } from "@pomona/contract";
 import type { PromptConfig } from "./v1";
 import deepScanTemplates from "./templates/deep-scan.json";
+import v1Templates from "./templates/v1.json";
+
+const v1Lines = v1Templates as unknown as Record<string, readonly string[]>;
+
+// Reuse the EXACT after-purchase storage rules the normal scan uses — same wording, bounds and
+// storage locations, so deep scan never runs a second storage dataset or prompt logic.
+const afterPurchaseRuleLine = (() => {
+  const rule = v1Lines.roundOneSystem.find((line) => line.includes("Provide readyInDays"));
+  if (!rule || !rule.includes("cool_dark")) throw new Error("v1 template storage rule moved; update deep-scan prompt reuse");
+  return rule;
+})();
+
+const storageLabelBounds = (() => {
+  const line = v1Lines.roundOneSystem.find((l) => l.includes("eatWithinLabel<="));
+  const match = line?.match(/eatWithinLabel<=\d+; storage whereLabel<=\d+, summary<=\d+, tip<=\d+\./);
+  if (!match) throw new Error("v1 template storage bounds fragment moved; update deep-scan prompt reuse");
+  return match[0];
+})();
+
+const storageReuseValues: Record<string, string> = {
+  afterPurchaseRules: afterPurchaseRuleLine,
+  storageLabelBounds,
+};
 
 const lines = (name: keyof typeof deepScanTemplates) =>
   (deepScanTemplates[name] as readonly string[]).join("\n");
@@ -19,9 +42,9 @@ function interpolate(template: string, values: Record<string, string>): string {
 
 export const deepScanPromptConfig: PromptConfig = {
   version: "deep_scan_v1",
-  buildSystemPrompt: (): string => lines("deepScanSystem"),
+  buildSystemPrompt: (): string => interpolate(lines("deepScanSystem"), storageReuseValues),
   buildUserPrompt: (request, repairErrors) => {
-    let prompt = lines("deepScanUser").replace("{{locale}}", request.locale);
+    let prompt = interpolate(lines("deepScanUser"), { ...storageReuseValues, locale: request.locale });
     if (repairErrors?.length) {
       prompt += interpolate(lines("deepScanRepair"), {
         locale: request.locale,
@@ -45,5 +68,8 @@ export const deepScanProviderSchema = DeepScanResponseModelSchema.extend({
   ),
   abstentionReason: DeepScanAbstentionReasonSchema.nullable().describe(
     "Only for insufficient_evidence: insufficient_view_coverage when too little of the fruit is readable across tiles; same_side_only when only one side is visible and the hidden side would decide. Never infer the hidden side. Null for every other status."
+  ),
+  afterPurchase: DeepScanResponseModelSchema.shape.afterPurchase.describe(
+    "Reuse the same storage guidance rules as the normal scan: readyInDays (0 <= min <= max), eatWithinDays (1 <= min <= max <= 60), eatWithinLabel, and beforeCut/afterCut storage. Storage where is counter, fridge, pantry or cool_dark. afterPurchase is null for every non-ok status."
   ),
 });

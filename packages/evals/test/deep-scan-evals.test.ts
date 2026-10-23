@@ -82,6 +82,15 @@ describe("deep-scan eval wiring (offline)", () => {
       quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
       manualChecks: null,
       recommendation: { eatWhen: "in_a_few_days" },
+    afterPurchase: {
+      readyInDays: { min: 1, max: 2 },
+      eatWithinDays: { min: 3, max: 4 },
+      eatWithinLabel: "3-4 days",
+      storage: {
+        beforeCut: { where: "counter", whereLabel: "Counter", summary: "Whole on the counter", tip: "Softens daily" },
+        afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Sealed in the fridge", tip: "Keep chilled" },
+      },
+    },
     });
     expect(envelope.status).toBe("ok");
   });

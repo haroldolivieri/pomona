@@ -1,7 +1,12 @@
 import React from "react";
 import { uiCopy } from "../i18n/copy";
 import { IvoryBottomSheet, SheetEyebrow, SheetHeadline } from "./CameraCaptureUi";
+import { StorageCardsRow, SeasonalityPanelCard, TraitChips } from "./ResultCards";
 import type { DeepScanResponse } from "@pomona/contract";
+
+// Defensive: the supplier-facing evidence may still name the composite position that
+// surfaced a trait ("Tile 3: blue-black skin"); surface only the trait part.
+const VIEW_FREE_PREFIX = /^\s*\b(?:tiles?|views?|frames?)\s*#?\s*\d+\s*:\s*(.*)$/i;
 
 export interface DeepScanResultStageProps {
   response: DeepScanResponse | null;
@@ -96,18 +101,25 @@ export const DeepScanResultStage: React.FC<DeepScanResultStageProps> = ({
             <div style={{ fontSize: "13px", fontWeight: 700, marginTop: "6px" }}>
               {Math.round(response.ripeness.confidence * 100)}% {uiCopy("deepScan.confidenceLabel")}
             </div>
-            {response.evidence.length > 0 && (
-              <ul style={{ margin: "10px 0 0", paddingLeft: "18px", fontSize: "12px", lineHeight: 1.5 }}>
-                {response.evidence.map((line, i) => (
-                  <li key={i}>{line}</li>
-                ))}
-              </ul>
-            )}
-            {response.recommendation?.eatWhen ? (
+            {/* Visible-trait chips, exactly like the original scan result. The shopper
+                experienced one continuous scan — evidence never mentions views/frames. */}
+            <TraitChips
+              labels={response.evidence
+                .map((line) => VIEW_FREE_PREFIX.exec(line)?.[1] ?? line)
+                .filter((trait) => !/\b(tile|view|frame|composite)s?\b/i.test(trait))}
+              />
+            {response.seasonality ? <SeasonalityPanelCard seasonality={response.seasonality} /> : null}
+            {response.recommendation?.eatWhen && !response.afterPurchase ? (
               <div style={{ fontSize: "12px", marginTop: "10px", fontWeight: 600 }}>
                 {uiCopy("deepScan.recommendationLabel")}{" "}
                 {uiCopy(RECOMMENDATION_KEYS[response.recommendation.eatWhen])}
               </div>
+            ) : null}
+            {response.afterPurchase ? (
+              <StorageCardsRow
+                afterPurchase={response.afterPurchase}
+                eatWithinOverride={response.recommendation?.eatWhen === "avoid" ? uiCopy("deepScan.recommendation.avoid") : null}
+              />
             ) : null}
           </div>
         ) : null}

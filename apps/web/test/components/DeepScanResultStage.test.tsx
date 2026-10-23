@@ -14,10 +14,30 @@ const confident: DeepScanResponse = {
   message: null,
   produce: { type: "avocado", displayName: "Avocado", variety: "Hass" },
   ripeness: { state: "nearly_ripe", confidence: 0.86 },
-  evidence: ["View 1: skin losing green", "View 4: even color", "View 6: slight sheen"],
+  evidence: ["Skin losing green", "Tile 4: even color", "Slight sheen near the stem"],
   quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
   manualChecks: null,
   recommendation: { eatWhen: "in_a_few_days" },
+  afterPurchase: {
+    readyInDays: { min: 1, max: 2 },
+    eatWithinDays: { min: 3, max: 4 },
+    eatWithinLabel: "3-4 days",
+    storage: {
+      beforeCut: { where: "counter", whereLabel: "Counter", summary: "Whole on the counter", tip: "Softens daily" },
+      afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Sealed in the fridge", tip: "Keep chilled" },
+    },
+  },
+  seasonality: {
+    produceSlug: "avocado",
+    month: 10,
+    shopperCountry: "US",
+    shopperZone: "MIDWEST",
+    status: "peak",
+    peakWindowLabel: "Oct-Jan",
+    badgeText: "Peak season",
+    noteText: "Best value right now",
+    origins: [],
+  },
 };
 
 const checks: DeepScanResponse = {
@@ -34,6 +54,7 @@ const checks: DeepScanResponse = {
     { trait: "Weight check", how: "Hold in palm", whatItMeans: "Heavy for size = juicy" },
   ],
   recommendation: null,
+  afterPurchase: null,
 };
 
 describe("DeepScanResultStage", () => {
@@ -44,7 +65,18 @@ describe("DeepScanResultStage", () => {
     expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("Avocado");
     expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("Nearly ready");
     expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("86%");
-    expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("View 1: skin losing green");
+    // Traits surface as chips (like the original scan result); view/tile framing is never shown.
+    expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("Skin losing green");
+    expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("even color");
+    expect(document.body.textContent).not.toMatch(/\bview \d\b/i);
+    expect(document.body.textContent).not.toMatch(/\btile \d\b/i);
+    // Same result cards as the original scan: eat within X days + storage + seasonality.
+    expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("Eat within");
+    expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("3-4 days");
+    expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("Before cut");
+    expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("After cut");
+    expect(screen.getByTestId("seasonality-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("Peak season");
     expect(screen.queryByTestId("ds-manual-checks")).not.toBeInTheDocument();
   });
 
@@ -62,7 +94,7 @@ describe("DeepScanResultStage", () => {
     render(<DeepScanResultStage response={checks} errorMessage={null} onNewScan={vi.fn()} />);
     expect(screen.getByTestId("ds-not-enough-card")).toBeInTheDocument();
     expect(screen.getByTestId("ds-not-enough-card")).toHaveTextContent(
-      "The views mostly show the same side"
+      "Most of the fruit sides were not captured"
     );
     expect(screen.getByTestId("ds-manual-checks")).toBeInTheDocument();
     expect(screen.getByTestId("ds-manual-checks")).toHaveTextContent(

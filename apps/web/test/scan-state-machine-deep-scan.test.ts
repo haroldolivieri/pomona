@@ -16,10 +16,11 @@ const dsResponse: DeepScanResponse = {
   message: null,
   produce: { type: "avocado", displayName: "Avocado", variety: null },
   ripeness: { state: "nearly_ripe", confidence: 0.85 },
-  evidence: ["Tile 2: color lift"],
+  evidence: ["color lift"],
   quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
   manualChecks: null,
   recommendation: null,
+  afterPurchase: null,
 };
 
 const composite = { dataUrl: "data:image/jpeg;base64,QUJD", tileCount: 6 };
