@@ -19,6 +19,7 @@
   },
   "vars": {
     "VISION_GATE_ENABLED": "true",
+    "DEEP_SCAN_STORAGE_ENABLED": "true",
     "AI_GATEWAY_ACCOUNT_ID": "553fb87d04f36b2f088f1250f34503cc",
     "AI_GATEWAY_ID": "pomona",
     "ACTIVE_PROMPT_VERSION": "v1",

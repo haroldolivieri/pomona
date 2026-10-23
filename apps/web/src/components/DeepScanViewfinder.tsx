@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { uiCopy } from "../i18n/copy";
 import { captureViewportCrop } from "../lib/image-pipeline";
+import { FloatingPromptCard, ShutterButton } from "./CameraCaptureUi";
 import { type CollectedFrame } from "../lib/deep-scan-capture";
 
 export type { CollectedFrame } from "../lib/deep-scan-capture";
@@ -246,81 +247,53 @@ export const DeepScanViewfinder: React.FC<DeepScanViewfinderProps> = ({
         </button>
       </div>
 
-      <div
-        data-testid="ds-prompt-sheet"
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "var(--surface-sheet, #FBFAF6)",
-          color: "var(--text-primary, #1A261D)",
-          borderRadius: "26px 26px 0 0",
-          paddingTop: "16px",
-          paddingLeft: "20px",
-          paddingRight: "20px",
-          paddingBottom: "max(28px, env(safe-area-inset-bottom))",
-          boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.25)",
-          zIndex: 20,
-          fontFamily: "Inter, system-ui, sans-serif",
-        }}
-      >
-        <div
-          style={{
-            width: "36px",
-            height: "4px",
-            borderRadius: "4px",
-            backgroundColor: "var(--text-muted, #6B7268)",
-            opacity: 0.35,
-            margin: "-4px auto 12px",
-          }}
-        />
-        <div style={{ fontSize: "18px", fontWeight: 800 }}>{uiCopy("deepScan.captureIdleTitle")}</div>
-        <div style={{ fontSize: "12px", fontWeight: 500, marginTop: "4px" }}>{uiCopy("deepScan.capturePhaseStem")}</div>
-        <div style={{ fontSize: "12px", fontWeight: 500 }}>{uiCopy("deepScan.capturePhaseRotate")}</div>
-        {notice ? (
-          <div
-            data-testid="ds-notice"
-            style={{
-              marginTop: "10px",
-              fontSize: "12px",
-              fontWeight: 600,
-              background: "var(--surface-hint-warn, #FFF4D6)",
-              border: "1px solid var(--surface-hint-warn-border, #E8D48B)",
-              borderRadius: "12px",
-              padding: "8px 10px",
-            }}
-          >
-            {notice}
-          </div>
-        ) : null}
-      </div>
+      <FloatingPromptCard
+        testId="ds-prompt-card"
+        title={uiCopy("deepScan.captureIdleTitle")}
+        subtitleLines={[
+          `${uiCopy("deepScan.capturePhaseStem")} · ${uiCopy("deepScan.capturePhaseRotate")}`,
+        ]}
+        bottomOverride="calc(max(24px, env(safe-area-inset-bottom)) + 100px)"
+        footer={
+          notice ? (
+            <div
+              data-testid="ds-notice"
+              style={{
+                marginTop: "10px",
+                fontSize: "12px",
+                fontWeight: 600,
+                background: "var(--surface-hint-warn, #FFF4D6)",
+                border: "1px solid var(--surface-hint-warn-border, #E8D48B)",
+                borderRadius: "12px",
+                padding: "8px 10px",
+              }}
+            >
+              {notice}
+            </div>
+          ) : null
+        }
+      />
 
-      <button
-        data-testid="ds-go-button"
-        aria-label="GO"
+      <ShutterButton
+        testId="ds-go-button"
+        coreTestId="ds-go-button-core"
+        ariaLabel="GO"
         disabled={running}
+        size={82}
         onClick={() => void onGoRef.current()}
         style={{
           position: "absolute",
           left: "50%",
           bottom: "calc(max(20px, env(safe-area-inset-bottom)) + 16px)",
           transform: "translateX(-50%)",
-          width: "82px",
-          height: "82px",
-          borderRadius: "50%",
-          border: "4px solid rgba(251,250,246,0.9)",
-          backgroundColor: "#F5D547",
-          color: "#132418",
-          fontFamily: "Inter, system-ui, sans-serif",
-          fontSize: "20px",
-          fontWeight: 800,
-          cursor: running ? "wait" : "pointer",
           zIndex: 20,
         }}
-      >
-        GO
-      </button>
+        core={
+          <span style={{ fontFamily: "Inter, system-ui, sans-serif", fontSize: "20px", fontWeight: 800, color: "#132418" }}>
+            GO
+          </span>
+        }
+      />
     </div>
   );
 };

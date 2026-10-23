@@ -21,13 +21,12 @@ describe("DeepScanViewfinder", () => {
     render(<DeepScanViewfinder onComplete={vi.fn()} onCancel={vi.fn()} />);
 
     expect(screen.getByText("Put one fruit in the circle")).toBeInTheDocument();
-    expect(screen.getByText("Show the stem side")).toBeInTheDocument();
-    expect(screen.getByText("Rotate slowly")).toBeInTheDocument();
+    expect(screen.getByText((_, node) => node?.textContent === "Show the stem side · Rotate slowly")).toBeInTheDocument();
     expect(screen.getByTestId("ds-cancel-button")).toHaveTextContent("Cancel");
     expect(screen.getByTestId("ds-oval")).toBeInTheDocument();
     const go = screen.getByTestId("ds-go-button");
     expect(go).toHaveTextContent("GO");
-    expect(go).toHaveStyle({ backgroundColor: "#F5D547" });
+    expect(screen.getByTestId("ds-go-button-core")).toHaveStyle({ backgroundColor: "#F5D547" });
   });
 
   it("runs the collected sampler once per GO press and hands frames to onComplete", async () => {

@@ -1,5 +1,6 @@
 import React from "react";
 import { uiCopy } from "../i18n/copy";
+import { IvoryBottomSheet, SheetEyebrow, SheetHeadline } from "./CameraCaptureUi";
 import type { DeepScanResponse } from "@pomona/contract";
 
 export interface DeepScanResultStageProps {
@@ -81,49 +82,13 @@ export const DeepScanResultStage: React.FC<DeepScanResultStageProps> = ({
         />
       ) : null}
 
-      {/* Curved ivory bottom sheet — same pattern as ScanErrorStage / AnalysingStage */}
-      <div
-        data-testid="ds-result-sheet"
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "var(--surface-sheet, #FBFAF6)",
-          color: "var(--text-primary, #1A261D)",
-          borderRadius: "26px 26px 0 0",
-          paddingTop: "16px",
-          paddingLeft: "20px",
-          paddingRight: "20px",
-          paddingBottom: "max(28px, env(safe-area-inset-bottom))",
-          boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.35)",
-          zIndex: 20,
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-          fontFamily: "Inter, system-ui, sans-serif",
-        }}
-      >
-        {/* Grab bar */}
-        <div
-          style={{
-            width: "36px",
-            height: "4px",
-            borderRadius: "4px",
-            backgroundColor: "var(--text-muted, #6B7268)",
-            opacity: 0.35,
-            margin: "-6px auto 4px",
-          }}
-        />
-
+      <IvoryBottomSheet testId="ds-result-sheet">
         {confidentVerdict && response ? (
           <div data-testid="ds-verdict-card">
-            <div style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted, #6B7268)" }}>
-              {uiCopy("deepScan.outcomeVerdictHeader")}
-            </div>
-            <div style={{ fontSize: "22px", fontWeight: 800, marginTop: "4px" }}>
+            <SheetEyebrow>{uiCopy("deepScan.outcomeVerdictHeader")}</SheetEyebrow>
+            <SheetHeadline>
               {STATE_EMOJI[response.ripeness.state]} {uiCopy(STATE_LABEL_KEYS[response.ripeness.state])}
-            </div>
+            </SheetHeadline>
             <div style={{ fontSize: "14px", marginTop: "2px" }}>
               {response.produce.displayName}
               {response.produce.variety ? ` · ${response.produce.variety}` : ""}
@@ -149,9 +114,7 @@ export const DeepScanResultStage: React.FC<DeepScanResultStageProps> = ({
 
         {response !== null && !confidentVerdict ? (
           <div data-testid="ds-not-enough-card">
-            <div style={{ fontSize: "18px", fontWeight: 800 }}>
-              {uiCopy("deepScan.outcomeNotEnoughTitle")}
-            </div>
+            <SheetHeadline>{uiCopy("deepScan.outcomeNotEnoughTitle")}</SheetHeadline>
             {response.message ? (
               <div style={{ fontSize: "13px", marginTop: "8px" }}>{response.message}</div>
             ) : null}
@@ -184,9 +147,7 @@ export const DeepScanResultStage: React.FC<DeepScanResultStageProps> = ({
         {response === null ? (
           <div data-testid="ds-failure-card" style={{ textAlign: "center" }}>
             <div style={{ fontSize: "30px" }}>⚠️</div>
-            <div style={{ fontSize: "16px", fontWeight: 700, marginTop: "6px" }}>
-              {uiCopy("deepScan.failureTitle")}
-            </div>
+            <SheetHeadline>{uiCopy("deepScan.failureTitle")}</SheetHeadline>
             {errorMessage ? (
               <div style={{ fontSize: "13px", marginTop: "8px" }}>{errorMessage}</div>
             ) : null}
@@ -212,7 +173,7 @@ export const DeepScanResultStage: React.FC<DeepScanResultStageProps> = ({
         >
           {uiCopy("deepScan.startNewScan")}
         </button>
-      </div>
+      </IvoryBottomSheet>
     </div>
   );
 };

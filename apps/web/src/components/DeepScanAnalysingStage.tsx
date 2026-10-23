@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { uiCopy } from "../i18n/copy";
+import { IvoryBottomSheet, SheetEyebrow, SheetHeadline } from "./CameraCaptureUi";
 
 export interface DeepScanAnalysingStageProps {
   backgroundUrl: string | null;
@@ -151,39 +152,14 @@ export const DeepScanAnalysingStage: React.FC<DeepScanAnalysingStageProps> = ({
         </button>
       </div>
 
-      <div
-        data-testid="ds-analysing-sheet"
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.25)",
-          backgroundColor: "var(--surface-sheet, #FBFAF6)",
-          color: "var(--text-primary, #1A261D)",
-          borderRadius: "26px 26px 0 0",
-          paddingTop: "16px",
-          paddingLeft: "20px",
-          paddingRight: "20px",
-          paddingBottom: "max(28px, env(safe-area-inset-bottom))",
-          zIndex: 20,
-          fontFamily: "Inter, system-ui, sans-serif",
-        }}
-      >
-        <div
-          style={{
-            width: "36px",
-            height: "4px",
-            borderRadius: "4px",
-            backgroundColor: "var(--text-muted, #6B7268)",
-            opacity: 0.35,
-            margin: "-4px auto 12px",
-          }}
-        />
-        <div style={{ fontSize: "13px", fontWeight: 600 }}>
+      <IvoryBottomSheet testId="ds-analysing-sheet">
+        <SheetEyebrow>{uiCopy("copy.pomonaVision")}</SheetEyebrow>
+        <SheetHeadline>{uiCopy("copy.checkingRipeness")}</SheetHeadline>
+        <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary, #1A261D)" }}>
           {tips[tipIndex]}
         </div>
-      </div>
+      </IvoryBottomSheet>
+
     </div>
   );
 };

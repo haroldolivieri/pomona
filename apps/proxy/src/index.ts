@@ -589,7 +589,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
    * (TODO: add deep-scan pricing to MODEL_PRICING before charging).
    */
   const DEEP_SCAN_BODY_BYTES = 1_048_576;
-  const DEEP_SCAN_STORAGE_TTL_SECONDS = 604800;
+  const DEEP_SCAN_STORAGE_TTL_SECONDS = 2592000; // 30d — enough window to correlate captures with prod traces later.
   const deepScanStorageEnabled = (env: Env) => env.DEEP_SCAN_STORAGE_ENABLED === "true";
 
   const storeDeepScanCapture = async (

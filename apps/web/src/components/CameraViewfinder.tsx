@@ -6,6 +6,7 @@ import { LanguageSelector } from "./LanguageSelector";
 import React, { useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { captureViewportCrop } from "../lib/image-pipeline";
+import { FloatingPromptCard, ShutterButton } from "./CameraCaptureUi";
 
 export interface CameraViewfinderProps {
   onCapture: (photoDataUrl: string) => void;
@@ -424,49 +425,10 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
       </div>
 
       {/* Floating Prompt Card above shutter */}
-      <div
-        data-testid="floating-prompt-card"
-        style={{
-          position: "absolute",
-          left: "16px",
-          right: "16px",
-          bottom: "calc(max(24px, env(safe-area-inset-bottom)) + 84px)",
-          background: "rgba(251,250,246,0.95)",
-          color: "#142117",
-          borderRadius: "20px",
-          padding: "12px 16px",
-          textAlign: "center",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          zIndex: 10,
-        }}
-      >
-        <div
-          className="font-serif"
-          style={{
-            fontFamily: "Fraunces, Georgia, serif",
-            fontWeight: 600,
-            fontSize: "15px",
-            lineHeight: 1.25,
-            color: "#142117",
-            marginBottom: "3px",
-          }}
-        >
-          {isOnline ? t("camera.promptTitle") : t("camera.offlineTitle")}
-        </div>
-        <div
-          style={{
-            fontFamily: "Inter, system-ui, sans-serif",
-            fontWeight: 500,
-            fontSize: "12px",
-            lineHeight: 1.35,
-            color: "#55544F",
-          }}
-        >
-          {isOnline ? t("camera.promptSubtitle") : t("camera.offlineSubtitle")}
-        </div>
-      </div>
+      <FloatingPromptCard
+        title={isOnline ? t("camera.promptTitle") : t("camera.offlineTitle")}
+        subtitleLines={[isOnline ? t("camera.promptSubtitle") : t("camera.offlineSubtitle")]}
+      />
 
       {/* Shutter bar */}
       <div
@@ -497,37 +459,13 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
           data-testid="file-fallback-input"
         />
 
-        <button
-          onClick={handleCapture}
+        <ShutterButton
+          testId="shutter-button"
+          coreTestId="shutter-button-core"
+          ariaLabel={t("camera.shutter")}
           disabled={!isOnline}
-          data-testid="shutter-button"
-          aria-label={t("camera.shutter")}
-          style={{
-            width: "68px",
-            height: "68px",
-            borderRadius: "50%",
-            backgroundColor: "transparent",
-            border: "4px solid #FFFFFF",
-            padding: "4px",
-            boxSizing: "border-box",
-            cursor: isOnline ? "pointer" : "not-allowed",
-            opacity: isOnline ? 1 : 0.45,
-            boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            data-testid="shutter-button-core"
-            style={{
-              width: "100%",
-              height: "100%",
-              borderRadius: "50%",
-              backgroundColor: isOnline ? "#F5D547" : "#9E9D98",
-            }}
-          />
-        </button>
+          onClick={handleCapture}
+        />
       </div>
     </div>
   );
