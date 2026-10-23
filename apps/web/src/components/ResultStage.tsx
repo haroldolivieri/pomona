@@ -10,7 +10,7 @@ import {
 import type { ScanMachineState } from "../state/scan-state-machine";
 import { describeBoxPosition } from "../lib/spatial-a11y";
 import { SeasonalityStrip } from "./SeasonalityStrip";
-import { StorageCardsRow, SeasonalityPanelCard } from "./ResultCards";
+import { StorageCardsRow, SeasonalityPanelCard, ResultTopBar, CircularScoreMeter } from "./ResultCards";
 import { computeObjectFitCoverRect, type RenderedCoverRect } from "../lib/image-pipeline";
 
 export interface ResultStageProps {
@@ -450,91 +450,13 @@ export const ResultStage: React.FC<ResultStageProps> = ({
       </div>
 
       {/* Topbar pinned at top of screen: Left ✕, Center produce chip, Right ↻ retake */}
-      <div
-        style={{
-          position: "absolute",
-          top: "max(16px, env(safe-area-inset-top))",
-          left: "14px",
-          right: "14px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          zIndex: 25,
-        }}
-      >
-        {/* Close button */}
-        <button
-          onClick={onReset}
-          data-testid="close-button"
-          aria-label={uiCopy("copy.resetAndScanAgain")}
-          style={{
-            width: "36px",
-            height: "36px",
-            borderRadius: "50%",
-            backgroundColor: "rgba(251, 250, 246, 0.88)",
-            color: "#142117",
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "14px",
-            fontWeight: 700,
-            cursor: "pointer",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-          }}
-        >
-          ✕
-        </button>
-
-        {/* Produce Name Chip */}
-        <div
-          data-testid="produce-name-chip"
-          style={{
-            backgroundColor: "rgba(251, 250, 246, 0.88)",
-            color: "#142117",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            fontSize: "12px",
-            fontWeight: 700,
-            padding: "7px 14px",
-            borderRadius: "999px",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-          }}
-        >
-          {produce?.displayName || uiCopy("copy.produce")}
-        </div>
-
-        {/* Retake button */}
-        <button
-          onClick={onReset}
-          data-testid="retake-button"
-          aria-label={uiCopy("copy.retakePhoto")}
-          style={{
-            width: "36px",
-            height: "36px",
-            borderRadius: "50%",
-            backgroundColor: "rgba(251, 250, 246, 0.88)",
-            color: "#142117",
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "16px",
-            fontWeight: 700,
-            cursor: "pointer",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-          }}
-        >
-          ↻
-        </button>
-      </div>
+      <ResultTopBar
+        onClose={onReset}
+        closeAria={uiCopy("copy.resetAndScanAgain")}
+        onRetake={onReset}
+        retakeAria={uiCopy("copy.retakePhoto")}
+        chip={produce?.displayName || uiCopy("copy.produce")}
+      />
 
       {/* Full-bleed Photo Viewport with Bounding Boxes (fills whole screen behind sheet, auto-centers winner above sheet) */}
       <div
@@ -1190,77 +1112,11 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
                 {/* Circular Score Meter next to headline */}
                 {activeWinner && (
-                  <div
-                    data-testid="circular-score-meter"
-                    style={{
-                      position: "relative",
-                      width: "48px",
-                      height: "48px",
-                      flexShrink: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <svg
-                      width="48"
-                      height="48"
-                      viewBox="0 0 48 48"
-                      style={{ transform: "rotate(-90deg)", position: "absolute", inset: 0 }}
-                    >
-                      {/* Track circle */}
-                      <circle
-                        cx="24"
-                        cy="24"
-                        r="19"
-                        fill="none"
-                        stroke="var(--surface-track)"
-                        strokeWidth="3.5"
-                      />
-                      {/* Progress circle */}
-                      <circle
-                        cx="24"
-                        cy="24"
-                        r="19"
-                        fill="none"
-                        stroke={isMismatch ? winnerBorderColor : "#F2C935"}
-                        strokeWidth="3.5"
-                        strokeDasharray={2 * Math.PI * 19}
-                        strokeDashoffset={
-                          2 * Math.PI * 19 * (1 - Math.min(10, Math.max(0, activeWinner.score)) / 10)
-                        }
-                        strokeLinecap="round"
-                      />
-                      {/* Previous tick mark if multi-round */}
-                      {prevMarkScore !== null && (
-                        <circle
-                          data-testid="score-prev-mark"
-                          cx="24"
-                          cy="24"
-                          r="19"
-                          fill="none"
-                          stroke="#142117"
-                          strokeWidth="3.5"
-                          strokeDasharray={`2 ${2 * Math.PI * 19 - 2}`}
-                          strokeDashoffset={
-                            -1 * (2 * Math.PI * 19 * (Math.min(10, Math.max(0, prevMarkScore)) / 10) - 1)
-                          }
-                          opacity={0.7}
-                        />
-                      )}
-                    </svg>
-                    <span
-                      className="tabular-nums"
-                      style={{
-                        fontSize: "13px",
-                        fontWeight: 800,
-                        color: "var(--text-primary)",
-                        lineHeight: 1,
-                      }}
-                    >
-                      {activeWinner.score.toFixed(1)}
-                    </span>
-                  </div>
+                  <CircularScoreMeter
+                    score={Math.min(10, Math.max(0, activeWinner.score))}
+                    prevMark={prevMarkScore}
+                    strokeColor={isMismatch ? winnerBorderColor : undefined}
+                  />
                 )}
               </div>
               {/* Traits Chips (e.g. Creamy-yellow ground spot, Matte rind) above Seasonality */}

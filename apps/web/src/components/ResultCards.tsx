@@ -177,3 +177,173 @@ export const TraitChips: React.FC<TraitChipsProps> = ({ labels }) => {
     </div>
   );
 };
+
+export interface ResultTopBarProps {
+  onClose: () => void;
+  closeAria: string;
+  onRetake: () => void;
+  retakeAria: string;
+  chip: string | null;
+}
+
+// Contextual top bar pinned above the result photo — verbatim from ResultStage
+// (close ✕, produce chip, retake ↻) so every scan result stage shares one style.
+export const ResultTopBar: React.FC<ResultTopBarProps> = ({ onClose, closeAria, onRetake, retakeAria, chip }) => {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: "max(16px, env(safe-area-inset-top))",
+        left: "14px",
+        right: "14px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        zIndex: 25,
+      }}
+    >
+      <button
+        onClick={onClose}
+        data-testid="close-button"
+        aria-label={closeAria}
+        style={{
+          width: "36px",
+          height: "36px",
+          borderRadius: "50%",
+          backgroundColor: "rgba(251, 250, 246, 0.88)",
+          color: "#142117",
+          border: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "14px",
+          fontWeight: 700,
+          cursor: "pointer",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+        }}
+      >
+        ✕
+      </button>
+
+      {chip ? (
+        <div
+          data-testid="produce-name-chip"
+          style={{
+            backgroundColor: "rgba(251, 250, 246, 0.88)",
+            color: "#142117",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            fontSize: "12px",
+            fontWeight: 700,
+            padding: "7px 14px",
+            borderRadius: "999px",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+          }}
+        >
+          {chip}
+        </div>
+      ) : null}
+
+      <button
+        onClick={onRetake}
+        data-testid="retake-button"
+        aria-label={retakeAria}
+        style={{
+          width: "36px",
+          height: "36px",
+          borderRadius: "50%",
+          backgroundColor: "rgba(251, 250, 246, 0.88)",
+          color: "#142117",
+          border: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "16px",
+          fontWeight: 700,
+          cursor: "pointer",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+        }}
+      >
+        ↻
+      </button>
+    </div>
+  );
+};
+
+export interface CircularScoreMeterProps {
+  score: number; // 0..10
+  prevMark?: number | null;
+  strokeColor?: string;
+}
+
+// Circular score meter next to the result headline — verbatim from ResultStage.
+export const CircularScoreMeter: React.FC<CircularScoreMeterProps> = ({ score, prevMark = null, strokeColor }) => {
+  return (
+    <div
+      data-testid="circular-score-meter"
+      style={{
+        position: "relative",
+        width: "48px",
+        height: "48px",
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <svg
+        width="48"
+        height="48"
+        viewBox="0 0 48 48"
+        style={{ transform: "rotate(-90deg)", position: "absolute", inset: 0 }}
+      >
+        <circle cx="24" cy="24" r="19" fill="none" stroke="var(--surface-track)" strokeWidth="3.5" />
+        <circle
+          cx="24"
+          cy="24"
+          r="19"
+          fill="none"
+          stroke={strokeColor ?? "#F2C935"}
+          strokeWidth="3.5"
+          strokeDasharray={2 * Math.PI * 19}
+          strokeDashoffset={2 * Math.PI * 19 * (1 - Math.min(10, Math.max(0, score)) / 10)}
+          strokeLinecap="round"
+        />
+        {prevMark !== null && (
+          <circle
+            data-testid="score-prev-mark"
+            cx="24"
+            cy="24"
+            r="19"
+            fill="none"
+            stroke="#142117"
+            strokeWidth="3.5"
+            strokeDasharray={`2 ${2 * Math.PI * 19 - 2}`}
+            strokeDashoffset={
+              -1 * (2 * Math.PI * 19 * (Math.min(10, Math.max(0, prevMark)) / 10) - 1)
+            }
+            opacity={0.7}
+          />
+        )}
+      </svg>
+      <span
+        className="tabular-nums"
+        style={{
+          fontSize: "13px",
+          fontWeight: 800,
+          color: "var(--text-primary)",
+          lineHeight: 1,
+        }}
+      >
+        {score.toFixed(1)}
+      </span>
+    </div>
+  );
+};

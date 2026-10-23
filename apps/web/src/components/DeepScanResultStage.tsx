@@ -1,7 +1,13 @@
 import React from "react";
 import { uiCopy } from "../i18n/copy";
 import { IvoryBottomSheet, SheetEyebrow, SheetHeadline } from "./CameraCaptureUi";
-import { StorageCardsRow, SeasonalityPanelCard, TraitChips } from "./ResultCards";
+import {
+  StorageCardsRow,
+  SeasonalityPanelCard,
+  TraitChips,
+  ResultTopBar,
+  CircularScoreMeter,
+} from "./ResultCards";
 import type { DeepScanResponse } from "@pomona/contract";
 
 // Defensive: the supplier-facing evidence may still name the composite position that
@@ -87,19 +93,60 @@ export const DeepScanResultStage: React.FC<DeepScanResultStageProps> = ({
         />
       ) : null}
 
+      {/* Same contextual top bar as the original scan result (✕ close, produce chip, ↻ retake). */}
+      <ResultTopBar
+        onClose={onNewScan}
+        closeAria={uiCopy("copy.resetAndScanAgain")}
+        onRetake={onNewScan}
+        retakeAria={uiCopy("copy.retakePhoto")}
+        chip={response?.produce?.displayName ?? null}
+      />
+
       <IvoryBottomSheet testId="ds-result-sheet">
         {confidentVerdict && response ? (
           <div data-testid="ds-verdict-card">
-            <SheetEyebrow>{uiCopy("deepScan.outcomeVerdictHeader")}</SheetEyebrow>
-            <SheetHeadline>
-              {STATE_EMOJI[response.ripeness.state]} {uiCopy(STATE_LABEL_KEYS[response.ripeness.state])}
-            </SheetHeadline>
-            <div style={{ fontSize: "14px", marginTop: "2px" }}>
-              {response.produce.displayName}
-              {response.produce.variety ? ` · ${response.produce.variety}` : ""}
-            </div>
-            <div style={{ fontSize: "13px", fontWeight: 700, marginTop: "6px" }}>
-              {Math.round(response.ripeness.confidence * 100)}% {uiCopy("deepScan.confidenceLabel")}
+            {/* Same header as the original scan result: eyebrow, serif headline, muted
+                subtitle and the circular score meter — never a recreated style. */}
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                color: "var(--eyebrow-accent)",
+                textTransform: "uppercase",
+                display: "block",
+                marginBottom: "4px",
+              }}
+            >
+              {uiCopy("deepScan.outcomeVerdictHeader")}
+            </span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "12px",
+              }}
+            >
+              <div>
+                <h1
+                  className="font-serif"
+                  style={{
+                    fontSize: "30px",
+                    fontWeight: 700,
+                    lineHeight: 1.15,
+                    color: "var(--text-primary)",
+                    letterSpacing: "-0.015em",
+                  }}
+                >
+                  {STATE_EMOJI[response.ripeness.state]} {uiCopy(STATE_LABEL_KEYS[response.ripeness.state])}
+                </h1>
+                <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+                  {response.produce.displayName}
+                  {response.produce.variety ? ` · ${response.produce.variety}` : ""}
+                </p>
+              </div>
+              <CircularScoreMeter score={Math.round(response.ripeness.confidence * 100) / 10} />
             </div>
             {/* Visible-trait chips, exactly like the original scan result. The shopper
                 experienced one continuous scan — evidence never mentions views/frames. */}

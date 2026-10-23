@@ -64,7 +64,12 @@ describe("DeepScanResultStage", () => {
     expect(screen.getByTestId("ds-verdict-card")).toBeInTheDocument();
     expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("Avocado");
     expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("Nearly ready");
-    expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("86%");
+    expect(screen.getByTestId("circular-score-meter")).toHaveTextContent("8.6"); // confidence 86% on the same 0..10 meter as the original result
+    expect(screen.getByTestId("circular-score-meter")).toBeInTheDocument();
+    // Same contextual top bar as the original scan result (close ✕ / produce chip / retake ↻).
+    expect(screen.getByTestId("close-button")).toBeInTheDocument();
+    expect(screen.getByTestId("produce-name-chip")).toBeInTheDocument();
+    expect(screen.getByTestId("retake-button")).toBeInTheDocument();
     // Traits surface as chips (like the original scan result); view/tile framing is never shown.
     expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("Skin losing green");
     expect(screen.getByTestId("ds-verdict-card")).toHaveTextContent("even color");
