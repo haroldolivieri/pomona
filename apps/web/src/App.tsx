@@ -669,6 +669,32 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
           >
             ⚡ {uiCopy("copy.scans", { count: remainingScans })}
           </button>
+
+          <button
+            type="button"
+            data-testid="dev-deep-scan-button"
+            aria-label={uiCopy("deepScan.preciseScanCta")}
+            title={uiCopy("deepScan.bannerBody")}
+            onClick={() => {
+              if (state.phase === "S_DS_Capture" || state.phase === "S_DS_Analysing" || state.phase === "S_DS_Result") return;
+              telemetry.capture("deep_scan_started", { origin: "debug" });
+              dispatch({ type: "ENTER_DEEP_SCAN", origin: "debug" });
+            }}
+            style={{
+              background: "rgba(0,0,0,0.35)",
+              border: "1px solid rgba(255,255,255,0.3)",
+              color: "#F5D547",
+              padding: "4px 9px",
+              borderRadius: "12px",
+              fontSize: "10.5px",
+              fontWeight: 600,
+              cursor: "pointer",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+            }}
+          >
+            ✦ {uiCopy("deepScan.preciseScanCta")}
+          </button>
         </div>
       )}
     </div>

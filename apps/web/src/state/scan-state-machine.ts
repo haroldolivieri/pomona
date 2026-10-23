@@ -38,7 +38,7 @@ export interface DeepScanSampleMeta {
   stats: { rejectedBlur: number; rejectedExposure: number; rejectedSimilarity: number };
 }
 
-export type DeepScanOrigin = "insufficient" | "tie" | "result_banner";
+export type DeepScanOrigin = "insufficient" | "tie" | "result_banner" | "debug";
 
 export interface PreservedCandidate extends Candidate {
   initialScore: number;

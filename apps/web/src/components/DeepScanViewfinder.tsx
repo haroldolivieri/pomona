@@ -73,10 +73,42 @@ export const DeepScanViewfinder: React.FC<DeepScanViewfinderProps> = ({
   const collectRef = useRef(collect);
   const onGoRef = useRef(() => {});
   const [running, setRunning] = useState(false);
+  const progressEllipseRef = useRef<SVGEllipseElement | null>(null);
+  const progressRafRef = useRef<number | null>(null);
+  const DURATION_MS = 5000;
 
   useEffect(() => {
     collectRef.current = collect;
   }, [collect]);
+
+  useEffect(
+    () => () => {
+      if (progressRafRef.current !== null) cancelAnimationFrame(progressRafRef.current);
+    },
+    []
+  );
+
+  const runProgressLoop = (startedAt: number) => {
+    const tick = (now: number) => {
+      progressRafRef.current = null;
+      const progress = Math.min(1, Math.max(0, (now - startedAt) / DURATION_MS));
+      const offset = String(100 * (1 - progress));
+      const ellipse = progressEllipseRef.current;
+      if (ellipse) {
+        ellipse.style.strokeDashoffset = offset;
+        ellipse.setAttribute("stroke-dashoffset", offset);
+      }
+      if (progress < 1) progressRafRef.current = requestAnimationFrame(tick);
+    };
+    progressRafRef.current = requestAnimationFrame(tick);
+  };
+
+  const stopProgressLoop = () => {
+    if (progressRafRef.current !== null) {
+      cancelAnimationFrame(progressRafRef.current);
+      progressRafRef.current = null;
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -106,6 +138,7 @@ export const DeepScanViewfinder: React.FC<DeepScanViewfinderProps> = ({
   onGoRef.current = async () => {
     if (running) return;
     setRunning(true);
+    runProgressLoop(performance.now());
     try {
       const video = videoRef.current;
       const run = collectRef.current ?? collectDeepScanFrames;
@@ -114,6 +147,7 @@ export const DeepScanViewfinder: React.FC<DeepScanViewfinderProps> = ({
     } catch (err) {
       onComplete([]);
     } finally {
+      stopProgressLoop();
       setRunning(false);
     }
   };
@@ -150,6 +184,41 @@ export const DeepScanViewfinder: React.FC<DeepScanViewfinderProps> = ({
           pointerEvents: "none",
         }}
       />
+
+      {running ? (
+        <svg
+          data-testid="ds-oval-progress"
+          viewBox="0 0 100 133.33"
+          preserveAspectRatio="none"
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            width: "min(72vw, 300px)",
+            height: "min(96vw, 400px)",
+            transform: "translate(-50%, -54%)",
+            overflow: "visible",
+            zIndex: 15,
+            pointerEvents: "none",
+          }}
+        >
+          <ellipse
+            ref={progressEllipseRef}
+            cx="50"
+            cy="66.67"
+            rx="49"
+            ry="65.7"
+            pathLength={100}
+            strokeDasharray={100}
+            strokeDashoffset={100}
+            stroke="#F5D547"
+            strokeWidth="5"
+            fill="none"
+            strokeLinecap="round"
+            transform="rotate(-90 50 66.67)"
+          />
+        </svg>
+      ) : null}
 
       <div
         style={{
