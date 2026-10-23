@@ -22,10 +22,10 @@ describe("DeepScanViewfinder", () => {
 
     expect(screen.getByText("Put one fruit in the circle")).toBeInTheDocument();
     expect(screen.getByText((_, node) => node?.textContent === "Show the stem side · Rotate slowly")).toBeInTheDocument();
-    expect(screen.getByTestId("ds-cancel-button")).toHaveTextContent("Cancel");
+    expect(screen.getByTestId("ds-cancel-button")).toHaveAttribute("aria-label", "Cancel");
     expect(screen.getByTestId("ds-oval")).toBeInTheDocument();
     const go = screen.getByTestId("ds-go-button");
-    expect(go).toHaveTextContent("GO");
+    expect(go.querySelector("span")).toBeNull();
     expect(screen.getByTestId("ds-go-button-core")).toHaveStyle({ backgroundColor: "#F5D547" });
   });
 

@@ -6,7 +6,28 @@ function mockSeasonality(request: ScanRequest) {
   return lookupProduceSeasonality("watermelon", { locale: request.locale }, new Date().getMonth() + 1, isSupportedLocale(request.locale) ? request.locale : "en-GB");
 }
 
-export function createMockApiClient(): PomonaApiClient {
+export interface MockApiClientOptions {
+  deepScanLatencyMs?: number;
+}
+
+const MOCK_DS_LATENCY_KEY = "pomona-mock-ds-latency";
+
+export function createMockApiClient(options: MockApiClientOptions = {}): PomonaApiClient {
+  const dsLatencyMs =
+    options.deepScanLatencyMs ??
+    (() => {
+      try {
+        if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+          const stored = localStorage.getItem(MOCK_DS_LATENCY_KEY);
+          if (stored !== null && stored !== "") {
+            const parsed = Number(stored);
+            if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+          }
+        }
+      } catch {}
+      return undefined;
+    })() ??
+    2000;
   let mockRemainingScans = 10;
 
   return {
@@ -299,7 +320,8 @@ export function createMockApiClient(): PomonaApiClient {
     },
 
     async submitDeepScan(request: DeepScanRequest): Promise<DeepScanResponse> {
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      // Keep the laser analysing stage visible long enough to be seen in demos
+      await new Promise((resolve) => setTimeout(resolve, dsLatencyMs));
       const locale = isSupportedLocale(request.locale) ? request.locale : "en-GB";
       const pt = locale === "pt-BR";
       const forced = (() => {

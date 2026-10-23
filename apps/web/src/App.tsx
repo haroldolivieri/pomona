@@ -557,6 +557,8 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             onComplete={handleDeepScanComplete}
             onCancel={handleDeepScanCancel}
             notice={state.errorMessage}
+            onBrandTap={handleBrandTap}
+            showLanguageSelector={isDevMode && isLocalBuild}
           />
         );
 

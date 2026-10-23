@@ -1,9 +1,23 @@
 import "@testing-library/jest-dom";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeAll } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { PomonaApp } from "../src/App";
 import type { TelemetryProvider } from "../src/lib/telemetry";
 import "../src/i18n";
+
+beforeAll(() => {
+  const store = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => store.clear(),
+  });
+});
 
 function recordingTelemetry(): { provider: TelemetryProvider; events: { name: string; props?: Record<string, unknown> }[] } {
   const events: { name: string; props?: Record<string, unknown> }[] = [];
@@ -76,6 +90,15 @@ describe("Debug deep-scan entry", () => {
   });
 
   it("mock mode accepts even a dark, unusable capture and reaches the mocked result", async () => {
+    localStorage.setItem("pomona-mock-mode", "true");
+    try {
+      await runDarkCaptureFlow();
+    } finally {
+      localStorage.removeItem("pomona-mock-mode");
+    }
+  });
+
+  async function runDarkCaptureFlow() {
     render(
       <PomonaApp
         apiClient={stubClient as any}
@@ -98,14 +121,14 @@ describe("Debug deep-scan entry", () => {
 
     fireEvent.click(screen.getByTestId("dev-deep-scan-button"));
     expect(await screen.findByTestId("stage-S_DS_Capture")).toBeTruthy();
+    const analysingPromise = screen.findByTestId("stage-S_DS_Analysing");
     fireEvent.click(screen.getByTestId("ds-go-button"));
-
-    expect(await screen.findByTestId("stage-S_DS_Analysing")).toBeTruthy();
-    expect(screen.getByTestId("ds-analysing-oval")).toBeInTheDocument();
+    await analysingPromise;
+    await waitFor(() => expect(screen.getByTestId("ds-analysing-oval")).toBeInTheDocument());
     expect(screen.getByTestId("ds-scanning-beam")).toBeInTheDocument();
-    expect(await screen.findByTestId("stage-S_DS_Result")).toBeTruthy();
+    await screen.findByTestId("stage-S_DS_Result", {}, { timeout: 5000 });
     expect(screen.getByTestId("ds-verdict-card")).toBeInTheDocument(); // mocked canned data
-  });
+  }
 });
 
 const fakeBuild = async () => ({ dataUrl: "data:image/png;base64,QUJD", tileCount: 3, bytes: 4000 });

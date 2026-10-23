@@ -7,9 +7,19 @@ import React, { useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { captureViewportCrop } from "../lib/image-pipeline";
 import { FloatingPromptCard, ShutterButton } from "./CameraCaptureUi";
+import { collectDeepScanFrames, type CollectedFrame } from "../lib/deep-scan-frames";
+
+export interface DeepScanModeConfig {
+  collect?: (video: HTMLVideoElement) => Promise<CollectedFrame[]>;
+  onComplete: (collected: CollectedFrame[]) => void;
+  onCancel: () => void;
+  notice?: string | null;
+}
+
+const DEEP_SCAN_CAPTURE_MS = 5000;
 
 export interface CameraViewfinderProps {
-  onCapture: (photoDataUrl: string) => void;
+  onCapture?: (photoDataUrl: string) => void;
   onClose?: () => void;
   onToggleTheme?: () => void;
   theme?: "light" | "dark";
@@ -17,6 +27,7 @@ export interface CameraViewfinderProps {
   onQuotaClick?: () => void;
   onBrandTap?: () => void;
   showLanguageSelector?: boolean;
+  deepScan?: DeepScanModeConfig;
 }
 
 export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
@@ -28,8 +39,65 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
   onQuotaClick,
   onBrandTap,
   showLanguageSelector = false,
+  deepScan,
 }) => {
   const { t } = useTranslation();
+  const isDeepScan = deepScan !== undefined;
+  const deepScanCollectRef = useRef(deepScan?.collect);
+  const [deepScanRunning, setDeepScanRunning] = useState<boolean>(false);
+  const progressPathRef = useRef<SVGPathElement | null>(null);
+  const progressRafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    deepScanCollectRef.current = deepScan?.collect;
+  }, [deepScan?.collect]);
+
+  useEffect(
+    () => () => {
+      if (progressRafRef.current !== null) cancelAnimationFrame(progressRafRef.current);
+    },
+    []
+  );
+
+  const runProgressLoop = (startedAt: number) => {
+    const tick = (now: number) => {
+      progressRafRef.current = null;
+      const progress = Math.min(1, Math.max(0, (now - startedAt) / DEEP_SCAN_CAPTURE_MS));
+      const offset = String(100 * (1 - progress));
+      const path = progressPathRef.current;
+      if (path) {
+        path.style.strokeDashoffset = offset;
+        path.setAttribute("stroke-dashoffset", offset);
+      }
+      if (progress < 1) progressRafRef.current = requestAnimationFrame(tick);
+    };
+    progressRafRef.current = requestAnimationFrame(tick);
+  };
+
+  const stopProgressLoop = () => {
+    if (progressRafRef.current !== null) {
+      cancelAnimationFrame(progressRafRef.current);
+      progressRafRef.current = null;
+    }
+  };
+
+  const runDeepScanCapture = async () => {
+    if (!deepScan || deepScanRunning) return;
+    setDeepScanRunning(true);
+    runProgressLoop(performance.now());
+    try {
+      const video = videoRef.current;
+      const run = deepScanCollectRef.current ?? collectDeepScanFrames;
+      const collected = video ? await run(video) : [];
+      deepScan.onComplete(collected);
+    } catch {
+      deepScan.onComplete([]);
+    } finally {
+      stopProgressLoop();
+      setDeepScanRunning(false);
+    }
+  };
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [streamActive, setStreamActive] = useState<boolean>(false);
@@ -123,7 +191,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
       const ch = container?.clientHeight || window.innerHeight;
       const croppedUrl = captureViewportCrop(video, cw, ch, "image/webp", 0.85);
       if (croppedUrl && croppedUrl.startsWith("data:")) {
-        onCapture(croppedUrl);
+        onCapture?.(croppedUrl);
         return;
       }
     }
@@ -140,13 +208,13 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
       }
       const dataUrl = fallbackCanvas.toDataURL("image/webp", 0.75);
       if (dataUrl && dataUrl.startsWith("data:")) {
-        onCapture(dataUrl);
+        onCapture?.(dataUrl);
         return;
       }
     } catch {
       // ignore
     }
-    onCapture("data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAQAcJaQAA3AA/v3AgAA=");
+    onCapture?.("data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAQAcJaQAA3AA/v3AgAA=");
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,7 +224,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === "string") {
-          onCapture(reader.result);
+          onCapture?.(reader.result);
         }
       };
       reader.readAsDataURL(file);
@@ -165,7 +233,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
 
   return (
     <div
-      data-testid="stage-S1_LiveCamera"
+      data-testid={isDeepScan ? "stage-S_DS_Capture" : "stage-S1_LiveCamera"}
       style={{
         position: "relative",
         width: "100%",
@@ -257,11 +325,11 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
             ⚡
           </button>
 
-          {onClose && (
+          {(isDeepScan || onClose) && (
             <button
-              onClick={onClose}
-              aria-label={uiCopy("copy.close")}
-              data-testid="close-button"
+              onClick={() => (isDeepScan ? deepScan!.onCancel() : onClose!())}
+              aria-label={isDeepScan ? uiCopy("deepScan.cancel") : uiCopy("copy.close")}
+              data-testid={isDeepScan ? "ds-cancel-button" : "close-button"}
               style={{
                 background: "rgba(251,250,246,0.92)",
                 border: "none",
@@ -309,8 +377,57 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
           }}
         />
 
-        {/* Reticle with Golden-Yellow Corner Framing Brackets */}
-        <div
+        {/* Reticle: golden corner brackets (normal) or deep-scan oval */}
+        {isDeepScan ? (
+          <>
+            <div
+              data-testid="ds-oval"
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                width: "min(72vw, 300px)",
+                height: "min(96vw, 400px)",
+                transform: "translate(-50%, -54%)",
+                border: "3px solid rgba(251, 250, 246, 0.9)",
+                borderRadius: "50%",
+                boxShadow: "0 0 0 9999px rgba(8, 14, 9, 0.35)",
+                pointerEvents: "none",
+              }}
+            />
+            {deepScanRunning ? (
+              <svg
+                data-testid="ds-oval-progress"
+                viewBox="0 0 100 133.33"
+                preserveAspectRatio="none"
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  width: "min(72vw, 300px)",
+                  height: "min(96vw, 400px)",
+                  transform: "translate(-50%, -54%)",
+                  overflow: "visible",
+                  zIndex: 15,
+                  pointerEvents: "none",
+                }}
+              >
+                <path
+                  ref={progressPathRef}
+                  d="M 50 0.97 A 49 65.7 0 1 1 49.99 0.97"
+                  pathLength={100}
+                  strokeDasharray={100}
+                  strokeDashoffset={100}
+                  stroke="#F5D547"
+                  strokeWidth="5"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+              </svg>
+            ) : null}
+          </>
+        ) : (
+          <div
           data-testid="camera-reticle-brackets"
           style={{
             position: "absolute",
@@ -387,6 +504,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
             }}
           />
         </div>
+        )}
 
         {cameraError && (
           <div
@@ -425,10 +543,38 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
       </div>
 
       {/* Floating Prompt Card above shutter */}
-      <FloatingPromptCard
-        title={isOnline ? t("camera.promptTitle") : t("camera.offlineTitle")}
-        subtitleLines={[isOnline ? t("camera.promptSubtitle") : t("camera.offlineSubtitle")]}
-      />
+      {isDeepScan ? (
+        <FloatingPromptCard
+          testId="ds-prompt-card"
+          title={uiCopy("deepScan.captureIdleTitle")}
+          subtitleLines={[
+            `${uiCopy("deepScan.capturePhaseStem")} · ${uiCopy("deepScan.capturePhaseRotate")}`,
+          ]}
+          footer={
+            deepScan?.notice ? (
+              <div
+                data-testid="ds-notice"
+                style={{
+                  marginTop: "10px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  background: "var(--surface-hint-warn, #FFF4D6)",
+                  border: "1px solid var(--surface-hint-warn-border, #E8D48B)",
+                  borderRadius: "12px",
+                  padding: "8px 10px",
+                }}
+              >
+                {deepScan.notice}
+              </div>
+            ) : null
+          }
+        />
+      ) : (
+        <FloatingPromptCard
+          title={isOnline ? t("camera.promptTitle") : t("camera.offlineTitle")}
+          subtitleLines={[isOnline ? t("camera.promptSubtitle") : t("camera.offlineSubtitle")]}
+        />
+      )}
 
       {/* Shutter bar */}
       <div
@@ -460,11 +606,11 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
         />
 
         <ShutterButton
-          testId="shutter-button"
-          coreTestId="shutter-button-core"
-          ariaLabel={t("camera.shutter")}
-          disabled={!isOnline}
-          onClick={handleCapture}
+          testId={isDeepScan ? "ds-go-button" : "shutter-button"}
+          coreTestId={isDeepScan ? "ds-go-button-core" : "shutter-button-core"}
+          ariaLabel={isDeepScan ? "GO" : t("camera.shutter")}
+          disabled={isDeepScan ? deepScanRunning : !isOnline}
+          onClick={isDeepScan ? (() => void runDeepScanCapture()) : handleCapture}
         />
       </div>
     </div>

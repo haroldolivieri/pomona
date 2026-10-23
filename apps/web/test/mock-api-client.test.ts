@@ -37,7 +37,7 @@ function withLocale(locale: string): DeepScanRequest {
 
 describe("createMockApiClient.submitDeepScan", () => {
   it("returns the confident verdict shape with no manual checks", async () => {
-    const client = createMockApiClient();
+    const client = createMockApiClient({ deepScanLatencyMs: 0 });
     const response: DeepScanResponse = await client.submitDeepScan(dsRequest);
     expect(response.schemaVersion).toBe("1.0");
     expect(response.promptVersion).toBe("deep_scan_v1");
@@ -58,7 +58,7 @@ describe("createMockApiClient.submitDeepScan", () => {
         localStorage.setItem("pomona-force-ds-error", value);
       }
     };
-    const client = createMockApiClient();
+    const client = createMockApiClient({ deepScanLatencyMs: 0 });
 
     force("same_side");
     const en = await client.submitDeepScan(withLocale("en-GB"));
@@ -82,11 +82,24 @@ describe("createMockApiClient.submitDeepScan", () => {
     expect(normal.status).toBe("ok");
   });
 
-  it("answers in about 300ms like the endpoint contract", async () => {
+  it("keeps the laser analysing stage visible for about 2s by default (debug demo pacing)", async () => {
     const client = createMockApiClient();
     const started = Date.now();
     await client.submitDeepScan(dsRequest);
-    expect(Date.now() - started).toBeGreaterThanOrEqual(250);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(1900);
+  });
+
+  it("honours the pomona-mock-ds-latency override and the per-client option", async () => {
+    const timed = createMockApiClient({ deepScanLatencyMs: 40 });
+    const started = Date.now();
+    await timed.submitDeepScan(dsRequest);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(40);
+
+    fakeLocalStorage.setItem("pomona-mock-ds-latency", "0");
+    const viaStorage = createMockApiClient();
+    const started2 = Date.now();
+    await viaStorage.submitDeepScan(dsRequest);
+    expect(Date.now() - started2).toBeLessThan(500);
   });
 
   it("twins share the ApiClient interface", () => {

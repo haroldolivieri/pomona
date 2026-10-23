@@ -112,3 +112,57 @@ export function selectFrames(
 
   return { kept, stats, keptScores };
 }
+
+export type { CollectedFrame } from "./deep-scan-capture";
+import type { CollectedFrame } from "./deep-scan-capture";
+import { captureViewportCrop } from "./image-pipeline";
+
+export async function collectDeepScanFrames(
+  video: HTMLVideoElement
+): Promise<CollectedFrame[]> {
+  const collected: CollectedFrame[] = [];
+  const start = performance.now();
+  const DURATION_MS = 5000;
+  const FPS = 5;
+  const INTERVAL_MS = 1000 / FPS;
+  let sequence = 0;
+  let lastAt = -Infinity;
+
+  const sampleNow = (dataUrl: string): CollectedFrame => {
+    const gw = 24;
+    const gh = 24;
+    const sampling = document.createElement("canvas");
+    sampling.width = gw;
+    sampling.height = gh;
+    const ctx = sampling.getContext("2d");
+    let gray = new Float32Array(gw * gh).fill(128);
+    let thumb = new Float32Array(gw * gh).fill(128);
+    if (ctx) {
+      gray = new Float32Array(gw * gh);
+      ctx.drawImage(video, 0, 0, gw, gh);
+      const { data } = ctx.getImageData(0, 0, gw, gh);
+      for (let i = 0; i < gray.length; i++) {
+        gray[i] = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
+      }
+      thumb = new Float32Array(gw * gh);
+      ctx.drawImage(video, 0, 0, gw, gh);
+      const thumbData = ctx.getImageData(0, 0, gw, gh).data;
+      for (let i = 0; i < thumb.length; i++) {
+        thumb[i] = 0.299 * thumbData[i * 4] + 0.587 * thumbData[i * 4 + 1] + 0.114 * thumbData[i * 4 + 2];
+      }
+    }
+    return { sequence, gray, grayW: gw, grayH: gh, thumb, dataUrl };
+  };
+
+  while (performance.now() - start < DURATION_MS) {
+    const now = performance.now();
+    if (now - lastAt >= INTERVAL_MS) {
+      lastAt = now;
+      const dataUrl = captureViewportCrop(video, video.clientWidth || 320, video.clientHeight || 320, "image/jpeg", 0.85);
+      collected.push(sampleNow(dataUrl));
+      sequence += 1;
+    }
+    await new Promise((r) => requestAnimationFrame(r));
+  }
+  return collected;
+}
