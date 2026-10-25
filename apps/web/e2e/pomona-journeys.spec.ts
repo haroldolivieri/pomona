@@ -434,6 +434,8 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     });
 
     await page.goto("/");
+    // Allow entrance animations (e.g. brand pill and mode switcher) to settle
+    await page.waitForTimeout(1200);
 
     // Audit S1 in Light Theme
     let accessibilityScanResults = await new AxeBuilder({ page })
@@ -576,7 +578,7 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     // Verify Goal Pill in Top Bar
     const goalPill = page.getByTestId("flip-goal-pill");
     await expect(goalPill).toBeVisible();
-    await expect(goalPill).toHaveText(/In 2–3 days/);
+    await expect(goalPill).toHaveText(/In 2[\u2013-]3 days/);
 
     // Snap flipped photo -> S5B1
     await page.getByTestId("flip-shutter-button").click();
@@ -587,6 +589,6 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     await expect(page.getByTestId("ripeness-target-switch")).not.toBeVisible();
     const lockedGoal = page.getByTestId("locked-ripeness-goal");
     await expect(lockedGoal).toBeVisible();
-    await expect(lockedGoal).toHaveText(/In 2–3 days/);
+    await expect(lockedGoal).toHaveText(/In 2[\u2013-]3 days/);
   });
 });
