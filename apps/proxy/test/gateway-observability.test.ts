@@ -90,6 +90,8 @@ describe("Deep Scan scan_usage telemetry", () => {
     expect(usageRow.framesSubmitted).toBe(25);
     expect(usageRow.compositeImageBytes).toBeGreaterThan(0);
     expect(usageRow.attempts).toBeGreaterThanOrEqual(1);
+    expect(usageRow.repairNeeded).toBe(false);
+    expect(usageRow.repairNeededValue).toBe(0);
     expect(usageRow.status).toBe("ok");
     expect(usageRow.promptVersion).toBe("deep_scan_v1");
   });
@@ -119,7 +121,7 @@ describe("Gateway production routing and usage scenarios", () => {
     expect(JSON.parse(headers.get("cf-aig-metadata")!)).toMatchObject({ app: "pomona", requestId, sessionId: request.sessionId, round: 1, promptVersion: "v1", attempt: 1 });
     expect(response.headers.get("access-control-expose-headers")).toContain("X-Pomona-Request-Id");
     expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "model_usage", requestId, success: true, usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 } }));
-    expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_usage", requestId, attempts: 1, status: "insufficient_evidence" }));
+    expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_usage", requestId, attempts: 1, repairNeeded: false, repairNeededValue: 0, status: "insufficient_evidence" }));
     expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_received", requestId,
       selectionPresent: false }));
     expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "model_response", requestId,
@@ -141,7 +143,7 @@ describe("Gateway production routing and usage scenarios", () => {
     const traces = fetch.mock.calls.map(([, options]) => JSON.parse(new Headers(options.headers).get("cf-aig-metadata")!));
     expect(traces.map((t) => t.attempt)).toEqual([1, 2]);
     expect(traces[0].requestId).toBe(traces[1].requestId);
-    expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_usage", attempts: 2, usage: { promptTokens: 20, completionTokens: 10, totalTokens: 30 } }));
+    expect(metrics(log)).toContainEqual(expect.objectContaining({ event: "scan_usage", attempts: 2, repairNeeded: true, repairNeededValue: 1, usage: { promptTokens: 20, completionTokens: 10, totalTokens: 30 } }));
   });
 
   it("upstream failure: records failures and returns the existing fallback without direct-provider bypass", async () => {

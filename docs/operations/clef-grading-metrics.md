@@ -2,9 +2,9 @@
 
 Use Cloudflare's own Workers Observability Query Builder and Custom Dashboards. No separate dashboard app, Analytics Engine dataset, or external service is needed.
 
-The `gate_grading_outcome` structured log is emitted once per first-round Gemini grading flow after Clef. It contains `requestId`, `gateDecision`, `gradingStatus`, `clefPassGeminiNonOk`, and numeric `nonOkValue` (0 or 1). The root trace also contains `flow.gate_decision`, `flow.grading_status`, and `flow.clef_pass_gemini_non_ok`. No images or secrets enter this metric.
+The `gate_grading_outcome` structured log is emitted once per Gemini grading flow after Clef (both standard scan and deep scan). It contains `requestId`, `flowStage` (`scan` or `deep-scan`), `gateDecision`, `gradingStatus`, `clefPassGeminiNonOk`, numeric `nonOkValue` (0 or 1), and separated flow variables (`clefPassGeminiBlockedScan`, `scanBlockedValue` for standard scan; `clefPassGeminiBlockedDeepScan`, `deepScanBlockedValue` for deep scan). Root trace spans contain corresponding attributes `flow.gate_decision`, `flow.grading_status`, `flow.clef_pass_gemini_blocked_scan`, and `flow.clef_pass_gemini_blocked_deep_scan`. No images or secrets enter this metric.
 
-This measures the final verified grading response, not each raw Gemini attempt. Retries count once. A non-ok result may be a legitimate abstention, not necessarily a Clef error. Timeout/provider errors (`error_fallback`) and invalid Clef output (`invalid_output_fallback`) stay separate from valid passes. Disabled gates, later rounds, rejections, and quota stops before grading do not enter the denominator.
+This measures the final verified grading response, not each raw Gemini attempt. Retries count once. Statuses that Clef does not evaluate, such as `insufficient_evidence` (abstentions), do not count as blocked when Gemini returns them. Timeout/provider errors (`error_fallback`) and invalid Clef output (`invalid_output_fallback`) stay separate from valid passes. Disabled gates, later rounds, rejections, and quota stops before grading do not enter the denominator.
 
 ## Dashboard: Pomona — Clef gate quality
 

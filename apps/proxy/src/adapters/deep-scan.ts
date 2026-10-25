@@ -84,15 +84,57 @@ export async function runVerifiedDeepScan(
     });
   }
 
-  const raw = await analyzeAttempt(promptConfig.buildUserPrompt(request), 1);
-  addUsage(raw.usage);
-  const verify = verifyAndResolveDeepScanResponse(raw.object, {
-    request,
-    promptVersion,
-    modelId: adapter.modelId,
-  });
-  if (verify.ok) {
-    return { response: verify.response, usage: totalUsage, attempts: 1 };
+  function isRateLimitError(err: unknown): boolean {
+    const e = err as any;
+    return (
+      e?.statusCode === 429 ||
+      e?.status === 429 ||
+      String(e?.message || "").includes("429") ||
+      String(e?.message || "").toLowerCase().includes("resource has been exhausted")
+    );
+  }
+
+  let repairErrors: string[] | null = null;
+
+  try {
+    const raw1 = await analyzeAttempt(promptConfig.buildUserPrompt(request), 1);
+    addUsage(raw1.usage);
+    const verify1 = verifyAndResolveDeepScanResponse(raw1.object, {
+      request,
+      promptVersion,
+      modelId: adapter.modelId,
+    });
+    if (verify1.ok) {
+      return { response: verify1.response, usage: totalUsage, attempts: 1 };
+    }
+    repairErrors = verify1.errors;
+  } catch (err) {
+    if (isRateLimitError(err)) {
+      throw err;
+    }
+    repairErrors = [err instanceof Error ? err.message : String(err)];
+  }
+
+  // Attempt 2: 1-retry repair pipeline feeding specific verifier errors back to model
+  const repairPrompt = promptConfig.buildRepairPrompt
+    ? promptConfig.buildRepairPrompt(request, repairErrors)
+    : promptConfig.buildUserPrompt(request, repairErrors);
+
+  try {
+    const raw2 = await analyzeAttempt(repairPrompt, 2, repairErrors);
+    addUsage(raw2.usage);
+    const verify2 = verifyAndResolveDeepScanResponse(raw2.object, {
+      request,
+      promptVersion,
+      modelId: adapter.modelId,
+    });
+    if (verify2.ok) {
+      return { response: verify2.response, usage: totalUsage, attempts: 2 };
+    }
+  } catch (err) {
+    if (isRateLimitError(err)) {
+      throw err;
+    }
   }
 
   const fallbackResponse: DeepScanResponse = {
@@ -110,5 +152,5 @@ export async function runVerifiedDeepScan(
     recommendation: null,
     afterPurchase: null,
   };
-  return { response: fallbackResponse, usage: totalUsage, attempts: 1 };
+  return { response: fallbackResponse, usage: totalUsage, attempts: 2 };
 }

@@ -771,9 +771,11 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           if (Date.now() < suppressClickUntil.current) return;
           const target = e.target as HTMLElement;
           if (target.closest("button, a, input, select, textarea, [role='tab']")) return;
-          if (sheetMode !== "expanded") {
+          // Clicking anywhere inside sheet-drag-area or sheet-header-summary toggles the sheet mode;
+          // otherwise, clicking the sheet when not expanded expands it.
+          if (target.closest("[data-testid='sheet-drag-area'], [data-testid='sheet-header-summary']")) {
             handleSheetToggle();
-          } else if (target.closest("[data-testid='sheet-drag-area'], [data-testid='sheet-header-summary'], [data-testid='sheet-peek-bar']")) {
+          } else if (sheetMode !== "expanded") {
             handleSheetToggle();
           }
         }}
@@ -851,7 +853,6 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   handleDragEnd(e.clientY);
                 }
               }}
-              onClick={handleSheetToggle}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
@@ -1114,7 +1115,6 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 handleDragEnd(e.clientY);
               }
             }}
-            onClick={handleSheetToggle}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();

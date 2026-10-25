@@ -215,9 +215,20 @@ describe("runVerifiedDeepScan execution", () => {
     expect(out.usage.totalTokens).toBe(15);
   });
 
-  it("falls back to an analysis_failed envelope without retrying when verification fails", async () => {
+  it("retries on verification failure and succeeds on attempt 2 (repair attempt)", async () => {
     const bad = modelPayload({ status: "multiple_types" as never });
-    const { adapter, analyzeProduce } = makeAdapter(bad);
+    const good = modelPayload();
+    const { adapter, analyzeProduce } = makeAdapter(bad, good);
+    const out = await runVerifiedDeepScan(request, adapter, "deep_scan_v1", undefined, "req-2");
+    expect(out.attempts).toBe(2);
+    expect(out.response.status).toBe("ok");
+    expect(analyzeProduce).toHaveBeenCalledTimes(2);
+    expect(out.usage.totalTokens).toBe(30);
+  });
+
+  it("falls back to an analysis_failed envelope when both attempt 1 and repair attempt fail", async () => {
+    const bad = modelPayload({ status: "multiple_types" as never });
+    const { adapter, analyzeProduce } = makeAdapter(bad, bad);
     const out = await runVerifiedDeepScan(request, adapter, "deep_scan_v1", undefined, "req-3");
     expect(out.response).toMatchObject({
       schemaVersion: "1.0",
@@ -225,8 +236,9 @@ describe("runVerifiedDeepScan execution", () => {
       modelId: "test-model",
       status: "analysis_failed",
     });
-    expect(out.attempts).toBe(1);
-    expect(analyzeProduce).toHaveBeenCalledTimes(1);
+    expect(out.attempts).toBe(2);
+    expect(analyzeProduce).toHaveBeenCalledTimes(2);
+    expect(out.usage.totalTokens).toBe(30);
   });
 
   it("rethrows rate-limit errors instead of masking them", async () => {
