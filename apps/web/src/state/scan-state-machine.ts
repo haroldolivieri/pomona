@@ -38,7 +38,7 @@ export interface DeepScanSampleMeta {
   stats: { rejectedBlur: number; rejectedExposure: number; rejectedSimilarity: number };
 }
 
-export type DeepScanOrigin = "insufficient" | "tie" | "result_banner" | "debug";
+export type DeepScanOrigin = "insufficient" | "tie" | "result_banner" | "debug" | "mode_tab" | "single_produce_cta";
 
 export interface PreservedCandidate extends Candidate {
   initialScore: number;
@@ -65,6 +65,7 @@ export interface ScanMachineState {
   dsComposite: DeepScanComposite | null;
   dsSampleMeta: DeepScanSampleMeta | null;
   dsResult: DeepScanResponse | null;
+  dsLocalRejectReason: ("all_blurry" | "too_dark_or_bright" | "not_rotated") | null;
 }
 
 export type ScanMachineAction =
@@ -84,9 +85,10 @@ export type ScanMachineAction =
   | { type: "START_FINAL_CHECK_ON_FIRST_PICK" }
   | { type: "ENTER_DEEP_SCAN"; origin: DeepScanOrigin }
   | { type: "DS_CAPTURE_COMPLETED"; composite: DeepScanComposite; sampleCount: number; stats: DeepScanSampleMeta["stats"] }
-  | { type: "DS_CAPTURE_REJECTED"; reason: "all_blurry" | "too_dark_or_bright" }
+  | { type: "DS_CAPTURE_REJECTED"; reason: "all_blurry" | "too_dark_or_bright" | "not_rotated" }
   | { type: "DS_SCAN_SUCCEEDED"; response: DeepScanResponse }
   | { type: "DS_SCAN_FAILED"; error: string }
+  | { type: "DS_RETRY" }
   | { type: "DS_CANCEL" }
   | { type: "RESET" };
 
@@ -110,6 +112,7 @@ export function initialScanMachineState(): ScanMachineState {
     dsComposite: null,
     dsSampleMeta: null,
     dsResult: null,
+    dsLocalRejectReason: null,
   };
 }
 
@@ -167,6 +170,7 @@ export function scanMachineReducer(
         dsComposite: null,
         dsSampleMeta: null,
         dsResult: null,
+        dsLocalRejectReason: null,
         errorMessage: null,
         status: null,
       };
@@ -174,12 +178,16 @@ export function scanMachineReducer(
     case "DS_CAPTURE_REJECTED":
       return {
         ...state,
-        phase: "S_DS_Capture",
-        errorMessage: uiCopy(
-          action.reason === "too_dark_or_bright" ? "deepScan.localTooDark" : "deepScan.localTooBlurry",
-          undefined,
-          currentDisplayLocale()
-        ),
+        phase: "S_DS_Result",
+        status: "analysis_failed",
+        dsResult: null,
+        dsLocalRejectReason: action.reason,
+        errorMessage:
+          action.reason === "not_rotated"
+            ? uiCopy("deepScan.localNotRotated", undefined, currentDisplayLocale())
+            : action.reason === "too_dark_or_bright"
+            ? uiCopy("deepScan.localTooDark", undefined, currentDisplayLocale())
+            : uiCopy("deepScan.localTooBlurry", undefined, currentDisplayLocale()),
       };
 
     case "DS_CAPTURE_COMPLETED":
@@ -188,6 +196,7 @@ export function scanMachineReducer(
         phase: "S_DS_Analysing",
         dsComposite: action.composite,
         dsSampleMeta: { sampleCount: action.sampleCount, stats: action.stats },
+        dsLocalRejectReason: null,
         errorMessage: null,
         status: null,
       };
@@ -197,6 +206,7 @@ export function scanMachineReducer(
         ...state,
         phase: "S_DS_Result",
         dsResult: action.response,
+        dsLocalRejectReason: null,
         errorMessage: null,
         status: null,
       };
@@ -206,25 +216,34 @@ export function scanMachineReducer(
         ...state,
         phase: "S_DS_Result",
         dsResult: null,
+        dsLocalRejectReason: null,
         status: "analysis_failed",
         errorMessage: action.error,
       };
 
+    case "DS_RETRY":
+      if (!state.dsComposite) return state;
+      return {
+        ...state,
+        phase: "S_DS_Analysing",
+        dsLocalRejectReason: null,
+        errorMessage: null,
+        status: null,
+        dsResult: null,
+      };
+
     case "DS_CANCEL": {
       const originPhase: ScanPhase =
-        state.dsOrigin === "tie"
-          ? "S5B1_RunnerUpBeaten"
-          : state.dsOrigin === "insufficient"
-            ? "S_ScanError"
-            : state.dsOrigin === "result_banner"
-              ? "S4_InitialResult"
-              : "S1_LiveCamera";
+        state.dsOrigin === "result_banner"
+          ? "S4_InitialResult"
+          : "S1_LiveCamera";
       return {
         ...state,
         phase: originPhase,
         dsComposite: null,
         dsSampleMeta: null,
         dsResult: null,
+        dsLocalRejectReason: null,
         errorMessage: null,
         status: null,
       };

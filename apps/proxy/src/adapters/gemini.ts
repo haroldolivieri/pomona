@@ -107,9 +107,10 @@ export function createGeminiVisionAdapter(options: GeminiVisionAdapterOptions): 
     async analyzeProduce(input: AdapterInput, signal?: AbortSignal): Promise<AdapterRawResult> {
       const model = google(modelId);
 
+      const schema = input.schema ?? (input.kind?.kind === "deep_scan" ? deepScanProviderSchema : GeminiProviderSchema);
       const result = await generateFn({
         model: model as any,
-        schema: (input.kind?.kind === "deep_scan" ? deepScanProviderSchema : GeminiProviderSchema) as any,
+        schema: schema as any,
         temperature: 0.1,
         system: input.systemPrompt,
         headers: getGatewayTraceHeaders(options.gateway, input.trace),

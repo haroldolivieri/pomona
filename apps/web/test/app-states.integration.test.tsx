@@ -235,7 +235,8 @@ describe("<PomonaApp /> integration across all 10 states, themes, and parameteri
     );
 
     // State 1: Top bar has brand pill without middle quota pill
-    expect(screen.getByTestId("brand-pill")).toHaveTextContent("Pomona");
+    expect(screen.getByTestId("brand-pill")).toHaveTextContent("P");
+    expect(screen.getByTestId("brand-pill")).toHaveAttribute("aria-label", "Pomona");
     expect(screen.queryByTestId("scan-quota-pill")).toBeNull();
 
     // Snap photo -> State 2: Top bar keeps the remaining-scan label hidden

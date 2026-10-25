@@ -32,6 +32,7 @@ describe("deep-scan eval wiring (offline)", () => {
       "ds-02-empty-oval.jpg",
       "ds-03-blurry-avocado.jpg",
       "ds-04-dark-avocado.jpg",
+      "ds-05-same-side-avocado.jpg",
     ] as const;
     for (const filename of expected) {
       const file = path.join(datasetRoot, filename);
@@ -101,14 +102,14 @@ describe("deep-scan eval wiring (offline)", () => {
     expect(pkg.scripts["eval:ds:gate"]).toBe("node --import tsx scripts/run-deep-scan-gate-eval.ts");
   });
 
-  it("keeps manualChecks expectations off for every scripted arm (checks only surface on real abstentions)", () => {
+  it("keeps manualChecks expectations aligned with manifest arms (true only on real abstentions)", () => {
     const parsed = loadManifest();
     for (const row of parsed) {
       for (const arm of row.perLocale) {
         expect(
           arm.expectManualChecks,
           `${row.id}/${arm.locale}`
-        ).toBe(false);
+        ).toBe(row.id === "ds-05-same-side-avocado");
       }
     }
   });

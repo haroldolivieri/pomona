@@ -36,6 +36,9 @@ function assertEnvelopeArm(
   if (arm.expectedStatus !== "ok" && envelope.status !== arm.expectedStatus) {
     return { pass: false, reason: `expected status ${arm.expectedStatus}, got ${envelope.status}` };
   }
+  if (arm.expectManualChecks && (!envelope.manualChecks || envelope.manualChecks.length === 0)) {
+    return { pass: false, reason: "expected manualChecks on abstention, but none received" };
+  }
   if (arm.expectedStatus === "ok") {
     if (envelope.status !== "ok") return { pass: false, reason: `expected ok, got ${envelope.status}` };
     if (arm.expectedState && envelope.ripeness?.state !== arm.expectedState) {

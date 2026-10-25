@@ -54,8 +54,12 @@ async function main() {
       }
     }
   }
-  const ids = ["03-unclear-blurry-photo", "04-no-produce-cereal-box", "05-multiple-types-mixed",
-    "02-avocado-polygon-isolation", "17-roma-bulk-pile-focus-polygon", "20-roma-clear-ripeness-focus-polygon"];
+  const singleOnly = process.argv.includes("--single-only") || process.env.SINGLE_ONLY === "true";
+  const scenarioArg = process.argv.find(a => a.startsWith("--scenario="))?.split("=")[1];
+
+  const defaultIds = ["03-unclear-blurry-photo", "04-no-produce-cereal-box", "05-multiple-types-mixed",
+    "10-single-pineapple-solo", "02-avocado-polygon-isolation", "17-roma-bulk-pile-focus-polygon", "20-roma-clear-ripeness-focus-polygon"];
+  const ids = scenarioArg ? [scenarioArg] : (singleOnly ? ["10-single-pineapple-solo"] : defaultIds);
   const results = [];
   for (const id of ids) {
     const scene = manifest.find((item: { id: string }) => item.id === id);
@@ -85,8 +89,8 @@ async function main() {
           return Response.json(body.result);
         },
       }, request, crypto.randomUUID());
-      const expected = ["no_produce", "unclear_photo", "multiple_types"].includes(scene.groundTruth.expectedStatus)
-        ? scene.groundTruth.expectedStatus : null;
+      const expected = ["no_produce", "unclear_photo", "multiple_types", "single_produce"].includes(scene.groundTruth.expectedStatus)
+        ? scene.groundTruth.expectedStatus : (id === "10-single-pineapple-solo" ? "single_produce" : null);
       const pass = outcome.scores !== null && outcome.usage !== null && outcome.status === expected;
       const row = { id, pass, expected, actual: outcome.status, durationMs: Date.now() - startedAt,
         rawResult,

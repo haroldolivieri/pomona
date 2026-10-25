@@ -35,7 +35,7 @@ export interface CompositeResult {
   bytes: number;
 }
 
-const CREAM = "#FBFAF6";
+const cream = "#FBFAF6";
 
 export async function buildComposite(
   keptDataUrls: string[],
@@ -59,7 +59,7 @@ export async function buildComposite(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2d context unavailable");
 
-  ctx.fillStyle = CREAM;
+  ctx.fillStyle = cream;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const layout = [
@@ -101,10 +101,23 @@ function drawCoverCrop(
   y: number,
   size: number
 ): void {
-  const ratio = Math.max(size / img.naturalWidth, size / img.naturalHeight);
-  const w = img.naturalWidth * ratio;
-  const h = img.naturalHeight * ratio;
-  ctx.drawImage(img, x + (size - w) / 2, y + (size - h) / 2, w, h);
+  const nw = img.naturalWidth || size;
+  const nh = img.naturalHeight || size;
+
+  if (nw === nh) {
+    // Already a square (produced by captureDeepScanCrop): draw directly, 100% preserving oval
+    ctx.drawImage(img, x, y, size, size);
+    return;
+  }
+
+  // Non-square fallback: preserve the area where the oval sits (upper-center)
+  // rather than blind vertical center-cropping which cuts the top off
+  const ratio = Math.max(size / nw, size / nh);
+  const w = nw * ratio;
+  const h = nh * ratio;
+  const offsetX = (size - w) / 2;
+  const offsetY = h > size ? (size - h) * 0.35 : (size - h) / 2;
+  ctx.drawImage(img, x + offsetX, y + offsetY, w, h);
 }
 
 function drawTileBadge(ctx: CanvasRenderingContext2D, x: number, y: number, n: number): void {

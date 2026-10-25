@@ -1,16 +1,17 @@
 import { currentDisplayLocale } from "../i18n/copy";
 import { uiCopy } from "../i18n/copy";
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   type Candidate,
   type TargetRipenessWindow,
   resolveCandidatesForTarget,
+  resolveTactileChecks,
 } from "@pomona/contract";
 import type { ScanMachineState } from "../state/scan-state-machine";
 import { describeBoxPosition } from "../lib/spatial-a11y";
 import { SeasonalityStrip } from "./SeasonalityStrip";
-import { StorageCardsRow, SeasonalityPanelCard, ResultTopBar, CircularScoreMeter } from "./ResultCards";
+import { StorageCardsRow, SeasonalityPanelCard, ResultTopBar, CircularScoreMeter, TactileChecksCard } from "./ResultCards";
 import { computeObjectFitCoverRect, type RenderedCoverRect } from "../lib/image-pipeline";
 
 export interface ResultStageProps {
@@ -50,6 +51,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const [sheetHeight, setSheetHeight] = useState<number>(0);
   const [minPeekHeight, setMinPeekHeight] = useState<number>(76);
   const [defaultPeekHeight, setDefaultPeekHeight] = useState<number>(180);
+  const [hasOverflow, setHasOverflow] = useState<boolean>(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [coverRect, setCoverRect] = useState<RenderedCoverRect | null>(null);
@@ -92,6 +94,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const updateSheetDimensions = () => {
     if (sheetRef.current && sheetRef.current.offsetHeight > 0) {
       setSheetHeight(sheetRef.current.offsetHeight);
+      const isOverflowing = sheetRef.current.scrollHeight > sheetRef.current.clientHeight + 2;
+      setHasOverflow(isOverflowing);
     }
     if (minPeekRef.current && minPeekRef.current.offsetHeight > 0) {
       setMinPeekHeight(minPeekRef.current.offsetHeight);
@@ -100,6 +104,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
       setDefaultPeekHeight(defaultPeekRef.current.offsetHeight);
     }
   };
+
+  useLayoutEffect(() => {
+    updateSheetDimensions();
+  }, [sheetMode, phase, targetRipeness, lastResponse]);
 
   useEffect(() => {
     updateSheetDimensions();
@@ -288,12 +296,21 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
   const isLostStyle = phase === "S5B1_RunnerUpBeaten" || phase === "S7A_FirstPickWonFinal" || phase === "S7B_FirstPickLostFinal";
   const isFullyOpen = sheetMode === "expanded";
+  const canScroll = isFullyOpen && hasOverflow;
 
   const denseCandidatesNote =
     (lastResponse.candidates?.length ?? 0) >= 15
       ? uiCopy("copy.topPicksShownFromAllVisibleItems", { count: lastResponse.candidates.length })
       : "";
   const fullSubtitle = subtitle + denseCandidatesNote;
+
+  const tactileChecks = useMemo(() => {
+    const produceName =
+      produce?.displayName ||
+      produce?.type ||
+      activeWinner?.id;
+    return resolveTactileChecks(produceName, currentDisplayLocale());
+  }, [produce, activeWinner?.id]);
 
   // Calculate translation distance needed to tuck the sheet to each snap height:
   // - 'expanded': translateY = 0 (full sheet visible)
@@ -708,6 +725,58 @@ export const ResultStage: React.FC<ResultStageProps> = ({
       <div
         ref={sheetRef}
         data-testid="result-bottom-sheet"
+        onTouchStart={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest("button, a, input, select, textarea, [role='tab']")) return;
+          if (canScroll && sheetRef.current && sheetRef.current.scrollTop > 0) return;
+          handleDragStart(e.touches[0].clientY);
+        }}
+        onTouchMove={(e) => {
+          if (dragStartY.current !== null) {
+            const rawDeltaY = e.touches[0].clientY - dragStartY.current;
+            if (canScroll && rawDeltaY < 0) {
+              dragStartY.current = null;
+              setDragOffsetY(0);
+              setIsDragging(false);
+              return;
+            }
+            handleDragMove(e.touches[0].clientY);
+          }
+        }}
+        onTouchEnd={(e) => {
+          if (dragStartY.current !== null) {
+            const clientY = e.changedTouches?.[0]?.clientY;
+            handleDragEnd(clientY);
+          }
+        }}
+        onPointerDown={(e) => {
+          if (e.pointerType === "mouse") {
+            const target = e.target as HTMLElement;
+            if (target.closest("button, a, input, select, textarea, [role='tab']")) return;
+            if (canScroll && sheetRef.current && sheetRef.current.scrollTop > 0) return;
+            handleDragStart(e.clientY);
+          }
+        }}
+        onPointerMove={(e) => {
+          if (e.pointerType === "mouse" && dragStartY.current !== null) {
+            handleDragMove(e.clientY);
+          }
+        }}
+        onPointerUp={(e) => {
+          if (e.pointerType === "mouse" && dragStartY.current !== null) {
+            handleDragEnd(e.clientY);
+          }
+        }}
+        onClick={(e) => {
+          if (Date.now() < suppressClickUntil.current) return;
+          const target = e.target as HTMLElement;
+          if (target.closest("button, a, input, select, textarea, [role='tab']")) return;
+          if (sheetMode !== "expanded") {
+            handleSheetToggle();
+          } else if (target.closest("[data-testid='sheet-drag-area'], [data-testid='sheet-header-summary'], [data-testid='sheet-peek-bar']")) {
+            handleSheetToggle();
+          }
+        }}
         style={{
           position: "absolute",
           left: 0,
@@ -729,30 +798,20 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           display: "flex",
           flexDirection: "column",
           gap: "4px",
-          boxShadow: "0 -8px 32px rgba(0, 0, 0, 0.22)",
+          boxShadow: "0 -8px 32px rgba(0, 0, 0, 0.22), 0 200px 0 0 var(--surface-sheet)",
           transform: `translate3d(0, ${currentTranslate}px, 0)`,
           transition: isDragging
             ? "none"
             : "transform 0.32s cubic-bezier(0.2, 0.0, 0, 1.0)",
-          overflow: "visible",
-          touchAction: "none",
+          overflowY: canScroll ? "auto" : (isFullyOpen ? "hidden" : "visible"),
+          overflowX: "hidden",
+          WebkitOverflowScrolling: "touch",
+          touchAction: canScroll ? "pan-y" : "none",
+          overscrollBehavior: "contain",
           userSelect: "none",
+          cursor: isDragging ? "grabbing" : (sheetMode === "expanded" ? "default" : "pointer"),
         }}
       >
-        {/* Solid background skirt extending below the sheet to prevent any gap during drag */}
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            top: "90%",
-            left: 0,
-            right: 0,
-            height: "100vh",
-            backgroundColor: "var(--surface-sheet)",
-            pointerEvents: "none",
-            zIndex: -1,
-          }}
-        />
         {/* Material 3 Drag Handle Affordance: dedicated touch target with accessible single-pointer/keyboard alternative */}
         <div
           ref={defaultPeekRef}
@@ -1112,11 +1171,26 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
                 {/* Circular Score Meter next to headline */}
                 {activeWinner && (
-                  <CircularScoreMeter
-                    score={Math.min(10, Math.max(0, activeWinner.score))}
-                    prevMark={prevMarkScore}
-                    strokeColor={isMismatch ? winnerBorderColor : undefined}
-                  />
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <CircularScoreMeter
+                      score={Math.min(10, Math.max(0, activeWinner.score))}
+                      prevMark={prevMarkScore}
+                      strokeColor={isMismatch ? winnerBorderColor : undefined}
+                    />
+                    <span
+                      data-testid="compare-visual-score-label"
+                      style={{
+                        fontSize: "9.5px",
+                        fontWeight: 600,
+                        color: "var(--text-muted)",
+                        marginTop: "3px",
+                        letterSpacing: "0.03em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {uiCopy("result.visualScoreLabel")}
+                    </span>
+                  </div>
                 )}
               </div>
               {/* Traits Chips (e.g. Creamy-yellow ground spot, Matte rind) above Seasonality */}
@@ -1168,10 +1242,18 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             onTouchStart={(e) => {
               const target = e.target as HTMLElement;
               if (target.closest("button") || target.closest("[role='tab']")) return;
+              if (canScroll && sheetRef.current && sheetRef.current.scrollTop > 0) return;
               handleDragStart(e.touches[0].clientY);
             }}
             onTouchMove={(e) => {
               if (dragStartY.current !== null) {
+                const rawDeltaY = e.touches[0].clientY - dragStartY.current;
+                if (canScroll && rawDeltaY < 0) {
+                  dragStartY.current = null;
+                  setDragOffsetY(0);
+                  setIsDragging(false);
+                  return;
+                }
                 handleDragMove(e.touches[0].clientY);
               }
             }}
@@ -1201,8 +1283,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               flexDirection: "column",
               gap: "6px",
               flex: 1,
-              overflow: "hidden", // ZERO SCROLLING
-              touchAction: "none",
+              overflow: "visible",
+              touchAction: isFullyOpen ? "pan-y" : "none",
             }}
           >
             {/* Storage Cards Layout (2 Rows) */}
@@ -1213,49 +1295,14 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               />
             )}
 
-        {/* Card Order: S4 & S5B-2 have Follow-up Hint Box, S5B-1/S7A/S7B have Green Confirmation Card */}
-        {followUpHint && (phase === "S4_InitialResult" || phase === "S5B2_RunnerUpTookLead") && (
-          <div
-            data-testid="follow-up-hint"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "9px",
-              padding: "9px 12px",
-              borderRadius: "12px",
-              backgroundColor: "var(--surface-hint-warn)",
-              border: "1px solid var(--surface-hint-warn-border)",
-              fontSize: "12px",
-              lineHeight: 1.35,
-              color: "var(--text-primary)",
-              marginTop: "2px",
-            }}
-          >
-            {/* Flip / Rotation icon */}
-            <span
-              data-testid="flip-hint-icon"
-              style={{
-                width: "20px",
-                height: "20px",
-                borderRadius: "50%",
-                backgroundColor: phase === "S4_InitialResult" ? "rgba(47, 109, 181, 0.15)" : "rgba(200, 156, 20, 0.15)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                color: phase === "S4_InitialResult" ? "#2F6DB5" : "#C89C14",
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                <path d="M3 3v5h5" />
-                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-                <path d="M16 16h5v5" />
-              </svg>
-            </span>
-            <span>{followUpHint}</span>
-          </div>
-        )}
+            {/* Tactile checks for extra evidence */}
+            {tactileChecks.length > 0 && (
+              <TactileChecksCard
+                checks={tactileChecks}
+                defaultOpen={false}
+                testId="compare-tactile-checks"
+              />
+            )}
 
         {confirmationBanner && (phase === "S5B1_RunnerUpBeaten" || phase === "S7A_FirstPickWonFinal" || phase === "S7B_FirstPickLostFinal") && (
           <div
@@ -1337,7 +1384,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                ✦ {t("deepScan.preciseScanCta")}
+                ✦ {t("deepScan.inspectWinner")}
               </button>
             </div>
           )}

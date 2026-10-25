@@ -28,7 +28,10 @@ export interface PomonaApiClient {
     remainingScans: number;
     response: ScanResponse;
   }>;
-  submitDeepScan(request: DeepScanRequest): Promise<DeepScanResponse>;
+  submitDeepScan(request: DeepScanRequest): Promise<{
+    remainingScans: number;
+    response: DeepScanResponse;
+  }>;
 }
 
 export function createFetchApiClient(baseUrl: string = ""): PomonaApiClient {
@@ -101,7 +104,10 @@ export function createFetchApiClient(baseUrl: string = ""): PomonaApiClient {
       };
     },
 
-    async submitDeepScan(request: DeepScanRequest): Promise<DeepScanResponse> {
+    async submitDeepScan(request: DeepScanRequest): Promise<{
+      remainingScans: number;
+      response: DeepScanResponse;
+    }> {
       const res = await fetch(`${baseUrl}/api/v1/deep-scan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -128,7 +134,15 @@ export function createFetchApiClient(baseUrl: string = ""): PomonaApiClient {
         console.error(`[api-client] Deep scan request failed (${res.status}): ${errorDetail}`);
         throw new ApiClientError(res.status, uiCopy("copy.scanRequestFailed", { value1: res.status, value2: errorDetail || uiCopy("errors.analysisFailed") }));
       }
-      return res.json();
+      const deepScanResponse: DeepScanResponse = await res.json();
+      const requestId = res.headers?.get?.("X-Pomona-Request-Id");
+      if (requestId) console.log("[deep-scan] trace", { requestId, sessionId: request.sessionId });
+      const remainingHeader = res.headers?.get?.("X-Pomona-Remaining-Scans");
+      const parsedRemaining = remainingHeader ? parseInt(remainingHeader, 10) : 10;
+      return {
+        remainingScans: isNaN(parsedRemaining) ? 10 : parsedRemaining,
+        response: deepScanResponse,
+      };
     },
   };
 }

@@ -282,7 +282,7 @@ describe("10-state ScanStateMachine", () => {
     expect(s.firstPick?.id).toBe("c2");
     expect(s.runnerUp?.id).toBe("c1");
     // Verify followUp bannerText updated to in_2_3_days override
-    expect(s.lastResponse?.followUp?.bannerText).toBe("Check underside before storing for 2–3 days");
+    expect(s.lastResponse?.followUp?.bannerText).toBe("Check underside before storing for 2-3 days");
 
     // Switch to "later_this_week"
     s = scanMachineReducer(s, { type: "SET_TARGET_RIPENESS", targetRipeness: "later_this_week" });

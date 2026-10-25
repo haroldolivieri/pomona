@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { uiCopy } from "../i18n/copy";
-import { IvoryBottomSheet, SheetEyebrow, SheetHeadline } from "./CameraCaptureUi";
+import { IvoryBottomSheet, SheetEyebrow, SheetHeadline, DeepScanOval, DEEP_SCAN_OVAL_STYLE, ThreeDScanAnimation } from "./CameraCaptureUi";
 
 export interface DeepScanAnalysingStageProps {
   backgroundUrl: string | null;
@@ -23,15 +23,6 @@ export const DeepScanAnalysingStage: React.FC<DeepScanAnalysingStageProps> = ({
     }, 2800);
     return () => clearInterval(interval);
   }, [tips.length]);
-
-  const ovalLayout: React.CSSProperties = {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    width: "min(72vw, 300px)",
-    height: "min(96vw, 400px)",
-    transform: "translate(-50%, -54%)",
-  };
 
   return (
     <div
@@ -69,8 +60,8 @@ export const DeepScanAnalysingStage: React.FC<DeepScanAnalysingStageProps> = ({
       <div
         data-testid="ds-analysing-oval"
         style={{
-          ...ovalLayout,
-          borderRadius: "50%",
+          ...DEEP_SCAN_OVAL_STYLE,
+          borderRadius: "24px",
           overflow: "hidden",
           pointerEvents: "none",
           zIndex: 5,
@@ -119,17 +110,7 @@ export const DeepScanAnalysingStage: React.FC<DeepScanAnalysingStageProps> = ({
         </div>
       </div>
 
-      <div
-        data-testid="ds-analysing-oval-outline"
-        style={{
-          ...ovalLayout,
-          border: "3px solid rgba(251, 250, 246, 0.9)",
-          borderRadius: "50%",
-          boxShadow: "0 0 0 9999px rgba(8, 14, 9, 0.35)",
-          pointerEvents: "none",
-          zIndex: 10,
-        }}
-      />
+      <DeepScanOval testId="ds-analysing-oval-outline" style={{ zIndex: 10 }} />
 
       <div
         style={{
@@ -148,28 +129,84 @@ export const DeepScanAnalysingStage: React.FC<DeepScanAnalysingStageProps> = ({
           data-testid="ds-analysing-cancel"
           aria-label={uiCopy("copy.cancelAnalysis")}
           style={{
-            padding: "8px 14px",
-            borderRadius: "999px",
-            border: "1px solid rgba(251,250,246,0.4)",
-            backgroundColor: "rgba(8,14,9,0.5)",
-            color: "#FBFAF6",
-            fontFamily: "Inter, system-ui, sans-serif",
+            width: "36px",
+            height: "36px",
+            borderRadius: "50%",
+            backgroundColor: "rgba(251, 250, 246, 0.85)",
+            color: "var(--text-primary, #142117)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             fontSize: "13px",
-            fontWeight: 600,
+            fontWeight: 700,
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+            border: "none",
+            cursor: "pointer",
           }}
         >
-          {uiCopy("copy.cancelAnalysis")}
+          ✕
         </button>
       </div>
 
       <IvoryBottomSheet testId="ds-analysing-sheet">
         <SheetEyebrow>{uiCopy("copy.pomonaVision")}</SheetEyebrow>
-        <SheetHeadline>{uiCopy("copy.checkingRipeness")}</SheetHeadline>
-        <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary, #1A261D)" }}>
-          {tips[tipIndex]}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "6px 0 4px" }}>
+          <ThreeDScanAnimation testId="ds-analysing-3d-scan" size={22} />
+          <SheetHeadline style={{ margin: 0 }}>{uiCopy("copy.checkingRipeness")}</SheetHeadline>
         </div>
+        <div
+          style={{
+            fontFamily: "Inter, system-ui, sans-serif",
+            fontWeight: 500,
+            fontSize: "12px",
+            lineHeight: 1.3,
+            color: "var(--text-muted)",
+          }}
+        >
+          {uiCopy("camera.promptSubtitle")}
+        </div>
+        {tips.length > 0 && (
+          <div
+            style={{
+              marginTop: "4px",
+              padding: "10px 12px",
+              backgroundColor: "var(--surface-chip)",
+              borderRadius: "12px",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "8px",
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "Inter, system-ui, sans-serif",
+                fontSize: "10px",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "#9A740A",
+                fontWeight: 700,
+                flexShrink: 0,
+                marginTop: "1px",
+              }}
+            >
+              {uiCopy("copy.tip")}
+            </span>
+            <p
+              style={{
+                fontFamily: "Inter, system-ui, sans-serif",
+                color: "var(--text-primary)",
+                fontSize: "12px",
+                lineHeight: "1.35",
+                margin: 0,
+              }}
+            >
+              {tips[tipIndex] || uiCopy("copy.evaluatingProduceFreshnessAndQuality")}
+            </p>
+          </div>
+        )}
       </IvoryBottomSheet>
-
     </div>
   );
 };

@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { translateShared, resolveDisplayLocale, type ScanRequest, type ScanResponse } from "@pomona/contract";
+import { translateShared, resolveDisplayLocale, type ScanRequest, type ScanResponse, type DeepScanResponse } from "@pomona/contract";
 import type { TokenUsage } from "../adapters/types";
 
 export const VISIBILITY_GATE_MODEL = "@cf/cloudflare/clef-flash";
 export const VISIBILITY_GATE_THRESHOLD = 0.70;
-const reasons = ["no_produce", "unclear_photo", "multiple_types"] as const;
+const reasons = ["no_produce", "unclear_photo", "multiple_types", "single_produce"] as const;
 export type GateReason = typeof reasons[number];
 export type VisibilityGateRequest = Omit<ScanRequest, "imageMimeType"> & { imageMimeType: ScanRequest["imageMimeType"] | "image/png" };
 
@@ -32,12 +32,18 @@ export function buildVisibilityGateInput(request: Pick<VisibilityGateRequest, "i
       no_produce: { type: "noul", instructions: "Is there no real fresh produce in the foreground?" },
       unclear_photo: { type: "noul", instructions: "Do blur, glare, or packaging hide most produce surfaces?" },
       multiple_types: { type: "noul", instructions: "Are two or more produce species selected together?" },
+      single_produce: { type: "noul", instructions: "Is only one single piece of produce visible rather than multiple items to compare?" },
     },
   };
 }
 
 const answer = z.object({ type: z.literal("noul"), noul: z.number().finite().min(0).max(1) });
-const answersSchema = z.object({ no_produce: answer, unclear_photo: answer, multiple_types: answer });
+const answersSchema = z.object({
+  no_produce: answer,
+  unclear_photo: answer,
+  multiple_types: answer,
+  single_produce: answer.optional().default({ type: "noul", noul: 0.01 }),
+});
 const usageSchema = z.object({ input_tokens: z.number().int().nonnegative(), output_tokens: z.number().int().nonnegative() });
 
 export function resolveVisibilityGate(raw: unknown): { status: GateReason | null; usage: TokenUsage | null; scores: Record<GateReason, number> | null } {
@@ -52,36 +58,61 @@ export function resolveVisibilityGate(raw: unknown): { status: GateReason | null
   if (!answers.success || !usage) return { status: null, usage, scores: null };
   const failures = reasons.filter(reason => answers.data[reason].noul >= VISIBILITY_GATE_THRESHOLD);
   return { status: failures.length === 1 ? failures[0] : null, usage,
-    scores: { no_produce: answers.data.no_produce.noul, unclear_photo: answers.data.unclear_photo.noul, multiple_types: answers.data.multiple_types.noul } };
+    scores: {
+      no_produce: answers.data.no_produce.noul,
+      unclear_photo: answers.data.unclear_photo.noul,
+      multiple_types: answers.data.multiple_types.noul,
+      single_produce: answers.data.single_produce.noul,
+    } };
+}
+
+export async function executeGateCall(
+  binding: GateAiBinding,
+  input: ReturnType<typeof buildVisibilityGateInput> | ReturnType<typeof buildDeepScanGateInput>,
+  metadata: Record<string, string | number>,
+  gateway?: { id: string; token?: string },
+): Promise<unknown> {
+  const signal = AbortSignal.timeout(3000);
+  try {
+    const response = await binding.run(VISIBILITY_GATE_MODEL, input, {
+      signal,
+      returnRawResponse: true,
+      ...(gateway
+        ? {
+            gateway: {
+              id: gateway.id,
+              skipCache: true,
+              collectLog: false,
+              retries: { maxAttempts: 1 as const },
+              metadata,
+            },
+            extraHeaders: gateway.token ? { "cf-aig-authorization": `Bearer ${gateway.token}` } : undefined,
+          }
+        : {}),
+    });
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => {});
+      throw Object.assign(new Error(`Workers AI HTTP ${response.status}`), { status: response.status });
+    }
+    return await response.json();
+  } catch (error) {
+    if (gateDenialStatus(error)) throw error;
+    if (signal.aborted) throw Object.assign(new Error("Clef exceeded 3000ms timeout"), { name: "TimeoutError", timeoutMs: 3000 });
+    throw error;
+  }
 }
 
 export async function runVisibilityGate(
   binding: GateAiBinding, request: VisibilityGateRequest, requestId: string,
   gateway?: { id: string; token?: string },
 ) {
-  const signal = AbortSignal.timeout(3000);
-  try {
-    const response = await binding.run(VISIBILITY_GATE_MODEL, buildVisibilityGateInput(request), {
-      signal,
-      // Native Ai.run errors omit HTTP status. Preserve the raw status before parsing.
-      returnRawResponse: true,
-      ...(gateway ? {
-        gateway: { id: gateway.id, skipCache: true, collectLog: false, retries: { maxAttempts: 1 as const },
-          metadata: { app: "pomona", request_id: requestId, session_id: request.sessionId, stage: "visibility-v1", round: request.round } },
-        extraHeaders: gateway.token ? { "cf-aig-authorization": `Bearer ${gateway.token}` } : undefined,
-      } : {}),
-    });
-    if (!response.ok) {
-      await response.body?.cancel().catch(() => {});
-      throw Object.assign(new Error(`Workers AI HTTP ${response.status}`), { status: response.status });
-    }
-    return resolveVisibilityGate(await response.json());
-  } catch (error) {
-    // Known authorization/capacity denials must never become a Gemini fallback.
-    if (gateDenialStatus(error)) throw error;
-    if (signal.aborted) throw Object.assign(new Error("Clef exceeded 3000ms timeout"), { name: "TimeoutError", timeoutMs: 3000 });
-    throw error;
-  }
+  const raw = await executeGateCall(
+    binding,
+    buildVisibilityGateInput(request),
+    { app: "pomona", request_id: requestId, session_id: request.sessionId, stage: "visibility-v1", round: request.round },
+    gateway
+  );
+  return resolveVisibilityGate(raw);
 }
 
 export function visibilityGateResponse(status: GateReason | "rate_limited" | "analysis_failed", request: ScanRequest, promptVersion: string): ScanResponse {
@@ -90,11 +121,12 @@ export function visibilityGateResponse(status: GateReason | "rate_limited" | "an
     no_produce: translateShared(locale, "gate.noProduce"),
     unclear_photo: translateShared(locale, "gate.unclearPhoto"),
     multiple_types: translateShared(locale, "gate.multipleTypes"),
+    single_produce: translateShared(locale, "gate.singleProduce"),
     rate_limited: translateShared(locale, "gate.rateLimited"),
     analysis_failed: translateShared(locale, "gate.failed"),
   };
   return { schemaVersion: "1.0", promptVersion, modelId: VISIBILITY_GATE_MODEL, round: request.round,
-    status, message: messages[status], abstentionReason: null, countedTotal: null,
+    status, message: messages[status], abstentionReason: null, countedTotal: status === "single_produce" ? 1 : null,
     produce: null, candidates: [], verdict: null, followUp: null, afterPurchase: null };
 }
 
@@ -102,28 +134,13 @@ export async function runDeepScanVisibilityGate(
   binding: GateAiBinding, imageBase64: string, imageMimeType: string, requestId: string,
   gateway?: { id: string; token?: string },
 ) {
-  const signal = AbortSignal.timeout(3000);
-  const input = buildDeepScanGateInput(imageBase64, imageMimeType);
-  try {
-    const response = await binding.run(VISIBILITY_GATE_MODEL, input, {
-      signal,
-      returnRawResponse: true,
-      ...(gateway ? {
-        gateway: { id: gateway.id, skipCache: true, collectLog: false, retries: { maxAttempts: 1 as const },
-          metadata: { app: "pomona", request_id: requestId, stage: "deep-scan" } },
-        extraHeaders: gateway.token ? { "cf-aig-authorization": `Bearer ${gateway.token}` } : undefined,
-      } : {}),
-    });
-    if (!response.ok) {
-      await response.body?.cancel().catch(() => {});
-      throw Object.assign(new Error(`Workers AI HTTP ${response.status}`), { status: response.status });
-    }
-    return resolveDeepScanGate(await response.json());
-  } catch (error) {
-    if (gateDenialStatus(error)) throw error;
-    if (signal.aborted) throw Object.assign(new Error("Clef exceeded 3000ms timeout"), { name: "TimeoutError", timeoutMs: 3000 });
-    throw error;
-  }
+  const raw = await executeGateCall(
+    binding,
+    buildDeepScanGateInput(imageBase64, imageMimeType),
+    { app: "pomona", request_id: requestId, stage: "deep-scan" },
+    gateway
+  );
+  return resolveDeepScanGate(raw);
 }
 
 export function gateDenialStatus(error: unknown): "rate_limited" | "analysis_failed" | null {
@@ -146,7 +163,7 @@ export function buildDeepScanGateInput(imageBase64: string, imageMimeType: strin
     imageMimeType: imageMimeType as VisibilityGateRequest["imageMimeType"],
     focusPolygon: null,
   });
-  const { multiple_types: _multipleTypes, ...questions } = base.questions;
+  const { multiple_types: _multipleTypes, single_produce: _singleProduce, ...questions } = base.questions;
   return { ...base, state: `${base.state} ${DEEP_SCAN_PREAMBLE}`, questions };
 }
 
@@ -165,5 +182,35 @@ export function resolveDeepScanGate(raw: unknown): { status: DeepScanGateStatus 
     status: failures.length === 1 ? failures[0] : null,
     usage,
     scores: { no_produce: answers.data.no_produce.noul, unclear_photo: answers.data.unclear_photo.noul },
+  };
+}
+
+export function deepScanGateResponse(
+  status: DeepScanGateStatus | "rate_limited" | "analysis_failed",
+  localeInput: string,
+  promptVersion: string = "deep_scan_v1",
+  modelId: string = VISIBILITY_GATE_MODEL,
+): DeepScanResponse {
+  const locale = resolveDisplayLocale(localeInput, null);
+  const messages: Record<DeepScanGateStatus | "rate_limited" | "analysis_failed", string> = {
+    no_produce: translateShared(locale, "gate.noProduce"),
+    unclear_photo: translateShared(locale, "gate.unclearPhoto"),
+    rate_limited: translateShared(locale, "gate.rateLimited"),
+    analysis_failed: translateShared(locale, "gate.failed"),
+  };
+  return {
+    schemaVersion: "1.0",
+    promptVersion,
+    modelId,
+    status: (status === "no_produce" || status === "unclear_photo") ? "insufficient_evidence" : status,
+    message: messages[status],
+    abstentionReason: null,
+    produce: { type: "unknown", displayName: "Unknown", variety: null },
+    ripeness: { state: "unknown", confidence: 0 },
+    evidence: [],
+    quality: { sufficientVisualEvidence: false, viewCoverage: "poor", reason: null },
+    manualChecks: null,
+    recommendation: null,
+    afterPurchase: null,
   };
 }

@@ -40,13 +40,22 @@ describe("deep scan state machine phases", () => {
     expect(next.dsSampleMeta).toBeNull();
   });
 
-  it("DS_CAPTURE_REJECTED stays on the capture phase with localized copy", () => {
+  it("DS_CAPTURE_REJECTED transitions to the result phase with error style and localized copy", () => {
     const entered = run(initialScanMachineState(), { type: "ENTER_DEEP_SCAN", origin: "tie" });
     const rejected = run(entered, { type: "DS_CAPTURE_REJECTED", reason: "all_blurry" });
-    expect(rejected.phase).toBe("S_DS_Capture");
+    expect(rejected.phase).toBe("S_DS_Result");
+    expect(rejected.status).toBe("analysis_failed");
+    expect(rejected.dsResult).toBeNull();
+    expect(rejected.dsLocalRejectReason).toBe("all_blurry");
     expect(rejected.errorMessage).toBe(uiCopy("deepScan.localTooBlurry"));
     const dark = run(entered, { type: "DS_CAPTURE_REJECTED", reason: "too_dark_or_bright" });
+    expect(dark.phase).toBe("S_DS_Result");
+    expect(dark.dsLocalRejectReason).toBe("too_dark_or_bright");
     expect(dark.errorMessage).toBe(uiCopy("deepScan.localTooDark"));
+    const notRotated = run(entered, { type: "DS_CAPTURE_REJECTED", reason: "not_rotated" });
+    expect(notRotated.phase).toBe("S_DS_Result");
+    expect(notRotated.dsLocalRejectReason).toBe("not_rotated");
+    expect(notRotated.errorMessage).toBe(uiCopy("deepScan.localNotRotated"));
     expect(rejected.dsOrigin).toBe("tie");
   });
 
@@ -67,22 +76,30 @@ describe("deep scan state machine phases", () => {
     expect(succeeded.dsResult).toEqual(dsResponse);
   });
 
-  it("DS_SCAN_FAILED lands on the DS result phase in failure shape", () => {
+  it("DS_SCAN_FAILED lands on the DS result phase in failure shape, and DS_RETRY re-enters analysing with preserved composite", () => {
     const entered = run(initialScanMachineState(), { type: "ENTER_DEEP_SCAN", origin: "insufficient" });
-    const failed = run(entered, { type: "DS_SCAN_FAILED", error: "Deep scan unavailable. Try again later." });
+    const analysing = run(entered, { type: "DS_CAPTURE_COMPLETED", composite, sampleCount: 25, stats });
+    const failed = run(analysing, { type: "DS_SCAN_FAILED", error: "Deep scan unavailable. Try again later." });
     expect(failed.phase).toBe("S_DS_Result");
     expect(failed.dsResult).toBeNull();
     expect(failed.status).toBe("analysis_failed");
     expect(failed.errorMessage).toBe("Deep scan unavailable. Try again later.");
+    expect(failed.dsComposite).toEqual(composite);
+
+    const retried = run(failed, { type: "DS_RETRY" });
+    expect(retried.phase).toBe("S_DS_Analysing");
+    expect(retried.dsComposite).toEqual(composite);
+    expect(retried.errorMessage).toBeNull();
+    expect(retried.status).toBeNull();
   });
 
-  it("DS_CANCEL returns to the origin surface from every DS phase", () => {
+  it("DS_CANCEL returns to live camera without triggering an error screen", () => {
     const fromCapture = run(initialScanMachineState(), { type: "ENTER_DEEP_SCAN", origin: "tie" });
-    expect(run(fromCapture, { type: "DS_CANCEL" }).phase).toBe("S5B1_RunnerUpBeaten");
+    expect(run(fromCapture, { type: "DS_CANCEL" }).phase).toBe("S1_LiveCamera");
     const analysing = run(fromCapture, { type: "DS_CAPTURE_COMPLETED", composite, sampleCount: 25, stats });
-    expect(run(analysing, { type: "DS_CANCEL" }).phase).toBe("S5B1_RunnerUpBeaten");
+    expect(run(analysing, { type: "DS_CANCEL" }).phase).toBe("S1_LiveCamera");
     const fromResult = run(initialScanMachineState(), { type: "ENTER_DEEP_SCAN", origin: "insufficient" });
-    expect(run(fromResult, { type: "DS_CANCEL" }).phase).toBe("S_ScanError");
+    expect(run(fromResult, { type: "DS_CANCEL" }).phase).toBe("S1_LiveCamera");
     const bannerEntry = run(initialScanMachineState(), { type: "ENTER_DEEP_SCAN", origin: "result_banner" });
     expect(run(bannerEntry, { type: "DS_CANCEL" }).phase).toBe("S4_InitialResult");
     const bare = run(initialScanMachineState(), { type: "ENTER_DEEP_SCAN", origin: "insufficient" });

@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   selectFrames,
+  collectDeepScanFrames,
   sharpnessScore,
   exposureScore,
   similarityScore,
@@ -112,6 +113,38 @@ describe("selectFrames", () => {
     }
   });
 
+  it("spans the full timeline across 6 distinct rotation sectors", () => {
+    const { kept } = selectFrames(batch(25, "diverse"), params);
+    expect(kept).toHaveLength(6);
+    // First frame is from early rotation (sector 0: frames 0..4)
+    expect(kept[0].sequence).toBeLessThanOrEqual(4);
+    // Last frame is from late rotation (sector 5: frames 20..24)
+    expect(kept[kept.length - 1].sequence).toBeGreaterThanOrEqual(20);
+    // Each kept frame belongs to a distinct or well-spaced sequence
+    for (let i = 1; i < kept.length; i++) {
+      expect(kept[i].sequence - kept[i - 1].sequence).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("borrows from adjacent sectors when one sector is completely blurry", () => {
+    // Make 25 diverse frames, but make frames 8..11 (sector 2) completely blurry (mid-flat)
+    const samples = Array.from({ length: 25 }, (_, s) => {
+      if (s >= 8 && s <= 11) {
+        return makeFrame(s, "mid-flat");
+      }
+      return makeFrame(s, "diverse");
+    });
+    const { kept, stats } = selectFrames(samples, params);
+    // Still achieves 6 kept frames
+    expect(kept).toHaveLength(6);
+    // Sector 2 blurry frames were rejected
+    expect(stats.rejectedBlur).toBe(4);
+    // All kept frames are sharp
+    for (const f of kept) {
+      expect(f.sequence < 8 || f.sequence > 11).toBe(true);
+    }
+  });
+
   it("rejects an all-blurry batch via the sharpness floor", () => {
     const { kept, stats } = selectFrames(batch(25, "mid-flat"), params);
     expect(kept).toHaveLength(0);
@@ -142,5 +175,27 @@ describe("selectFrames", () => {
     const { kept, stats } = selectFrames(batch(30, "diverse"), params);
     expect(stats.sampled).toBe(30);
     expect(kept).toHaveLength(6);
+  });
+
+  it("collects 25 frames across the 5s capture duration", async () => {
+    let now = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const rafSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+      now += 200;
+      cb(now);
+      return 1;
+    });
+
+    const mockVideo = {
+      clientWidth: 320,
+      clientHeight: 320,
+    } as unknown as HTMLVideoElement;
+
+    const frames = await collectDeepScanFrames(mockVideo);
+    expect(frames.length).toBe(25);
+    expect(frames[frames.length - 1].sequence).toBe(24);
+
+    rafSpy.mockRestore();
+    vi.restoreAllMocks();
   });
 });

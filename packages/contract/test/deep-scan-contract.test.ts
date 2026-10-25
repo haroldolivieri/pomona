@@ -3,7 +3,7 @@ import {
   DeepScanAbstentionReasonSchema,
   DeepScanRequestSchema,
   DeepScanResponseModelSchema,
-} from "@pomona/contract";
+} from "../src/index";
 
 const validRequest = {
   schemaVersion: "1.0" as const,
@@ -105,26 +105,26 @@ describe("DeepScanResponseModelSchema", () => {
       quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
       manualChecks: null,
       recommendation: { eatWhen: "in_a_few_days" },
-        afterPurchase: {
-    readyInDays: { min: 1, max: 2 },
-    eatWithinDays: { min: 3, max: 4 },
-    eatWithinLabel: "3-4 days",
-    storage: {
-      beforeCut: {
-        where: "counter",
-        whereLabel: "Counter",
-        summary: "Whole on the counter",
-        tip: "Softens a little every day",
+      afterPurchase: {
+        readyInDays: { min: 1, max: 2 },
+        eatWithinDays: { min: 3, max: 4 },
+        eatWithinLabel: "3-4 days",
+        storage: {
+          beforeCut: {
+            where: "counter",
+            whereLabel: "Counter",
+            summary: "Whole on the counter",
+            tip: "Softens a little every day",
+          },
+          afterCut: {
+            where: "fridge",
+            whereLabel: "Fridge",
+            summary: "Sealed in the fridge",
+            tip: "Keep chilled in a container",
+          },
+        },
       },
-      afterCut: {
-        where: "fridge",
-        whereLabel: "Fridge",
-        summary: "Sealed in the fridge",
-        tip: "Keep chilled in a container",
-      },
-    },
-  },
-};
+    };
     const parsed = DeepScanResponseModelSchema.parse(model);
     expect(parsed.afterPurchase?.eatWithinLabel).toBe("3-4 days");
   });

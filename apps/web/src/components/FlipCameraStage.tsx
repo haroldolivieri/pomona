@@ -27,6 +27,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
       ? navigator.onLine
       : true
   );
+  const [isCapturing, setIsCapturing] = useState<boolean>(false);
   const { phase, lastResponse, firstPick, runnerUp, round1PhotoDataUrl } = state;
 
   useEffect(() => {
@@ -100,7 +101,8 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleCapture = () => {
-    if (!isOnline) return;
+    if (!isOnline || isCapturing) return;
+    setIsCapturing(true);
     if (videoRef.current && streamActive) {
       const video = videoRef.current;
       const container = containerRef.current;
@@ -502,113 +504,151 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
             backdropFilter: "blur(12px)",
           }}
         >
-          {/* Eyebrow */}
-          <div
-            data-testid="flip-instruction-eyebrow"
-            style={{
-              fontFamily: "Inter, sans-serif",
-              fontWeight: 700,
-              fontSize: "10.5px",
-              letterSpacing: "0.11em",
-              textTransform: "uppercase",
-              color: isFinalCheck ? "#9a740a" : "#2f6db5",
-              marginBottom: "4px",
-            }}
-          >
-            {isFinalCheck
-              ? uiCopy("copy.finalCheckBeatToReclaim", { value1: runnerUpScore })
-              : uiCopy("copy.inspectRunnerUp")}
-          </div>
-
-          {/* Title */}
-          <h2
-            className="font-serif"
-            style={{
-              fontFamily: "Fraunces, Georgia, serif",
-              fontSize: "19px",
-              fontWeight: 600,
-              lineHeight: 1.2,
-              color: "#142117",
-              margin: "2px 0 4px",
-            }}
-          >
-            {isOnline ? headline : t("camera.offlineTitle")}
-          </h2>
-
-          {/* Description */}
-          <p
-            style={{
-              fontFamily: "Inter, sans-serif",
-              fontSize: "12px",
-              fontWeight: 500,
-              lineHeight: 1.35,
-              color: "#55544f",
-              margin: 0,
-            }}
-          >
-            {isOnline ? instruction : t("camera.offlineSubtitle")}
-          </p>
-
-          {/* Goal & Score Pills */}
-          <div
-            style={{
-              display: "flex",
-              gap: "8px",
-              justifyContent: "center",
-              alignItems: "center",
-              marginTop: "8px",
-              flexWrap: "wrap",
-            }}
-          >
+          {isCapturing ? (
             <div
-              data-testid="flip-goal-pill"
+              data-testid="flip-instruction-loading"
               style={{
-                backgroundColor: "#eee9dc",
-                color: "#142117",
-                fontFamily: "Inter, sans-serif",
-                fontSize: "11px",
-                fontWeight: 700,
-                padding: "5px 12px",
-                borderRadius: "999px",
-                display: "inline-flex",
+                display: "flex",
                 alignItems: "center",
-                gap: "5px",
+                justifyContent: "center",
+                gap: "8px",
+                padding: "8px 0",
               }}
             >
-              <span>🎯</span>
-              <span>
-                {targetRipeness === "in_2_3_days"
-                  ? uiCopy("copy.in23Days")
-                  : targetRipeness === "later_this_week"
-                  ? uiCopy("copy.laterThisWeek")
-                  : uiCopy("copy.readyNow")}
+              <div
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  borderRadius: "50%",
+                  border: "2.5px solid rgba(20, 33, 23, 0.2)",
+                  borderTopColor: "#2F5D34",
+                  animation: "spin 0.8s linear infinite",
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                className="font-serif"
+                style={{
+                  fontFamily: "Fraunces, Georgia, serif",
+                  fontSize: "17px",
+                  fontWeight: 600,
+                  color: "#142117",
+                }}
+              >
+                {uiCopy("copy.checkingRipeness")}
               </span>
             </div>
+          ) : (
+            <>
+              {/* Eyebrow */}
+              <div
+                data-testid="flip-instruction-eyebrow"
+                style={{
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 700,
+                  fontSize: "10.5px",
+                  letterSpacing: "0.11em",
+                  textTransform: "uppercase",
+                  color: isFinalCheck ? "#9a740a" : "#2f6db5",
+                  marginBottom: "4px",
+                }}
+              >
+                {isFinalCheck
+                  ? uiCopy("copy.finalCheckBeatToReclaim", { value1: runnerUpScore })
+                  : uiCopy("copy.inspectRunnerUp")}
+              </div>
 
-            <div
-              data-testid="flip-score-pill"
-              style={{
-                display: "inline-block",
-                backgroundColor: "#eee9dc",
-                color: "#142117",
-                fontFamily: "Inter, sans-serif",
-                fontSize: "11px",
-                fontWeight: 700,
-                padding: "5px 12px",
-                borderRadius: "999px",
-              }}
-            >
-              {isFinalCheck
-                ? uiCopy("copy.currentLeader1stWinnerTopOnly", { value1: runnerUpScore, value2: firstPickScore })
-                : uiCopy("copy.winnerToBeat10", { value1: winnerToBeatScore })}
-            </div>
-          </div>
+              {/* Title */}
+              <h2
+                className="font-serif"
+                style={{
+                  fontFamily: "Fraunces, Georgia, serif",
+                  fontSize: "19px",
+                  fontWeight: 600,
+                  lineHeight: 1.2,
+                  color: "#142117",
+                  margin: "2px 0 4px",
+                }}
+              >
+                {isOnline ? headline : t("camera.offlineTitle")}
+              </h2>
+
+              {/* Description */}
+              <p
+                style={{
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  lineHeight: 1.35,
+                  color: "#55544f",
+                  margin: 0,
+                }}
+              >
+                {isOnline ? instruction : t("camera.offlineSubtitle")}
+              </p>
+
+              {/* Goal & Score Pills */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginTop: "8px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div
+                  data-testid="flip-goal-pill"
+                  style={{
+                    backgroundColor: "#eee9dc",
+                    color: "#142117",
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    padding: "5px 12px",
+                    borderRadius: "999px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                  }}
+                >
+                  <span>🎯</span>
+                  <span>
+                    {targetRipeness === "in_2_3_days"
+                      ? uiCopy("copy.in23Days")
+                      : targetRipeness === "later_this_week"
+                      ? uiCopy("copy.laterThisWeek")
+                      : uiCopy("copy.readyNow")}
+                  </span>
+                </div>
+
+                <div
+                  data-testid="flip-score-pill"
+                  style={{
+                    display: "inline-block",
+                    backgroundColor: "#eee9dc",
+                    color: "#142117",
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    padding: "5px 12px",
+                    borderRadius: "999px",
+                  }}
+                >
+                  {isFinalCheck
+                    ? uiCopy("copy.currentLeader1stWinnerTopOnly", { value1: runnerUpScore, value2: firstPickScore })
+                    : uiCopy("copy.winnerToBeat10", { value1: winnerToBeatScore })}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Shutter Button */}
         <button
           onClick={handleCapture}
-          disabled={!isOnline}
+          disabled={!isOnline || isCapturing}
           data-testid="flip-shutter-button"
           aria-label={uiCopy("copy.captureFlippedProduce")}
           style={{
@@ -619,8 +659,8 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
             border: "4px solid #FFFFFF",
             padding: "4px",
             boxSizing: "border-box",
-            cursor: isOnline ? "pointer" : "not-allowed",
-            opacity: isOnline ? 1 : 0.45,
+            cursor: isOnline && !isCapturing ? "pointer" : "not-allowed",
+            opacity: isOnline && !isCapturing ? 1 : 0.45,
             boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
             display: "flex",
             alignItems: "center",

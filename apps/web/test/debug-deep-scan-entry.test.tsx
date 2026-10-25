@@ -39,34 +39,34 @@ const stubClient = {
 };
 
 describe("Debug deep-scan entry", () => {
-  it("shows the ✦ Precise scan shortcut in the debug row only for debug users", () => {
+  it("does not show the inspect button in the debug row (inspect is in the top mode switcher)", () => {
     const withDebug = render(<PomonaApp apiClient={stubClient as any} telemetry={recordingTelemetry().provider} enableDebugOverride={true} />);
-    expect(withDebug.getByTestId("dev-deep-scan-button")).toBeInTheDocument();
+    expect(withDebug.queryByTestId("dev-deep-scan-button")).not.toBeInTheDocument();
     withDebug.unmount();
 
     const withoutDebug = render(<PomonaApp apiClient={stubClient as any} telemetry={recordingTelemetry().provider} enableDebugOverride={false} />);
     expect(withoutDebug.queryByTestId("dev-deep-scan-button")).not.toBeInTheDocument();
   });
 
-  it("jumps straight from the live camera to deep-scan capture via the debug shortcut", async () => {
+  it("jumps straight from the live camera to deep-scan capture via the mode tab", async () => {
     const { events, provider } = recordingTelemetry();
     render(<PomonaApp apiClient={stubClient as any} telemetry={provider} enableDebugOverride={true} />);
 
-    fireEvent.click(screen.getByTestId("dev-deep-scan-button"));
+    fireEvent.click(screen.getByTestId("mode-tab-inspect"));
     expect(await screen.findByTestId("stage-S_DS_Capture")).toBeTruthy();
     expect(screen.getByTestId("ds-oval")).toBeInTheDocument();
 
     const started = events.find((e) => e.name === "deep_scan_started");
-    expect(started!.props).toMatchObject({ origin: "debug" });
+    expect(started!.props).toMatchObject({ origin: "mode_tab" });
   });
 
-  it("returns to the live camera when capture is cancelled from the debug entry (origin debug)", async () => {
+  it("returns to the live camera when capture is cancelled from the inspect entry", async () => {
     const { events, provider } = recordingTelemetry();
     render(<PomonaApp apiClient={stubClient as any} telemetry={provider} enableDebugOverride={true} />);
 
-    fireEvent.click(screen.getByTestId("dev-deep-scan-button"));
+    fireEvent.click(screen.getByTestId("mode-tab-inspect"));
     expect(await screen.findByTestId("stage-S_DS_Capture")).toBeTruthy();
-    fireEvent.click(screen.getByTestId("ds-cancel-button"));
+    fireEvent.click(screen.getByTestId("mode-tab-compare"));
     await waitFor(() => expect(screen.getByTestId("stage-S1_LiveCamera")).toBeTruthy());
 
     const names = events.filter((e) => e.name.startsWith("deep_scan_")).map((e) => e.name);
@@ -79,20 +79,58 @@ describe("Debug deep-scan entry", () => {
       <PomonaApp
         apiClient={stubClient as any}
         telemetry={provider}
-        initialState={{ phase: "S_DS_Capture", status: null, errorMessage: null, dsOrigin: "debug" }}
+        initialState={{ phase: "S_DS_Capture", status: null, errorMessage: null, dsOrigin: "mode_tab" }}
         enableDebugOverride={true}
       />
     );
     expect(screen.getByTestId("stage-S_DS_Capture")).toBeTruthy();
-    fireEvent.click(screen.getByTestId("dev-deep-scan-button"));
+    fireEvent.click(screen.getByTestId("mode-tab-inspect"));
     expect(await screen.findByTestId("stage-S_DS_Capture")).toBeTruthy();
     expect(events.filter((e) => e.name === "deep_scan_started")).toHaveLength(0);
   });
 
-  it("mock mode accepts even a dark, unusable capture and reaches the mocked result", async () => {
+  it("rejects dark unusable frames even in mock mode and displays camera adjustment sheet", async () => {
     localStorage.setItem("pomona-mock-mode", "true");
     try {
       await runDarkCaptureFlow();
+    } finally {
+      localStorage.removeItem("pomona-mock-mode");
+    }
+  });
+
+  it("mock mode with valid capture reaches mocked result verdict card", async () => {
+    localStorage.setItem("pomona-mock-mode", "true");
+    try {
+      render(
+        <PomonaApp
+          apiClient={stubClient as any}
+          telemetry={recordingTelemetry().provider}
+          enableDebugOverride={true}
+          deepScanCollect={async (video) => {
+            void video;
+            return [0, 1, 2, 3, 4, 5].map((i) => {
+              const gray = new Float32Array(24 * 24);
+              for (let j = 0; j < gray.length; j++) {
+                gray[j] = ((j % 24 ^ Math.floor(j / 24)) & 1) === 0 ? 220 : 35;
+              }
+              return {
+                sequence: i,
+                gray,
+                grayW: 24,
+                grayH: 24,
+                thumb: new Float32Array(24 * 24).fill(i % 2 === 0 ? 100 : 160),
+                dataUrl: `data:image/png;base64,VALID${i}`,
+              };
+            });
+          }}
+          deepScanBuild={fakeBuild}
+        />
+      );
+      fireEvent.click(screen.getByTestId("mode-tab-inspect"));
+      expect(await screen.findByTestId("stage-S_DS_Capture")).toBeTruthy();
+      fireEvent.click(screen.getByTestId("ds-go-button"));
+      await screen.findByTestId("stage-S_DS_Result", {}, { timeout: 10000 });
+      expect(screen.getByTestId("ds-verdict-card")).toBeInTheDocument();
     } finally {
       localStorage.removeItem("pomona-mock-mode");
     }
@@ -108,7 +146,7 @@ describe("Debug deep-scan entry", () => {
           void video;
           return [0, 1, 2].map((i) => ({
             sequence: i,
-            gray: new Float32Array(24 * 24).fill(4), // nearly black: real screening would reject
+            gray: new Float32Array(24 * 24).fill(4), // nearly black: real screening rejects
             grayW: 24,
             grayH: 24,
             thumb: new Float32Array(24 * 24).fill(4),
@@ -119,15 +157,11 @@ describe("Debug deep-scan entry", () => {
       />
     );
 
-    fireEvent.click(screen.getByTestId("dev-deep-scan-button"));
+    fireEvent.click(screen.getByTestId("mode-tab-inspect"));
     expect(await screen.findByTestId("stage-S_DS_Capture")).toBeTruthy();
-    const analysingPromise = screen.findByTestId("stage-S_DS_Analysing");
     fireEvent.click(screen.getByTestId("ds-go-button"));
-    await analysingPromise;
-    await waitFor(() => expect(screen.getByTestId("ds-analysing-oval")).toBeInTheDocument());
-    expect(screen.getByTestId("ds-scanning-beam")).toBeInTheDocument();
-    await screen.findByTestId("stage-S_DS_Result", {}, { timeout: 5000 });
-    expect(screen.getByTestId("ds-verdict-card")).toBeInTheDocument(); // mocked canned data
+    await screen.findByTestId("stage-S_DS_Result", {}, { timeout: 10000 });
+    expect(screen.getByTestId("ds-failure-card")).toBeInTheDocument();
   }
 });
 

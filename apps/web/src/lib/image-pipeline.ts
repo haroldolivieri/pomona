@@ -617,6 +617,120 @@ export function captureViewportCrop(
   return canvas.toDataURL(format, quality);
 }
 
+/**
+ * Computes the source video crop rectangle centered on the deep-scan oval reticle.
+ */
+export function computeDeepScanCropRect(
+  videoWidth: number,
+  videoHeight: number,
+  containerWidth: number,
+  containerHeight: number
+): { sx: number; sy: number; sw: number; sh: number } {
+  if (!videoWidth || !videoHeight || !containerWidth || !containerHeight) {
+    return { sx: 0, sy: 0, sw: videoWidth || 320, sh: videoHeight || 320 };
+  }
+
+  // Cover rect maps container coordinates to video feed
+  const cover = computeObjectFitCoverRect(containerWidth, containerHeight, videoWidth, videoHeight);
+
+  // Frame geometry from DEEP_SCAN_OVAL_STYLE:
+  // width: 272px, height: 288px, top: 46%, left: 50%, translate(-50%, -50%)
+  const ovalW = Math.min(272, containerWidth * 0.8);
+  const ovalH = Math.min(288, containerHeight * 0.85);
+  const ovalCenterX = containerWidth * 0.5;
+  const ovalCenterY = containerHeight * 0.46;
+
+  // Square capture box preserving the full oval with breathing margin (so no edges are cut)
+  const marginMultiplier = 1.08;
+  const boxSizeScreen = Math.max(ovalW, ovalH) * marginMultiplier;
+
+  // Center on oval
+  const halfBox = boxSizeScreen / 2;
+  const cropLeftScreen = ovalCenterX - halfBox;
+  const cropTopScreen = ovalCenterY - halfBox;
+
+  // Map screen square coordinates into video source coordinates
+  const scale = videoWidth / cover.width;
+  let sourceX = (cropLeftScreen - cover.left) * scale;
+  let sourceY = (cropTopScreen - cover.top) * scale;
+  let sourceSize = boxSizeScreen * scale;
+
+  // Clamp within source video bounds
+  if (sourceX < 0) {
+    sourceX = 0;
+  }
+  if (sourceY < 0) {
+    sourceY = 0;
+  }
+  if (sourceX + sourceSize > videoWidth) {
+    sourceSize = Math.min(sourceSize, videoWidth - sourceX);
+  }
+  if (sourceY + sourceSize > videoHeight) {
+    sourceSize = Math.min(sourceSize, videoHeight - sourceY);
+  }
+
+  return { sx: sourceX, sy: sourceY, sw: sourceSize, sh: sourceSize };
+}
+
+/**
+ * Captures a square crop from the video feed precisely centered on the deep-scan oval reticle,
+ * ensuring the full area inside the oval is 100% preserved and all captured pictures share
+ * the exact same square aspect ratio without cutting off the top or bottom of the fruit.
+ */
+export function captureDeepScanCrop(
+  video: HTMLVideoElement,
+  containerWidth: number,
+  containerHeight: number,
+  format: "image/webp" | "image/jpeg" = "image/jpeg",
+  quality = 0.85
+): string {
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+
+  if (!vw || !vh || !containerWidth || !containerHeight) {
+    const canvas = document.createElement("canvas");
+    const fallbackSize = 448;
+    canvas.width = fallbackSize;
+    canvas.height = fallbackSize;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, fallbackSize, fallbackSize);
+      return canvas.toDataURL(format, quality);
+    }
+    return "";
+  }
+
+  const { sx: sourceX, sy: sourceY, sw: sourceSize } = computeDeepScanCropRect(
+    vw,
+    vh,
+    containerWidth,
+    containerHeight
+  );
+
+  // Target canvas: consistent square size
+  const destSize = Math.min(720, Math.max(448, Math.round(sourceSize)));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = destSize;
+  canvas.height = destSize;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+
+  ctx.drawImage(
+    video,
+    sourceX,
+    sourceY,
+    sourceSize,
+    sourceSize,
+    0,
+    0,
+    destSize,
+    destSize
+  );
+
+  return canvas.toDataURL(format, quality);
+}
+
 export interface RenderedCoverRect {
   left: number;
   top: number;

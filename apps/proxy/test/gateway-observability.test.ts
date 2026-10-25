@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createProxyApp } from "@pomona/proxy";
+import { createProxyApp } from "../src/index";
 
 type TestEnv = Record<string, string | undefined> & { COOKIE_SIGNING_SECRET: string };
 

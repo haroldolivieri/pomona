@@ -1,18 +1,16 @@
 import { currentDisplayLocale } from "./i18n/copy";
 import { useTranslation } from "react-i18next";
 import { uiCopy } from "./i18n/copy";
-import React, { useReducer, useState, useEffect, useRef } from "react";
+import React, { useReducer, useState, useEffect, useRef, lazy, Suspense } from "react";
 import type { ScanRequest, Point, ScanResponse, DeepScanRequest, DeepScanResponse } from "@pomona/contract";
 import type { PomonaApiClient } from "./lib/api-client";
 import type { TelemetryProvider } from "./lib/telemetry";
 import {
   assembleDeepScanPayload,
   DeepScanLocalReject,
-  mockDeepScanFrames,
-  saveDeepScanDebugCapture,
   type CollectedFrame,
-  type DeepScanDebugCaptureRecord,
 } from "./lib/deep-scan-capture";
+import type { DeepScanDebugCaptureRecord } from "./lib/deep-scan-debug";
 import type { FrameSample } from "./lib/deep-scan-frames";
 import {
   initialScanMachineState,
@@ -44,7 +42,10 @@ import { ScanErrorStage } from "./components/ScanErrorStage";
 import { DeepScanViewfinder } from "./components/DeepScanViewfinder";
 import { DeepScanResultStage } from "./components/DeepScanResultStage";
 import { DeepScanAnalysingStage } from "./components/DeepScanAnalysingStage";
-import { DeepScanCaptureInspector } from "./components/DeepScanCaptureInspector";
+// Dev-only inspector: loaded on demand so it never ships in the production path.
+const DeepScanCaptureInspector = lazy(() =>
+  import("./components/DeepScanCaptureInspector").then((m) => ({ default: m.DeepScanCaptureInspector }))
+);
 import { Toast } from "./components/Toast";
 import "./styles/index.css";
 
@@ -403,41 +404,50 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
   const handleDeepScanComplete = async (collected: CollectedFrame[]) => {
     const isMockPipeline = isDevMode && isMockMode;
     const frames =
-      isMockPipeline && collected.length === 0 ? mockDeepScanFrames() : collected;
+      isMockPipeline && collected.length === 0
+        ? (await import("./lib/deep-scan-debug")).mockDeepScanFrames()
+        : collected;
+    const sessionId = generateUuid();
+    const allDataUrls = frames.map((f) => f.fullDataUrl || f.dataUrl);
+
     if (frames.length === 0) {
+      const debugRecord: DeepScanDebugCaptureRecord = {
+        sessionId,
+        at: new Date().toISOString(),
+        sampleCount: 0,
+        keptDataUrls: [],
+        allDataUrls: [],
+        compositeDataUrl: null,
+        rejectedReason: "all_blurry",
+      };
+      setDsDebugCapture(debugRecord);
       dispatch({ type: "DS_CAPTURE_REJECTED", reason: "all_blurry" });
       return;
     }
-    setDsFrozenFrame(frames[frames.length - 1]?.dataUrl ?? null);
+    const initialPreview =
+      frames[Math.floor(frames.length / 2)]?.fullDataUrl ||
+      frames[frames.length - 1]?.fullDataUrl ||
+      frames[frames.length - 1]?.dataUrl ||
+      null;
+    setDsFrozenFrame(initialPreview);
+    setDsBackgroundPhoto(initialPreview);
     try {
-      const sessionId = generateUuid();
       const payload = await assembleDeepScanPayload(frames, {
         ...(deepScanBuild ? { build: deepScanBuild } : {}),
-        ...(isMockPipeline
-          ? {
-              select: (samples: FrameSample[]) => ({
-                kept: samples.slice(0, 6),
-                keptScores: samples.slice(0, 6).map(() => 0.5),
-                stats: {
-                  sampled: samples.length,
-                  rejectedBlur: 0,
-                  rejectedExposure: 0,
-                  rejectedSimilarity: 0,
-                },
-              }),
-            }
-          : {}),
       });
       const debugRecord: DeepScanDebugCaptureRecord = {
         sessionId,
         at: new Date().toISOString(),
         sampleCount: payload.sampleCount,
         keptDataUrls: payload.keptDataUrls,
+        allDataUrls,
         compositeDataUrl: payload.composite.dataUrl,
+        rejectedReason: null,
       };
       setDsDebugCapture(debugRecord);
       setDsBackgroundPhoto(payload.bestDataUrl);
-      if (isDevMode && isLocalBuild) saveDeepScanDebugCapture(debugRecord);
+      setDsFrozenFrame(payload.bestDataUrl);
+      if (isLocalBuild) (await import("./lib/deep-scan-debug")).saveDeepScanDebugCapture(debugRecord);
       dispatch({
         type: "DS_CAPTURE_COMPLETED",
         composite: payload.composite,
@@ -452,14 +462,74 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
         imageMimeType: "image/jpeg",
         sampleCount: payload.sampleCount,
       };
-      const response: DeepScanResponse = await activeApiClient.submitDeepScan(request);
+      const result = await activeApiClient.submitDeepScan(request);
+      const response: DeepScanResponse =
+        result && typeof result === "object" && "response" in result && (result as any).response
+          ? (result as any).response
+          : (result as unknown as DeepScanResponse);
+
+      if (typeof (result as any)?.remainingScans === "number") {
+        setRemainingScans((result as any).remainingScans);
+      }
       dispatch({ type: "DS_SCAN_SUCCEEDED", response });
       telemetry.capture("deep_scan_completed", { status: response.status, sampleCount: payload.sampleCount });
     } catch (err) {
       if (err instanceof DeepScanLocalReject) {
+        const debugRecord: DeepScanDebugCaptureRecord = {
+          sessionId,
+          at: new Date().toISOString(),
+          sampleCount: frames.length,
+          keptDataUrls: [],
+          allDataUrls,
+          compositeDataUrl: null,
+          rejectedReason: err.reason,
+        };
+        setDsDebugCapture(debugRecord);
+        if (allDataUrls.length > 0) {
+          const previewIndex = Math.floor(allDataUrls.length / 2);
+          const previewUrl = allDataUrls[previewIndex] || allDataUrls[0];
+          setDsBackgroundPhoto(previewUrl);
+          setDsFrozenFrame(previewUrl);
+        }
+        if (isLocalBuild) {
+          (await import("./lib/deep-scan-debug")).saveDeepScanDebugCapture(debugRecord);
+        }
         dispatch({ type: "DS_CAPTURE_REJECTED", reason: err.reason });
         return;
       }
+      dispatch({
+        type: "DS_SCAN_FAILED",
+        error: uiCopy("errors.analysisFailed"),
+      });
+    }
+  };
+
+  const handleDeepScanRetry = async () => {
+    if (!state.dsComposite) return;
+    dispatch({ type: "DS_RETRY" });
+    try {
+      const sessionId = generateUuid();
+      const sampleCount = state.dsSampleMeta?.sampleCount ?? state.dsComposite.tileCount;
+      const request: DeepScanRequest = {
+        schemaVersion: "1.0",
+        sessionId,
+        locale: currentDisplayLocale(),
+        imageBase64: state.dsComposite.dataUrl.replace(/^data:image\/[a-z]+;base64,/, ""),
+        imageMimeType: "image/jpeg",
+        sampleCount,
+      };
+      const result = await activeApiClient.submitDeepScan(request);
+      const response: DeepScanResponse =
+        result && typeof result === "object" && "response" in result && (result as any).response
+          ? (result as any).response
+          : (result as unknown as DeepScanResponse);
+
+      if (typeof (result as any)?.remainingScans === "number") {
+        setRemainingScans((result as any).remainingScans);
+      }
+      dispatch({ type: "DS_SCAN_SUCCEEDED", response });
+      telemetry.capture("deep_scan_completed", { status: response.status, sampleCount });
+    } catch {
       dispatch({
         type: "DS_SCAN_FAILED",
         error: uiCopy("errors.analysisFailed"),
@@ -493,16 +563,41 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
   const renderCurrentStage = () => {
     switch (state.phase) {
       case "S1_LiveCamera":
+      case "S_DS_Capture":
         return (
-          <CameraViewfinder
-            onCapture={handleFrameCaptured}
-            remainingScans={remainingScans}
-            onQuotaClick={isLocalBuild ? handleQuotaPrompt : undefined}
-            onToggleTheme={toggleTheme}
-            theme={theme}
-            onBrandTap={handleBrandTap}
-            showLanguageSelector={isDevMode && isLocalBuild}
-          />
+          <>
+            <CameraViewfinder
+              key="pomona-live-viewfinder"
+              mode={state.phase === "S_DS_Capture" ? "inspect" : "compare"}
+              onCapture={handleFrameCaptured}
+              remainingScans={remainingScans}
+              onQuotaClick={isLocalBuild ? handleQuotaPrompt : undefined}
+              onToggleTheme={toggleTheme}
+              theme={theme}
+              onBrandTap={handleBrandTap}
+              showLanguageSelector={isDevMode && isLocalBuild}
+              notice={state.errorMessage}
+              deepScan={{
+                collect: deepScanCollect,
+                onComplete: handleDeepScanComplete,
+                onCancel: handleDeepScanCancel,
+                notice: state.errorMessage,
+              }}
+              onModeChange={(newMode) => {
+                if (newMode === "inspect") {
+                  telemetry.capture("deep_scan_started", { origin: "mode_tab" });
+                  dispatch({ type: "ENTER_DEEP_SCAN", origin: "mode_tab" });
+                } else {
+                  handleDeepScanCancel();
+                }
+              }}
+            />
+            {isDevMode && isLocalBuild && dsDebugCapture && state.phase === "S_DS_Capture" ? (
+              <Suspense fallback={null}>
+                <DeepScanCaptureInspector record={dsDebugCapture} />
+              </Suspense>
+            ) : null}
+          </>
         );
 
       case "S2_DrawFocusArea":
@@ -529,51 +624,69 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
           />
         );
 
-      case "S_ScanError":
+      case "S_ScanError": {
+        const candidateCount = state.lastResponse?.candidates?.length ?? state.lastResponse?.countedTotal ?? 0;
+        const isSingleProduce = Boolean(
+          state.status === "single_produce" ||
+          (state.status === "insufficient_evidence" && (
+            candidateCount === 1 ||
+            /single/i.test(state.lastResponse?.message ?? "")
+          ))
+        );
         return (
           <ScanErrorStage
             status={state.status}
             abstentionReason={state.lastResponse?.abstentionReason}
             errorMessage={state.errorMessage}
             photoDataUrl={state.currentPhotoDataUrl || state.round1PhotoDataUrl}
+            isSingleProduce={isSingleProduce}
             onRetake={() => dispatch({ type: "DISMISS_ERROR" })}
             onDrawFocus={
               state.status === "multiple_types" || state.status === "unclear_photo"
                 ? () => dispatch({ type: "DRAW_FOCUS_AFTER_ERROR" })
                 : undefined
             }
-            onDeepScan={() => {
-              telemetry.capture("deep_scan_started", {
-                origin: state.lastResponse?.abstentionReason === "assessed_tie" ? "tie" : "insufficient",
-              });
-              dispatch({
-                type: "ENTER_DEEP_SCAN",
-                origin: state.lastResponse?.abstentionReason === "assessed_tie" ? "tie" : "insufficient",
-              });
-            }}
+            onDeepScan={
+              isSingleProduce
+                ? () => {
+                    telemetry.capture("deep_scan_started", { origin: "single_produce_cta" });
+                    dispatch({
+                      type: "ENTER_DEEP_SCAN",
+                      origin: "single_produce_cta",
+                    });
+                  }
+                : state.status === "insufficient_evidence" ||
+                  state.lastResponse?.status === "insufficient_evidence" ||
+                  state.lastResponse?.abstentionReason === "assessed_tie" ||
+                  state.lastResponse?.abstentionReason === "missing_evidence"
+                ? () => {
+                    const isTie = state.lastResponse?.abstentionReason === "assessed_tie";
+                    telemetry.capture("deep_scan_started", {
+                      origin: isTie ? "tie" : "insufficient",
+                    });
+                    dispatch({
+                      type: "ENTER_DEEP_SCAN",
+                      origin: isTie ? "tie" : "insufficient",
+                    });
+                  }
+                : undefined
+            }
           />
         );
-
-      case "S_DS_Capture":
-        return (
-          <DeepScanViewfinder
-            collect={deepScanCollect}
-            onComplete={handleDeepScanComplete}
-            onCancel={handleDeepScanCancel}
-            notice={state.errorMessage}
-            onBrandTap={handleBrandTap}
-            showLanguageSelector={isDevMode && isLocalBuild}
-          />
-        );
+      }
 
       case "S_DS_Analysing":
         return (
           <>
             <DeepScanAnalysingStage
-              backgroundUrl={dsFrozenFrame}
+              backgroundUrl={dsBackgroundPhoto ?? dsFrozenFrame}
               onCancel={handleDeepScanCancel}
             />
-            {isDevMode && isLocalBuild ? <DeepScanCaptureInspector record={dsDebugCapture} /> : null}
+            {isDevMode && isLocalBuild ? (
+              <Suspense fallback={null}>
+                <DeepScanCaptureInspector record={dsDebugCapture} />
+              </Suspense>
+            ) : null}
           </>
         );
 
@@ -583,16 +696,36 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             <DeepScanResultStage
               response={state.dsResult}
               errorMessage={state.errorMessage}
-              backgroundPhotoUrl={dsBackgroundPhoto}
+              localRejectReason={state.dsLocalRejectReason}
+              backgroundPhotoUrl={dsBackgroundPhoto ?? dsFrozenFrame}
+              onRetry={state.dsComposite ? handleDeepScanRetry : undefined}
               onNewScan={() => {
                 telemetry.capture(state.dsResult ? "deep_scan_accepted" : "deep_scan_rescanned", {
                   status: state.dsResult?.status ?? state.status,
                 });
                 setDsFrozenFrame(null);
-                dispatch({ type: "RESET" });
+                setDsBackgroundPhoto(null);
+                const isError =
+                  !state.dsResult ||
+                  state.dsResult.status !== "ok" ||
+                  state.dsLocalRejectReason !== null ||
+                  !state.dsResult.quality?.sufficientVisualEvidence;
+                if (
+                  isError ||
+                  state.dsOrigin === "mode_tab" ||
+                  state.dsOrigin === "single_produce_cta"
+                ) {
+                  dispatch({ type: "ENTER_DEEP_SCAN", origin: state.dsOrigin ?? "mode_tab" });
+                } else {
+                  dispatch({ type: "RESET" });
+                }
               }}
             />
-            {isDevMode && isLocalBuild ? <DeepScanCaptureInspector record={dsDebugCapture} /> : null}
+            {isDevMode && isLocalBuild ? (
+              <Suspense fallback={null}>
+                <DeepScanCaptureInspector record={dsDebugCapture} />
+              </Suspense>
+            ) : null}
           </>
         );
 
@@ -721,32 +854,6 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
             }}
           >
             ⚡ {uiCopy("copy.scans", { count: remainingScans })}
-          </button>
-
-          <button
-            type="button"
-            data-testid="dev-deep-scan-button"
-            aria-label={uiCopy("deepScan.preciseScanCta")}
-            title={uiCopy("deepScan.bannerBody")}
-            onClick={() => {
-              if (state.phase === "S_DS_Capture" || state.phase === "S_DS_Analysing" || state.phase === "S_DS_Result") return;
-              telemetry.capture("deep_scan_started", { origin: "debug" });
-              dispatch({ type: "ENTER_DEEP_SCAN", origin: "debug" });
-            }}
-            style={{
-              background: "rgba(0,0,0,0.35)",
-              border: "1px solid rgba(255,255,255,0.3)",
-              color: "#F5D547",
-              padding: "4px 9px",
-              borderRadius: "12px",
-              fontSize: "10.5px",
-              fontWeight: 600,
-              cursor: "pointer",
-              backdropFilter: "blur(6px)",
-              WebkitBackdropFilter: "blur(6px)",
-            }}
-          >
-            ✦ {uiCopy("deepScan.preciseScanCta")}
           </button>
         </div>
       )}

@@ -104,6 +104,7 @@ ok = (await compose({ label: "ds-01-ideal-avocado.jpg", sources: variantSources(
 ok = (await compose({ label: "ds-03-blurry-avocado.jpg", sources: variantSources(avocadoDataUrl), filter: "blurry" })) <= TARGET_BYTES && ok;
 ok = (await compose({ label: "ds-04-dark-avocado.jpg", sources: variantSources(avocadoDataUrl), filter: "dark" })) <= TARGET_BYTES && ok;
 ok = (await compose({ label: "ds-02-empty-oval.jpg", sources: Array(6).fill(null), filter: "empty" })) <= TARGET_BYTES && ok;
+ok = (await compose({ label: "ds-05-same-side-avocado.jpg", sources: variantSources(avocadoDataUrl), filter: "none" })) <= TARGET_BYTES && ok;
 
 await browser.close();
 if (!ok) {

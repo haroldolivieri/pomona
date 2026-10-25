@@ -45,6 +45,9 @@ describe("DeepScanViewfinder oval-edge progress", () => {
       await Promise.resolve();
     });
     expect(screen.getByTestId("ds-oval-progress")).toBeInTheDocument();
+    expect(screen.getByTestId("ds-scanning-mask-overlay")).toBeInTheDocument();
+    expect(screen.getByTestId("ds-scanning-laser-beam")).toBeInTheDocument();
+    expect(screen.getAllByTestId("candidate-pulse-dot").length).toBeGreaterThanOrEqual(6);
 
     const atStart = offsetOf();
     expect(atStart).toBeGreaterThan(90); // nearly fully hidden at t≈0
@@ -70,6 +73,8 @@ describe("DeepScanViewfinder oval-edge progress", () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect((onComplete.mock.calls[0][0] as CollectedFrame[]).map((f) => f.sequence)).toEqual([0, 1]);
     expect(screen.queryByTestId("ds-oval-progress")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("ds-scanning-mask-overlay")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("ds-scanning-laser-beam")).not.toBeInTheDocument();
   });
 
   it("adopts the capture oval geometry edges exactly", async () => {

@@ -36,9 +36,10 @@ function withLocale(locale: string): DeepScanRequest {
 }
 
 describe("createMockApiClient.submitDeepScan", () => {
-  it("returns the confident verdict shape with no manual checks", async () => {
+  it("returns the confident verdict shape with no manual checks and decrements shared quota", async () => {
     const client = createMockApiClient({ deepScanLatencyMs: 0 });
-    const response: DeepScanResponse = await client.submitDeepScan(dsRequest);
+    const { response, remainingScans } = await client.submitDeepScan(dsRequest);
+    expect(remainingScans).toBe(9);
     expect(response.schemaVersion).toBe("1.0");
     expect(response.promptVersion).toBe("deep_scan_v1");
     expect(response.status).toBe("ok");
@@ -50,7 +51,7 @@ describe("createMockApiClient.submitDeepScan", () => {
     expect(response.evidence.length).toBeLessThanOrEqual(6);
   });
 
-  it("returns the same_side_only abstention with localized manual checks per locale", async () => {
+  it("returns the same_side_only abstention with localized manual checks per locale without burning quota", async () => {
     const force = (value: string | null) => {
       if (value === null) {
         localStorage.removeItem("pomona-force-ds-error");
@@ -61,25 +62,28 @@ describe("createMockApiClient.submitDeepScan", () => {
     const client = createMockApiClient({ deepScanLatencyMs: 0 });
 
     force("same_side");
-    const en = await client.submitDeepScan(withLocale("en-GB"));
+    const { response: en, remainingScans: rEn } = await client.submitDeepScan(withLocale("en-GB"));
+    expect(rEn).toBe(10);
     expect(en.status).toBe("insufficient_evidence");
     expect(en.abstentionReason).toBe("same_side_only");
     expect(en.manualChecks?.length).toBe(2);
     const enChecks = en.manualChecks?.map((c) => `${c.trait}${c.how}${c.whatItMeans}`);
-    const pt = await client.submitDeepScan(withLocale("pt-BR"));
+    const { response: pt } = await client.submitDeepScan(withLocale("pt-BR"));
     expect(pt.manualChecks?.length).toBe(2);
     const ptChecks = pt.manualChecks?.map((c) => `${c.trait}${c.how}${c.whatItMeans}`);
     expect(ptChecks).not.toEqual(enChecks);
     expect(ptChecks?.join("\n")).toMatch(/[\u00C0-\u024F]/); // accents → spot-check localisation
 
     force("no_produce");
-    const denial = await client.submitDeepScan(dsRequest);
+    const { response: denial, remainingScans: rDenial } = await client.submitDeepScan(dsRequest);
+    expect(rDenial).toBe(10);
     expect(denial.status).toBe("insufficient_evidence");
     expect(denial.message?.length ?? 0).toBeGreaterThanOrEqual(8);
 
     force(null);
-    const normal = await client.submitDeepScan(dsRequest);
+    const { response: normal, remainingScans: rNormal } = await client.submitDeepScan(dsRequest);
     expect(normal.status).toBe("ok");
+    expect(rNormal).toBe(9);
   });
 
   it("keeps the laser analysing stage visible for about 2s by default (debug demo pacing)", async () => {

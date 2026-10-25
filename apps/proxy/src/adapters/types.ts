@@ -3,6 +3,8 @@ import type { PromptConfig } from "../prompts";
 import { verifyAndResolveScanResponse } from "../verifier/verify-response";
 import { traceStage, traceResponse, logScanResponse, type ScanTracing } from "../observability/scan-trace";
 
+import type { z } from "zod";
+
 export interface TokenUsage {
   promptTokens: number;
   completionTokens: number;
@@ -49,6 +51,7 @@ export interface AdapterInput {
   imageMimeType: "image/webp" | "image/jpeg";
   repairErrors?: string[];
   trace?: ModelTrace;
+  schema?: z.ZodTypeAny;
   kind?: { kind: "deep_scan"; request: DeepScanRequest };
 }
 

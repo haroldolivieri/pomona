@@ -60,5 +60,25 @@
     ],
     "imagePath": "dataset/deep-scan/ds-04-dark-avocado.jpg",
     "arm": "gate"
+  },
+  {
+    "id": "ds-05-same-side-avocado",
+    "description": "Numbered 2x3 montage showing the same side repeatedly without rotation; expects insufficient_evidence with abstentionReason same_side_only and manual checks.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "insufficient_evidence",
+        "expectedState": null,
+        "expectManualChecks": true
+      },
+      {
+        "locale": "pt-BR",
+        "expectedStatus": "insufficient_evidence",
+        "expectedState": null,
+        "expectManualChecks": true
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-05-same-side-avocado.jpg",
+    "arm": "live"
   }
 ]

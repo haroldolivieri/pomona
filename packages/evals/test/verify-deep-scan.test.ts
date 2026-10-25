@@ -205,8 +205,8 @@ describe("verifyAndResolveDeepScanResponse", () => {
   });
 });
 
-describe("runVerifiedDeepScan verify/repair cycle", () => {
-  it("keeps a verified first attempt (attempts 1)", async () => {
+describe("runVerifiedDeepScan execution", () => {
+  it("keeps a verified single attempt (attempts 1)", async () => {
     const { adapter, analyzeProduce } = makeAdapter(modelPayload());
     const out = await runVerifiedDeepScan(request, adapter, "deep_scan_v1", undefined, "req-1");
     expect(out.attempts).toBe(1);
@@ -215,26 +215,9 @@ describe("runVerifiedDeepScan verify/repair cycle", () => {
     expect(out.usage.totalTokens).toBe(15);
   });
 
-  it("repairs once feeding the verifier errors back to the model", async () => {
-    const missing = modelPayload({
-      status: "insufficient_evidence",
-      abstentionReason: "same_side_only",
-      message: "Only one side is visible. Rotate the fruit.",
-      produce: UNKNOWN_PLACEHOLDER,
-      ripeness: { state: "unknown", confidence: 0.3 },
-      manualChecks: [],
-    });
-    const { adapter, analyzeProduce } = makeAdapter(missing, modelPayload());
-    const out = await runVerifiedDeepScan(request, adapter, "deep_scan_v1", undefined, "req-2");
-    expect(out.attempts).toBe(2);
-    expect(out.response.status).toBe("ok");
-    expect(analyzeProduce.mock.calls[1][0].userPrompt).toContain("manualChecks");
-    expect(out.usage.totalTokens).toBe(30);
-  });
-
-  it("falls back to an analysis_failed envelope when both attempts fail verification", async () => {
+  it("falls back to an analysis_failed envelope without retrying when verification fails", async () => {
     const bad = modelPayload({ status: "multiple_types" as never });
-    const { adapter } = makeAdapter(bad, bad);
+    const { adapter, analyzeProduce } = makeAdapter(bad);
     const out = await runVerifiedDeepScan(request, adapter, "deep_scan_v1", undefined, "req-3");
     expect(out.response).toMatchObject({
       schemaVersion: "1.0",
@@ -242,7 +225,8 @@ describe("runVerifiedDeepScan verify/repair cycle", () => {
       modelId: "test-model",
       status: "analysis_failed",
     });
-    expect(out.attempts).toBe(2);
+    expect(out.attempts).toBe(1);
+    expect(analyzeProduce).toHaveBeenCalledTimes(1);
   });
 
   it("rethrows rate-limit errors instead of masking them", async () => {

@@ -1,0 +1,199 @@
+{
+  "timestamp": "2026-10-25T14:06:53.811Z",
+  "model": "google:gemini-3.1-flash-lite",
+  "maxAttempts": 2,
+  "passed": 0,
+  "total": 4,
+  "results": [
+    {
+      "id": "ds-01-ideal-avocado",
+      "locale": "en-GB",
+      "model": "google:gemini-3.1-flash-lite",
+      "pass": false,
+      "attemptsUsed": 2,
+      "reason": "expected ok, got analysis_failed",
+      "latencyMs": 7716,
+      "usage": {
+        "promptTokens": 2393,
+        "completionTokens": 538,
+        "totalTokens": 2931
+      },
+      "rawOutput": {
+        "schemaVersion": "1.0",
+        "promptVersion": "deep_scan_v1",
+        "modelId": "gemini-3.1-flash-lite",
+        "status": "analysis_failed",
+        "message": "Analysis failed to produce a valid verified result.",
+        "abstentionReason": null,
+        "produce": {
+          "type": "unknown",
+          "displayName": "Unknown",
+          "variety": null
+        },
+        "ripeness": {
+          "state": "unknown",
+          "confidence": 0
+        },
+        "evidence": [],
+        "quality": {
+          "sufficientVisualEvidence": false,
+          "viewCoverage": "poor",
+          "reason": null
+        },
+        "manualChecks": null,
+        "recommendation": null,
+        "afterPurchase": null
+      }
+    },
+    {
+      "id": "ds-01-ideal-avocado",
+      "locale": "pt-BR",
+      "model": "google:gemini-3.1-flash-lite",
+      "pass": false,
+      "attemptsUsed": 2,
+      "reason": "expected state nearly_ripe, got ripe",
+      "latencyMs": 4714,
+      "usage": {
+        "promptTokens": 2393,
+        "completionTokens": 424,
+        "totalTokens": 2817
+      },
+      "rawOutput": {
+        "status": "ok",
+        "message": "O abacate está maduro e pronto para consumo.",
+        "afterPurchase": {
+          "readyInDays": {
+            "min": 0,
+            "max": 0
+          },
+          "eatWithinDays": {
+            "min": 1,
+            "max": 2
+          },
+          "eatWithinLabel": "Consumir em até 2 dias",
+          "storage": {
+            "beforeCut": {
+              "where": "counter",
+              "whereLabel": "Bancada",
+              "summary": "Mantenha em temperatura ambiente",
+              "tip": "Se estiver muito maduro, coloque na geladeira para retardar o amadurecimento."
+            },
+            "afterCut": {
+              "where": "fridge",
+              "whereLabel": "Geladeira",
+              "summary": "Armazene em recipiente fechado",
+              "tip": "Use limão ou azeite na superfície exposta para evitar a oxidação."
+            }
+          }
+        },
+        "abstentionReason": null,
+        "produce": {
+          "type": "avocado",
+          "displayName": "Abacate",
+          "variety": "Hass"
+        },
+        "ripeness": {
+          "state": "ripe",
+          "confidence": 0.95
+        },
+        "evidence": [
+          "casca escura e rugosa característica da variedade",
+          "textura firme com leve cedência ao toque"
+        ],
+        "quality": {
+          "sufficientVisualEvidence": true,
+          "viewCoverage": "good",
+          "reason": null
+        },
+        "manualChecks": null,
+        "recommendation": {
+          "eatWhen": "today_or_tomorrow"
+        },
+        "schemaVersion": "1.0",
+        "promptVersion": "deep_scan_v1",
+        "modelId": "gemini-3.1-flash-lite"
+      }
+    },
+    {
+      "id": "ds-05-same-side-avocado",
+      "locale": "en-GB",
+      "model": "google:gemini-3.1-flash-lite",
+      "pass": false,
+      "attemptsUsed": 2,
+      "reason": "expected status insufficient_evidence, got no_produce",
+      "latencyMs": 7006,
+      "usage": {
+        "promptTokens": 2393,
+        "completionTokens": 835,
+        "totalTokens": 3228
+      },
+      "rawOutput": {
+        "status": "no_produce",
+        "message": "The image displays multiple fruits instead of a single fruit.",
+        "afterPurchase": null,
+        "abstentionReason": null,
+        "produce": {
+          "type": "unknown",
+          "displayName": "Unknown",
+          "variety": null
+        },
+        "ripeness": {
+          "state": "unknown",
+          "confidence": 0
+        },
+        "evidence": [],
+        "quality": {
+          "sufficientVisualEvidence": false,
+          "viewCoverage": "poor",
+          "reason": null
+        },
+        "manualChecks": [],
+        "recommendation": null,
+        "schemaVersion": "1.0",
+        "promptVersion": "deep_scan_v1",
+        "modelId": "gemini-3.1-flash-lite"
+      }
+    },
+    {
+      "id": "ds-05-same-side-avocado",
+      "locale": "pt-BR",
+      "model": "google:gemini-3.1-flash-lite",
+      "pass": false,
+      "attemptsUsed": 2,
+      "reason": "expected status insufficient_evidence, got no_produce",
+      "latencyMs": 5531,
+      "usage": {
+        "promptTokens": 2393,
+        "completionTokens": 534,
+        "totalTokens": 2927
+      },
+      "rawOutput": {
+        "status": "no_produce",
+        "message": "A imagem contém dois abacates. Por favor, envie uma foto de apenas um.",
+        "afterPurchase": null,
+        "abstentionReason": null,
+        "produce": {
+          "type": "unknown",
+          "displayName": "Unknown",
+          "variety": null
+        },
+        "ripeness": {
+          "state": "unknown",
+          "confidence": 0
+        },
+        "evidence": [],
+        "quality": {
+          "sufficientVisualEvidence": false,
+          "viewCoverage": "poor",
+          "reason": null
+        },
+        "manualChecks": [],
+        "recommendation": null,
+        "schemaVersion": "1.0",
+        "promptVersion": "deep_scan_v1",
+        "modelId": "gemini-3.1-flash-lite"
+      }
+    }
+  ],
+  "limitation": "Two seeded montages (en-GB/pt-BR) do not establish production accuracy; harvest variation and camera noise are unrepresented."
+}

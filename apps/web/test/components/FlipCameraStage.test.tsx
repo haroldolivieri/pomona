@@ -85,7 +85,7 @@ describe("FlipCameraStage (Mockup Parity)", () => {
     render(<FlipCameraStage state={state} onCapture={vi.fn()} onBack={vi.fn()} onClose={vi.fn()} />);
     const goalPill = screen.getByTestId("flip-goal-pill");
     expect(goalPill).toBeInTheDocument();
-    expect(goalPill).toHaveTextContent("In 2–3 days");
+    expect(goalPill).toHaveTextContent("In 2-3 days");
 
     // Subtitle copy tailored to storage target
     expect(screen.getByTestId("flip-instruction-card")).toHaveTextContent(/check for bruises or uneven ripening before storing for several days/i);

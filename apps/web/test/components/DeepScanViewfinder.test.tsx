@@ -17,12 +17,13 @@ function frame(sequence: number, grayValue = 100): CollectedFrame {
 }
 
 describe("DeepScanViewfinder", () => {
-  it("renders idle copy, cancel, fixed oval, and GO shutter", () => {
+  it("renders idle copy, mode tabs, fixed oval, and GO shutter without redundant cancel button", () => {
     render(<DeepScanViewfinder onComplete={vi.fn()} onCancel={vi.fn()} />);
 
-    expect(screen.getByText("Put one fruit in the circle")).toBeInTheDocument();
-    expect(screen.getByText((_, node) => node?.textContent === "Show the stem side · Rotate slowly")).toBeInTheDocument();
-    expect(screen.getByTestId("ds-cancel-button")).toHaveAttribute("aria-label", "Cancel");
+    expect(screen.getByText("Put a fruit on the frame and start the scan")).toBeInTheDocument();
+    expect(screen.getByText("Hold steady and rotate slowly, showing the whole surface")).toBeInTheDocument();
+    expect(screen.queryByTestId("ds-cancel-button")).not.toBeInTheDocument();
+    expect(screen.getByTestId("mode-tab-compare")).toBeInTheDocument();
     expect(screen.getByTestId("ds-oval")).toBeInTheDocument();
     const go = screen.getByTestId("ds-go-button");
     expect(go.querySelector("span")).toBeNull();
@@ -76,10 +77,10 @@ describe("DeepScanViewfinder", () => {
     expect(screen.getByTestId("ds-notice")).toHaveTextContent(/too blurry/i);
   });
 
-  it("cancel hands back to the machine", () => {
+  it("switching back to compare tab hands back to the machine", () => {
     const onCancel = vi.fn();
     render(<DeepScanViewfinder onComplete={vi.fn()} onCancel={onCancel} />);
-    screen.getByTestId("ds-cancel-button").click();
+    screen.getByTestId("mode-tab-compare").click();
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 });

@@ -11,6 +11,7 @@ export interface ScanErrorStageProps {
   onRetake: () => void;
   onDrawFocus?: () => void;
   onDeepScan?: () => void;
+  isSingleProduce?: boolean;
 }
 
 export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
@@ -20,9 +21,11 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
   onRetake,
   onDrawFocus,
   onDeepScan,
+  isSingleProduce = false,
 }) => {
   const { t } = useTranslation();
   const similarMaturity = status === "insufficient_evidence" && abstentionReason === "assessed_tie";
+  const isSingle = status === "single_produce" || isSingleProduce;
 
   let icon = "⚠️";
   let title = t("errors.analysisFailedTitle");
@@ -33,6 +36,15 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
   let showDrawButton = false;
 
   switch (status) {
+    case "single_produce":
+      icon = "🔎";
+      title = t("errors.singleProduceCompareTitle");
+      explanation = t("errors.singleProduceCompare");
+      tip = t("errors.singleProduceCompareTip");
+      primaryCtaLabel = t("errors.insufficientEvidenceCta");
+      primaryAction = onRetake;
+      break;
+
     case "insufficient_evidence":
       if (similarMaturity) {
         icon = "🧺";
@@ -40,6 +52,15 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
         explanation = t("errors.similarMaturity");
         tip = t("errors.similarMaturityTip");
         primaryCtaLabel = t("errors.similarMaturityCta");
+        break;
+      }
+      if (isSingleProduce) {
+        icon = "🔎";
+        title = t("errors.singleProduceCompareTitle");
+        explanation = t("errors.singleProduceCompare");
+        tip = t("errors.singleProduceCompareTip");
+        primaryCtaLabel = t("errors.insufficientEvidenceCta");
+        primaryAction = onRetake;
         break;
       }
       icon = "🔎";
@@ -270,18 +291,6 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
           gap: "12px",
         }}
       >
-        {/* Grab bar */}
-        <div
-          style={{
-            width: "36px",
-            height: "4px",
-            borderRadius: "4px",
-            backgroundColor: "var(--text-muted)",
-            opacity: 0.35,
-            margin: "-6px auto 8px",
-          }}
-        />
-
         {/* Eyebrow */}
         <div
           style={{
@@ -296,6 +305,8 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
         >
           {similarMaturity
             ? t("errors.similarMaturityEyebrow")
+            : status === "single_produce" || (status === "insufficient_evidence" && isSingleProduce)
+            ? t("errors.singleProduceCompareEyebrow")
             : status === "insufficient_evidence"
             ? uiCopy("copy.anotherLookNeeded")
             : status === "unclear_photo"
@@ -364,7 +375,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
 
         {/* Actions */}
         <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
-          {onDeepScan && (
+          {isSingle && onDeepScan ? (
             <button
               onClick={onDeepScan}
               data-testid="error-deep-scan-cta"
@@ -383,50 +394,76 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
                 textAlign: "center",
               }}
             >
-              ✦ {uiCopy("deepScan.preciseScanCta")}
+              ✦ {uiCopy("deepScan.inspectCloser")}
             </button>
-          )}
-          {showDrawButton && onDrawFocus && (
-            <button
-              onClick={onDrawFocus}
-              data-testid="error-draw-button"
-              style={{
-                flex: 1,
-                padding: "14px 12px",
-                borderRadius: "14px",
-                border: "1.5px solid #d5cebe",
-                backgroundColor: "transparent",
-                color: "var(--text-primary)",
-                fontFamily: "Inter, system-ui, sans-serif",
-                fontWeight: 700,
-                fontSize: "14px",
-                cursor: "pointer",
-                textAlign: "center",
-              }}
-            >
-              {uiCopy("copy.drawAroundOne")}</button>
-          )}
+          ) : (
+            <>
+              {onDeepScan && status === "insufficient_evidence" && (
+                <button
+                  onClick={onDeepScan}
+                  data-testid="error-deep-scan-cta"
+                  style={{
+                    flex: 1,
+                    padding: "14px 12px",
+                    borderRadius: "14px",
+                    border: "none",
+                    backgroundColor: "#F5D547",
+                    color: "#132418",
+                    fontFamily: "Inter, system-ui, sans-serif",
+                    fontWeight: 700,
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 14px rgba(245, 213, 71, 0.35)",
+                    textAlign: "center",
+                  }}
+                >
+                  ✦ {uiCopy("deepScan.inspectCloser")}
+                </button>
+              )}
+              {showDrawButton && onDrawFocus && (
+                <button
+                  onClick={onDrawFocus}
+                  data-testid="error-draw-button"
+                  style={{
+                    flex: 1,
+                    padding: "14px 12px",
+                    borderRadius: "14px",
+                    border: "1.5px solid #d5cebe",
+                    backgroundColor: "transparent",
+                    color: "var(--text-primary)",
+                    fontFamily: "Inter, system-ui, sans-serif",
+                    fontWeight: 700,
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    textAlign: "center",
+                  }}
+                >
+                  {uiCopy("copy.drawAroundOne")}
+                </button>
+              )}
 
-          <button
-            onClick={primaryAction}
-            data-testid="error-primary-cta"
-            style={{
-              flex: 1,
-              padding: "14px 12px",
-              borderRadius: "14px",
-              border: "none",
-              backgroundColor: "var(--cta-primary)",
-              color: "#FFFFFF",
-              fontFamily: "Inter, system-ui, sans-serif",
-              fontWeight: 700,
-              fontSize: "14px",
-              cursor: "pointer",
-              boxShadow: "0 4px 14px rgba(47, 93, 52, 0.3)",
-              textAlign: "center",
-            }}
-          >
-            {primaryCtaLabel}
-          </button>
+              <button
+                onClick={primaryAction}
+                data-testid="error-primary-cta"
+                style={{
+                  flex: 1,
+                  padding: "14px 12px",
+                  borderRadius: "14px",
+                  border: "none",
+                  backgroundColor: "var(--cta-primary)",
+                  color: "#FFFFFF",
+                  fontFamily: "Inter, system-ui, sans-serif",
+                  fontWeight: 700,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  boxShadow: "0 4px 14px rgba(47, 93, 52, 0.3)",
+                  textAlign: "center",
+                }}
+              >
+                {primaryCtaLabel}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -74,61 +74,25 @@ export async function runVerifiedDeepScan(
         }));
         return result;
       } catch (error) {
+        const status = error && typeof error === "object" && "statusCode" in error ? (error as any).statusCode : undefined;
         console.log(JSON.stringify({
           event: "model_usage", ...trace, provider: adapter.providerId, model: adapter.modelId,
-          durationMs: Date.now() - startedAt, success: false,
+          durationMs: Date.now() - startedAt, success: false, upstreamStatus: typeof status === "number" ? status : null,
         }));
         throw error;
       }
     });
   }
 
-  function isRateLimitError(err: unknown): boolean {
-    const e = err as { statusCode?: unknown; status?: unknown; message?: unknown };
-    return (
-      e?.statusCode === 429 ||
-      e?.status === 429 ||
-      String(e?.message ?? "").includes("429") ||
-      String(e?.message ?? "").toLowerCase().includes("resource has been exhausted")
-    );
-  }
-
-  let repairErrors: string[] = [];
-
-  try {
-    const raw1 = await analyzeAttempt(promptConfig.buildUserPrompt(request), 1);
-    addUsage(raw1.usage);
-    const verify1 = verifyAndResolveDeepScanResponse(raw1.object, {
-      request,
-      promptVersion,
-      modelId: adapter.modelId,
-    });
-    if (verify1.ok) {
-      return { response: verify1.response, usage: totalUsage, attempts: 1 };
-    }
-    repairErrors = verify1.errors;
-  } catch (error) {
-    if (isRateLimitError(error)) throw error;
-    repairErrors = [error instanceof Error ? error.message : String(error)];
-  }
-
-  const repairPrompt = promptConfig.buildRepairPrompt
-    ? promptConfig.buildRepairPrompt(request, repairErrors)
-    : promptConfig.buildUserPrompt(request, repairErrors);
-
-  try {
-    const raw2 = await analyzeAttempt(repairPrompt, 2, repairErrors);
-    addUsage(raw2.usage);
-    const verify2 = verifyAndResolveDeepScanResponse(raw2.object, {
-      request,
-      promptVersion,
-      modelId: adapter.modelId,
-    });
-    if (verify2.ok) {
-      return { response: verify2.response, usage: totalUsage, attempts: 2 };
-    }
-  } catch (error) {
-    if (isRateLimitError(error)) throw error;
+  const raw = await analyzeAttempt(promptConfig.buildUserPrompt(request), 1);
+  addUsage(raw.usage);
+  const verify = verifyAndResolveDeepScanResponse(raw.object, {
+    request,
+    promptVersion,
+    modelId: adapter.modelId,
+  });
+  if (verify.ok) {
+    return { response: verify.response, usage: totalUsage, attempts: 1 };
   }
 
   const fallbackResponse: DeepScanResponse = {
@@ -146,5 +110,5 @@ export async function runVerifiedDeepScan(
     recommendation: null,
     afterPurchase: null,
   };
-  return { response: fallbackResponse, usage: totalUsage, attempts: 2 };
+  return { response: fallbackResponse, usage: totalUsage, attempts: 1 };
 }

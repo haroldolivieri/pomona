@@ -118,15 +118,22 @@ describe("createFetchApiClient.submitDeepScan", () => {
   beforeEach(() => { vi.stubGlobal("fetch", vi.fn()); });
   afterEach(() => { vi.unstubAllGlobals(); });
 
-  it("posts the composite to /api/v1/deep-scan and returns the envelope without quota headers", async () => {
+  it("posts the composite to /api/v1/deep-scan and returns { remainingScans, response }", async () => {
     const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
-    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => dsResponse, headers: { get: () => null } });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => dsResponse,
+      headers: { get: (name: string) => (name === "X-Pomona-Remaining-Scans" ? "8" : null) },
+    });
 
     const client = createFetchApiClient("http://localhost:8787");
     const result = await client.submitDeepScan(dummyDsRequest);
 
-    expect(result).toEqual(dsResponse);
-    expect((result as { remainingScans?: number }).remainingScans).toBeUndefined();
+    expect(result).toEqual({
+      remainingScans: 8,
+      response: dsResponse,
+    });
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("http://localhost:8787/api/v1/deep-scan");
     expect(init.method).toBe("POST");

@@ -1,165 +1,114 @@
-export interface FrameSample {
-  sequence: number;
-  gray: Float32Array;
-  grayW: number;
-  grayH: number;
-  thumb: Float32Array;
-}
-
-export interface DeepScanSelectionParams {
-  max: number;
-  weights: { sharpness: number; exposure: number; spread: number };
-  similarityLow: number;
-  similarityHigh: number;
-  blurRejectQuantile: number;
-}
-
-export interface DeepScanSelectionStats {
-  sampled: number;
-  rejectedBlur: number;
-  rejectedExposure: number;
-  rejectedSimilarity: number;
-}
-
-const EXPOSURE_FAIL_MIN = 0.05;
-const KEEP_SCORE_MIN = 0.35;
-
-export function sharpnessScore(gray: Float32Array, w: number, h: number): number {
-  let energy = 0;
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const i = y * w + x;
-      const dx = x + 1 < w ? Math.abs(gray[i + 1] - gray[i]) : 0;
-      const dy = y + 1 < h ? Math.abs(gray[i + w] - gray[i]) : 0;
-      energy += (dx + dy) / 2;
-    }
-  }
-  return Math.min(1, energy / (w * h) / 128);
-}
-
-export function exposureScore(gray: Float32Array): number {
-  let sum = 0;
-  for (let i = 0; i < gray.length; i++) sum += gray[i];
-  const mean = sum / gray.length / 255;
-  return Math.max(0, 1 - Math.abs(mean - 0.5) * 2);
-}
-
-export function similarityScore(a: Float32Array, b: Float32Array): number {
-  if (a.length !== b.length) throw new Error("thumb length mismatch");
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff += Math.abs(a[i] - b[i]);
-  const mean = diff / a.length;
-  return Math.min(100, Math.round((mean / 255) * 10000) / 100);
-}
-
-export function selectFrames(
-  samples: FrameSample[],
-  params: DeepScanSelectionParams
-): { kept: FrameSample[]; stats: DeepScanSelectionStats; keptScores: number[] } {
-  const stats: DeepScanSelectionStats = {
-    sampled: samples.length,
-    rejectedBlur: 0,
-    rejectedExposure: 0,
-    rejectedSimilarity: 0,
-  };
-  const keptScores: number[] = [];
-
-  const survivors: { sample: FrameSample; sharp: number; exposure: number }[] = [];
-  for (const sample of samples) {
-    const exposure = exposureScore(sample.gray);
-    if (exposure < EXPOSURE_FAIL_MIN) {
-      stats.rejectedExposure++;
-      continue;
-    }
-    const sharp = sharpnessScore(sample.gray, sample.grayW, sample.grayH);
-    if (sharp < params.blurRejectQuantile) {
-      stats.rejectedBlur++;
-      continue;
-    }
-    survivors.push({ sample, sharp, exposure });
-  }
-
-  const ordered = survivors
-    .slice()
-    .sort((a, b) => a.sample.sequence - b.sample.sequence);
-  const kept: FrameSample[] = [];
-
-  for (const candidate of ordered) {
-    if (kept.length >= params.max) break;
-    if (kept.length === 0) {
-      kept.push(candidate.sample);
-      keptScores.push(
-        params.weights.sharpness * candidate.sharp + params.weights.exposure * candidate.exposure
-      );
-      continue;
-    }
-    const lastThumb = kept[kept.length - 1].thumb;
-    const sim = similarityScore(candidate.sample.thumb, lastThumb);
-    if (sim < params.similarityLow) {
-      stats.rejectedSimilarity++;
-      continue;
-    }
-    const spread = sim > params.similarityHigh
-      ? Math.max(0, 1 - (sim - params.similarityHigh) / 100)
-      : sim / params.similarityHigh;
-    const score =
-      params.weights.sharpness * candidate.sharp +
-      params.weights.exposure * candidate.exposure +
-      params.weights.spread * spread;
-    keptScores.push(score);
-    kept.push(candidate.sample);
-  }
-
-  return { kept, stats, keptScores };
-}
+export {
+  type FrameSample,
+  type DeepScanSelectionParams,
+  type DeepScanSelectionStats,
+  type DeepScanLocalRejectReason,
+  DEEP_SCAN_SELECTION,
+  EXPOSURE_FAIL_MIN,
+  sharpnessScore,
+  exposureScore,
+  similarityScore,
+  selectFrames,
+  evaluateFrameRejection,
+} from "@pomona/contract";
 
 export type { CollectedFrame } from "./deep-scan-capture";
 import type { CollectedFrame } from "./deep-scan-capture";
-import { captureViewportCrop } from "./image-pipeline";
+import { captureDeepScanCrop, captureViewportCrop, computeDeepScanCropRect } from "./image-pipeline";
+
+export const DEEP_SCAN_CAPTURE_DURATION_MS = 5000;
+export const DEEP_SCAN_TOTAL_SAMPLES = 25;
 
 export async function collectDeepScanFrames(
-  video: HTMLVideoElement
+  video: HTMLVideoElement,
+  signal?: AbortSignal
 ): Promise<CollectedFrame[]> {
+  if (typeof window !== "undefined" && (window as any).__POMONA_MOCK_FRAMES) {
+    const delay =
+      typeof (window as any).__POMONA_MOCK_CAPTURE_DELAY_MS === "number"
+        ? (window as any).__POMONA_MOCK_CAPTURE_DELAY_MS
+        : 0;
+    if (delay > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+    const { mockDeepScanFrames } = await import("./deep-scan-debug");
+    return mockDeepScanFrames();
+  }
   const collected: CollectedFrame[] = [];
   const start = performance.now();
-  const DURATION_MS = 5000;
-  const FPS = 5;
-  const INTERVAL_MS = 1000 / FPS;
+  const DURATION_MS =
+    (typeof window !== "undefined" && typeof (window as any).__POMONA_DEEP_SCAN_DURATION_MS === "number")
+      ? (window as any).__POMONA_DEEP_SCAN_DURATION_MS
+      : DEEP_SCAN_CAPTURE_DURATION_MS;
+  const TOTAL_SAMPLES =
+    (typeof window !== "undefined" && typeof (window as any).__POMONA_DEEP_SCAN_SAMPLES === "number")
+      ? (window as any).__POMONA_DEEP_SCAN_SAMPLES
+      : DEEP_SCAN_TOTAL_SAMPLES;
+  const INTERVAL_MS = DURATION_MS / TOTAL_SAMPLES;
   let sequence = 0;
   let lastAt = -Infinity;
 
-  const sampleNow = (dataUrl: string): CollectedFrame => {
-    const gw = 24;
-    const gh = 24;
-    const sampling = document.createElement("canvas");
+  const gw = 64;
+  const gh = 64;
+  const sampling = typeof document !== "undefined" ? document.createElement("canvas") : null;
+  if (sampling) {
     sampling.width = gw;
     sampling.height = gh;
-    const ctx = sampling.getContext("2d");
+  }
+  const ctx = sampling?.getContext("2d");
+
+  const tw = 32;
+  const th = 32;
+
+  const sampleNow = (
+    dataUrl: string,
+    crop?: { sx: number; sy: number; sw: number; sh: number }
+  ): CollectedFrame => {
     let gray = new Float32Array(gw * gh).fill(128);
-    let thumb = new Float32Array(gw * gh).fill(128);
+    let thumb = new Float32Array(tw * th).fill(128);
     if (ctx) {
       gray = new Float32Array(gw * gh);
-      ctx.drawImage(video, 0, 0, gw, gh);
+      thumb = new Float32Array(tw * th);
+      if (crop && crop.sw > 0 && crop.sh > 0) {
+        ctx.drawImage(video, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, gw, gh);
+      } else {
+        ctx.drawImage(video, 0, 0, gw, gh);
+      }
       const { data } = ctx.getImageData(0, 0, gw, gh);
       for (let i = 0; i < gray.length; i++) {
-        gray[i] = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
+        const val = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
+        gray[i] = val;
       }
-      thumb = new Float32Array(gw * gh);
-      ctx.drawImage(video, 0, 0, gw, gh);
-      const thumbData = ctx.getImageData(0, 0, gw, gh).data;
-      for (let i = 0; i < thumb.length; i++) {
-        thumb[i] = 0.299 * thumbData[i * 4] + 0.587 * thumbData[i * 4 + 1] + 0.114 * thumbData[i * 4 + 2];
+      // Downsample 64x64 gray to 32x32 thumbnail for noise-resistant rotation tracking
+      for (let ty = 0; ty < th; ty++) {
+        const sy = ty * 2;
+        for (let tx = 0; tx < tw; tx++) {
+          const sx = tx * 2;
+          const v00 = gray[sy * gw + sx];
+          const v01 = gray[sy * gw + sx + 1];
+          const v10 = gray[(sy + 1) * gw + sx];
+          const v11 = gray[(sy + 1) * gw + sx + 1];
+          thumb[ty * tw + tx] = (v00 + v01 + v10 + v11) * 0.25;
+        }
       }
     }
     return { sequence, gray, grayW: gw, grayH: gh, thumb, dataUrl };
   };
 
   while (performance.now() - start < DURATION_MS) {
+    if (signal?.aborted) break;
     const now = performance.now();
     if (now - lastAt >= INTERVAL_MS) {
       lastAt = now;
-      const dataUrl = captureViewportCrop(video, video.clientWidth || 320, video.clientHeight || 320, "image/jpeg", 0.85);
-      collected.push(sampleNow(dataUrl));
+      const cw = video.clientWidth || video.parentElement?.clientWidth || 320;
+      const ch = video.clientHeight || video.parentElement?.clientHeight || 320;
+      const crop = computeDeepScanCropRect(video.videoWidth, video.videoHeight, cw, ch);
+      const dataUrl = captureDeepScanCrop(video, cw, ch, "image/jpeg", 0.85);
+      const fullDataUrl = captureViewportCrop(video, cw, ch, "image/jpeg", 0.85);
+      const fallbackUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGOY1lMBAANWAZvtO/S2AAAAAElFTkSuQmCC";
+      const safeDataUrl = dataUrl || fallbackUrl;
+      const safeFullDataUrl = fullDataUrl || fallbackUrl;
+      collected.push({ ...sampleNow(safeDataUrl, crop), dataUrl: safeDataUrl, fullDataUrl: safeFullDataUrl });
       sequence += 1;
     }
     await new Promise((r) => requestAnimationFrame(r));

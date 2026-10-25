@@ -15,7 +15,7 @@ export interface MockApiClientOptions {
   deepScanLatencyMs?: number;
 }
 
-const MOCK_DS_LATENCY_KEY = "pomona-mock-ds-latency";
+const mockDsLatencyKey = "pomona-mock-ds-latency";
 
 export function createMockApiClient(options: MockApiClientOptions = {}): PomonaApiClient {
   const dsLatencyMs =
@@ -23,7 +23,7 @@ export function createMockApiClient(options: MockApiClientOptions = {}): PomonaA
     (() => {
       try {
         if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
-          const stored = localStorage.getItem(MOCK_DS_LATENCY_KEY);
+          const stored = localStorage.getItem(mockDsLatencyKey);
           if (stored !== null && stored !== "") {
             const parsed = Number(stored);
             if (Number.isFinite(parsed) && parsed >= 0) return parsed;
@@ -324,11 +324,13 @@ export function createMockApiClient(options: MockApiClientOptions = {}): PomonaA
       };
     },
 
-    async submitDeepScan(request: DeepScanRequest): Promise<DeepScanResponse> {
+    async submitDeepScan(request: DeepScanRequest): Promise<{
+      remainingScans: number;
+      response: DeepScanResponse;
+    }> {
       // Keep the laser analysing stage visible long enough to be seen in demos
       await new Promise((resolve) => setTimeout(resolve, dsLatencyMs));
       const locale = isSupportedLocale(request.locale) ? request.locale : "en-GB";
-      const pt = locale === "pt-BR";
       const forced = (() => {
         try {
           if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
@@ -340,94 +342,96 @@ export function createMockApiClient(options: MockApiClientOptions = {}): PomonaA
 
       if (forced === "no_produce") {
         return {
-          schemaVersion: "1.0",
-          promptVersion: "deep_scan_v1",
-          modelId: "gemini-3.1-flash-lite (mocked)",
-          status: "insufficient_evidence",
-          abstentionReason: null,
-          message: uiCopy("errors.noProduce", undefined, locale),
-          produce: { type: "unknown", displayName: pt ? "Fruta não identificada" : "Unidentified fruit", variety: null },
-          ripeness: { state: "unknown", confidence: 0.1 },
-          evidence: [],
-          quality: { sufficientVisualEvidence: false, viewCoverage: "poor", reason: null },
-          manualChecks: [],
-          recommendation: null,
-          afterPurchase: null,
+          remainingScans: mockRemainingScans,
+          response: {
+            schemaVersion: "1.0",
+            promptVersion: "deep_scan_v1",
+            modelId: "gemini-3.1-flash-lite (mocked)",
+            status: "insufficient_evidence",
+            abstentionReason: null,
+            message: uiCopy("errors.noProduce", undefined, locale),
+            produce: { type: "unknown", displayName: uiCopy("deepScan.mock.unidentifiedFruit", undefined, locale), variety: null },
+            ripeness: { state: "unknown", confidence: 0.1 },
+            evidence: [],
+            quality: { sufficientVisualEvidence: false, viewCoverage: "poor", reason: null },
+            manualChecks: [],
+            recommendation: null,
+            afterPurchase: null,
+          },
         };
       }
 
       if (forced === "same_side") {
         return {
-          schemaVersion: "1.0",
-          promptVersion: "deep_scan_v1",
-          modelId: "gemini-3.1-flash-lite (mocked)",
-          status: "insufficient_evidence",
-          abstentionReason: "same_side_only",
-          message: null,
-          produce: { type: "avocado", displayName: pt ? "Abacate" : "Avocado", variety: null },
-          ripeness: { state: "unknown", confidence: 0.3 },
-          evidence: [],
-          quality: { sufficientVisualEvidence: false, viewCoverage: "fair", reason: null },
-          manualChecks: [
-            {
-              trait: pt ? "Firmeza" : "Firmness",
-              how: pt ? "Aperte levemente até sentir uma boa Cedência" : "Squeeze gently with your fingertips",
-              whatItMeans: pt ? "Mole demais = muito maduro; duro = ainda verde" : "Too soft = overripe; hard = still unripe",
-            },
-            {
-              trait: pt ? "Cheirinho" : "Smell",
-              how: pt ? "Sinta o aroma perto do cabinho" : "Sniff close to the stem",
-              whatItMeans: pt ? "Aroma adocicado e forte = pronto pra comer" : "Sweet and strong = ready to eat",
-            },
-          ],
-          recommendation: null,
-          afterPurchase: null,
+          remainingScans: mockRemainingScans,
+          response: {
+            schemaVersion: "1.0",
+            promptVersion: "deep_scan_v1",
+            modelId: "gemini-3.1-flash-lite (mocked)",
+            status: "insufficient_evidence",
+            abstentionReason: "same_side_only",
+            message: null,
+            produce: { type: "avocado", displayName: uiCopy("deepScan.mock.avocado", undefined, locale), variety: null },
+            ripeness: { state: "unknown", confidence: 0.3 },
+            evidence: [],
+            quality: { sufficientVisualEvidence: false, viewCoverage: "fair", reason: null },
+            manualChecks: [
+              {
+                trait: uiCopy("deepScan.mock.firmness", undefined, locale),
+                how: uiCopy("deepScan.mock.firmnessHow", undefined, locale),
+                whatItMeans: uiCopy("deepScan.mock.firmnessMeans", undefined, locale),
+              },
+              {
+                trait: uiCopy("deepScan.mock.smell", undefined, locale),
+                how: uiCopy("deepScan.mock.smellHow", undefined, locale),
+                whatItMeans: uiCopy("deepScan.mock.smellMeans", undefined, locale),
+              },
+            ],
+            recommendation: null,
+            afterPurchase: null,
+          },
         };
       }
 
+      // Successful scans decrement daily scan quota
+      mockRemainingScans = Math.max(0, mockRemainingScans - 1);
+
       return {
-        schemaVersion: "1.0",
-        promptVersion: "deep_scan_v1",
-        modelId: "gemini-3.1-flash-lite (mocked)",
-        status: "ok",
-        abstentionReason: null,
-        message: null,
-        produce: { type: "avocado", displayName: pt ? "Abacate" : "Avocado", variety: "Hass (mocked)" },
-        ripeness: { state: "nearly_ripe", confidence: 0.86 },
-        evidence: pt
-          ? [
-              "Casca perdendo o verde em tons mais escuros",
-              "Cor uniforme entre os lados, sem manchas",
-              "Pequeno brilho perto do cabinho, típico de 'quase pronto'",
-            ]
-          : [
-              "Skin losing green, moving toward darker tones",
-              "Even color across sides, no blemishes",
-              "Slight sheen near the stem, typical of almost ready",
-            ],
-        quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
-        manualChecks: null,
-        recommendation: { eatWhen: "in_a_few_days" },
-        afterPurchase: {
-          readyInDays: { min: 1, max: 2 },
-          eatWithinDays: { min: 3, max: 4 },
-          eatWithinLabel: pt ? "3 a 4 dias" : "3-4 days",
-          storage: {
-            beforeCut: {
-              where: "counter",
-              whereLabel: pt ? "Bancada" : "Counter",
-              summary: pt ? "Inteiro na bancada" : "Whole on the counter",
-              tip: pt ? "Amolece a cada dia" : "Softens a little every day",
-            },
-            afterCut: {
-              where: "fridge",
-              whereLabel: pt ? "Geladeira" : "Fridge",
-              summary: pt ? "Selado na geladeira" : "Sealed in the fridge",
-              tip: pt ? "Manter gelado em um recipiente" : "Keep chilled in a container",
+        remainingScans: mockRemainingScans,
+        response: {
+          schemaVersion: "1.0",
+          promptVersion: "deep_scan_v1",
+          modelId: "gemini-3.1-flash-lite (mocked)",
+          status: "ok",
+          abstentionReason: null,
+          message: null,
+          produce: { type: "avocado", displayName: uiCopy("deepScan.mock.avocado", undefined, locale), variety: uiCopy("deepScan.mock.variety", undefined, locale) },
+          ripeness: { state: "nearly_ripe", confidence: 0.86 },
+          evidence: [uiCopy("deepScan.mock.evidence1", undefined, locale), uiCopy("deepScan.mock.evidence2", undefined, locale), uiCopy("deepScan.mock.evidence3", undefined, locale)],
+          quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
+          manualChecks: null,
+          recommendation: { eatWhen: "in_a_few_days" },
+          afterPurchase: {
+            readyInDays: { min: 1, max: 2 },
+            eatWithinDays: { min: 3, max: 4 },
+            eatWithinLabel: uiCopy("deepScan.mock.eatWithin", undefined, locale),
+            storage: {
+              beforeCut: {
+                where: "counter",
+                whereLabel: uiCopy("copy.counter", undefined, locale),
+                summary: uiCopy("copy.counterWhole", undefined, locale),
+                tip: uiCopy("copy.roomTemperature", undefined, locale),
+              },
+              afterCut: {
+                where: "fridge",
+                whereLabel: uiCopy("copy.fridge", undefined, locale),
+                summary: uiCopy("copy.fridgeSealed", undefined, locale),
+                tip: uiCopy("copy.wrapTightly", undefined, locale),
+              },
             },
           },
+          seasonality: mockDeepScanSeasonality(request),
         },
-        seasonality: mockDeepScanSeasonality(request),
       };
     },
   };

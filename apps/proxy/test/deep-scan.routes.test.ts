@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { createProxyApp, createInMemoryQuotaStore } from "@pomona/proxy";
+import { createProxyApp, createInMemoryQuotaStore } from "../src/index";
+import { signDeviceToken } from "../src/quota/token";
+import { formatDateKey } from "../src/quota/budget";
 import { translateShared } from "@pomona/contract";
 import type { DeepScanResponseModel } from "@pomona/contract";
 
@@ -22,15 +24,15 @@ const okModel: DeepScanResponseModel = {
   quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
   manualChecks: null,
   recommendation: null,
-    afterPurchase: {
-      readyInDays: { min: 1, max: 2 },
-      eatWithinDays: { min: 3, max: 4 },
-      eatWithinLabel: "3-4 days",
-      storage: {
-        beforeCut: { where: "counter", whereLabel: "Counter", summary: "Whole on the counter", tip: "Softens daily" },
-        afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Sealed in the fridge", tip: "Keep chilled" },
-      },
+  afterPurchase: {
+    readyInDays: { min: 1, max: 2 },
+    eatWithinDays: { min: 3, max: 4 },
+    eatWithinLabel: "3-4 days",
+    storage: {
+      beforeCut: { where: "counter", whereLabel: "Counter", summary: "Whole on the counter", tip: "Softens daily" },
+      afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Sealed in the fridge", tip: "Keep chilled" },
     },
+  },
 };
 
 const clef = (scores: Record<string, number>) => ({
@@ -47,6 +49,7 @@ async function deepScan(options: {
   enabled?: string;
   ai?: unknown;
   body?: unknown;
+  headers?: Record<string, string>;
   store?: ReturnType<typeof createInMemoryQuotaStore>;
   defaultModel?: string;
 } = {}) {
@@ -62,7 +65,7 @@ async function deepScan(options: {
   const bindingRun = options.bindingRun ?? vi.fn().mockResolvedValue(Response.json(clef({ no_produce: 0.1, unclear_photo: 0.1, multiple_types: 0.1 })));
   const response = await app.request("/api/v1/deep-scan", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...options.headers },
     body: JSON.stringify(options.body ?? deepScanRequest),
   }, {
     DEFAULT_MODEL: options.defaultModel ?? "gemini-test",
@@ -74,7 +77,7 @@ async function deepScan(options: {
 }
 
 describe("POST /api/v1/deep-scan", () => {
-  it("returns a verified deep-scan verdict without touching device quota", async () => {
+  it("returns a verified deep-scan verdict and decrements shared daily device quota on status ok", async () => {
     const store = createInMemoryQuotaStore();
     const incrementDailyDeviceCount = vi.spyOn(store, "incrementDailyDeviceCount");
     const { response, json, grade } = await deepScan({ store, gradeOutput: okModel });
@@ -86,8 +89,9 @@ describe("POST /api/v1/deep-scan", () => {
       status: "ok",
     });
     expect(grade).toHaveBeenCalledTimes(1);
-    expect(incrementDailyDeviceCount).not.toHaveBeenCalled();
-    expect(response.headers.get("X-Pomona-Remaining-Scans")).toBeNull();
+    expect(incrementDailyDeviceCount).toHaveBeenCalledTimes(1);
+    expect(response.headers.get("X-Pomona-Remaining-Scans")).toBe("9");
+    expect(response.headers.get("X-Pomona-Device-Token")).toBeTruthy();
     expect(json.afterPurchase).toMatchObject({
       eatWithinLabel: "3-4 days",
       storage: { afterCut: { where: "fridge" } },
@@ -139,11 +143,59 @@ describe("POST /api/v1/deep-scan", () => {
   });
 
   it("returns a 413 analysis_failed envelope for oversized bodies without touching gate or Gemini", async () => {
-    const { json, grade, store } = await deepScan({
+    const { json, grade } = await deepScan({
       body: { ...deepScanRequest, imageBase64: "A".repeat(1_400_000) },
     });
     expect(json.status).toBe("analysis_failed");
     expect(json.message).toBe(translateShared("en-GB", "gate.tooLarge"));
     expect(grade).not.toHaveBeenCalled();
+  });
+
+  it("authenticates device and preserves identity across consecutive deep scans, sharing quota", async () => {
+    const store = createInMemoryQuotaStore();
+    const first = await deepScan({ store, gradeOutput: okModel });
+    expect(first.response.status).toBe(200);
+    const token = first.response.headers.get("X-Pomona-Device-Token");
+    expect(token).toBeTruthy();
+    expect(first.response.headers.get("X-Pomona-Remaining-Scans")).toBe("9");
+
+    const second = await deepScan({
+      store,
+      gradeOutput: okModel,
+      headers: { "X-Pomona-Device-Token": token! },
+    });
+    expect(second.response.status).toBe(200);
+    expect(second.response.headers.get("X-Pomona-Device-Token")).toBe(token);
+    expect(second.response.headers.get("X-Pomona-Remaining-Scans")).toBe("8");
+  });
+
+  it("enforces device quota rate limiting and returns a localized rate-limited response", async () => {
+    const store = createInMemoryQuotaStore();
+    const dateStr = formatDateKey(new Date());
+    const deviceId = "exhausted-device-123";
+    const token = await signDeviceToken(deviceId, "test-secret");
+    await store.setDailyDeviceCount(deviceId, dateStr, 10);
+
+    const { response, json, grade, bindingRun } = await deepScan({
+      store,
+      headers: { "X-Pomona-Device-Token": token },
+    });
+    expect(response.status).toBe(200);
+    expect(json.status).toBe("rate_limited");
+    expect(json.message).toBe(translateShared("en-GB", "gate.rateLimited"));
+    expect(response.headers.get("X-Pomona-Remaining-Scans")).toBe("0");
+    expect(grade).not.toHaveBeenCalled();
+    expect(bindingRun).not.toHaveBeenCalled();
+  });
+
+  it("translates upstream 429 provider errors into rate_limited response", async () => {
+    const rateLimitError = new Error("429 Resource has been exhausted");
+    (rateLimitError as any).status = 429;
+    const { response, json } = await deepScan({
+      gradeError: rateLimitError,
+    });
+    expect(response.status).toBe(200);
+    expect(json.status).toBe("rate_limited");
+    expect(json.message).toBe(translateShared("en-GB", "gate.rateLimited"));
   });
 });

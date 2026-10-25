@@ -22,6 +22,7 @@ describe("AnalysingStage (State 3 Parity)", () => {
     expect(screen.getByTestId("analysing-bottom-sheet")).toBeInTheDocument();
     expect(screen.getByText("Pomona Vision")).toBeInTheDocument();
     expect(screen.getByText("Checking ripeness…")).toBeInTheDocument();
+    expect(screen.getByTestId("analysing-3d-scan")).toBeInTheDocument();
     expect(screen.getByTestId("scanning-polygon-overlay")).toBeInTheDocument();
     expect(screen.getAllByTestId("candidate-pulse-dot").length).toBeGreaterThan(0);
     const laserContainer = screen.getByTestId("scanning-laser-container");

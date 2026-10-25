@@ -3,8 +3,46 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import React from "react";
 import { ScanErrorStage } from "../../src/components/ScanErrorStage";
-import "../../src/i18n";
+import i18n from "../../src/i18n";
 import en from "../../src/i18n/locales/en.json";
+
+describe("ScanErrorStage localization and raw message suppression", () => {
+  it.each(["en-GB", "pt-BR"] as const)(
+    "displays catalog error copy in %s and suppresses raw backend messages across all statuses",
+    async (locale) => {
+      await i18n.changeLanguage(locale);
+      const testCases: [string, string, string | null][] = [
+        ["no_produce", "noProduce", null],
+        ["unclear_photo", "unclearPhoto", null],
+        ["multiple_types", "multipleTypes", null],
+        ["single_produce", "singleProduceCompare", null],
+        ["rate_limited", "rateLimited", null],
+        ["analysis_failed", "analysisFailed", null],
+        ["insufficient_evidence", "insufficientEvidence", "missing_evidence"],
+        ["insufficient_evidence", "similarMaturity", "assessed_tie"],
+      ];
+
+      for (const [status, key, reason] of testCases) {
+        for (const rawMessage of ["RAW ENGLISH BACKEND MESSAGE", "MENSAGEM BRUTA DO MODELO"]) {
+          const { unmount } = render(
+            <ScanErrorStage
+              status={status as any}
+              abstentionReason={reason as any}
+              errorMessage={rawMessage}
+              photoDataUrl={null}
+              onRetake={vi.fn()}
+            />
+          );
+          expect(document.body.textContent).toContain(i18n.t(`errors.${key}`));
+          expect(document.body.textContent).not.toContain("RAW ENGLISH");
+          expect(document.body.textContent).not.toContain("MENSAGEM BRUTA");
+          unmount();
+        }
+      }
+      await i18n.changeLanguage("en-GB");
+    }
+  );
+});
 
 describe("ScanErrorStage", () => {
   it("does not claim a gate capacity limit resets with the device daily quota", () => {
@@ -48,6 +86,29 @@ describe("ScanErrorStage", () => {
     expect(screen.queryByText(/blurry/i)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Try Another Angle" }));
     expect(onRetake).toHaveBeenCalledOnce();
+  });
+
+  it("shows dedicated single-produce guidance to use Inspect when comparing only 1 item", () => {
+    const onDeepScan = vi.fn();
+    render(
+      <ScanErrorStage
+        status="insufficient_evidence"
+        abstentionReason="missing_evidence"
+        photoDataUrl="data:image/webp;base64,mock"
+        isSingleProduce={true}
+        onRetake={vi.fn()}
+        onDeepScan={onDeepScan}
+      />
+    );
+    expect(screen.getByRole("heading", { name: en.errors.singleProduceCompareTitle })).toBeInTheDocument();
+    expect(screen.getByText(en.errors.singleProduceCompareEyebrow)).toBeInTheDocument();
+    expect(screen.getByText(en.errors.singleProduceCompare)).toBeInTheDocument();
+    expect(screen.getByText(en.errors.singleProduceCompareTip)).toBeInTheDocument();
+    const deepScanButton = screen.getByTestId("error-deep-scan-cta");
+    expect(deepScanButton).toBeInTheDocument();
+    expect(screen.queryByTestId("error-primary-cta")).not.toBeInTheDocument();
+    fireEvent.click(deepScanButton);
+    expect(onDeepScan).toHaveBeenCalledOnce();
   });
 
   it("renders unclear_photo error state with tailored copy, icon, and retake action", () => {
@@ -130,7 +191,7 @@ describe("ScanErrorStage", () => {
 });
 
 describe("ScanErrorStage deep-scan CTA row", () => {
-  it("shows a filled gold Precise scan CTA beside the filled action, both flex:1", () => {
+  it("shows a filled gold Inspect CTA beside the filled action, both flex:1", () => {
     render(
       <ScanErrorStage
         status="insufficient_evidence"
@@ -141,11 +202,33 @@ describe("ScanErrorStage deep-scan CTA row", () => {
       />
     );
     const gold = screen.getByTestId("error-deep-scan-cta");
-    expect(gold).toHaveTextContent("✦ Precise scan");
+    expect(gold).toHaveTextContent("✦ Inspect Closer");
     expect(gold).toHaveStyle({ backgroundColor: "rgb(245, 213, 71)", flex: "1 1 0%" });
     const green = screen.getByTestId("error-primary-cta");
     expect(green).toHaveStyle({ flex: "1 1 0%" });
     expect(gold.nextElementSibling === green || green.previousElementSibling === gold).toBe(true);
+  });
+
+  it("strictly hides the Inspect CTA on no_produce or unclear_photo even when onDeepScan is provided", () => {
+    const { rerender } = render(
+      <ScanErrorStage
+        status="no_produce"
+        photoDataUrl={null}
+        onRetake={vi.fn()}
+        onDeepScan={vi.fn()}
+      />
+    );
+    expect(screen.queryByTestId("error-deep-scan-cta")).not.toBeInTheDocument();
+
+    rerender(
+      <ScanErrorStage
+        status="unclear_photo"
+        photoDataUrl={null}
+        onRetake={vi.fn()}
+        onDeepScan={vi.fn()}
+      />
+    );
+    expect(screen.queryByTestId("error-deep-scan-cta")).not.toBeInTheDocument();
   });
 
   it("hides the deep-scan CTA when no handler is wired", () => {
@@ -158,5 +241,23 @@ describe("ScanErrorStage deep-scan CTA row", () => {
       />
     );
     expect(screen.queryByTestId("error-deep-scan-cta")).not.toBeInTheDocument();
+  });
+
+  it("renders single produce inspect recommendation and deep scan CTA when status is single_produce", () => {
+    const onDeepScan = vi.fn();
+    render(
+      <ScanErrorStage
+        status="single_produce"
+        photoDataUrl={null}
+        onRetake={vi.fn()}
+        onDeepScan={onDeepScan}
+      />
+    );
+    expect(screen.getByText(en.errors.singleProduceCompareTitle)).toBeInTheDocument();
+    expect(screen.getByText(en.errors.singleProduceCompare)).toBeInTheDocument();
+    expect(screen.getByTestId("error-deep-scan-cta")).toBeInTheDocument();
+    expect(screen.queryByTestId("error-primary-cta")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("error-deep-scan-cta"));
+    expect(onDeepScan).toHaveBeenCalledOnce();
   });
 });

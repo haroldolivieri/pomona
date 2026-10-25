@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import basicSsl from "@vitejs/plugin-basic-ssl";
@@ -17,6 +18,40 @@ export default defineConfig({
       server.middlewares.use("/offline-assets.json", (_request, response) => {
         response.setHeader("Content-Type", "application/json");
         response.end("[]");
+      });
+      server.middlewares.use("/api/dev/debug-capture", (request, response) => {
+        let body = "";
+        request.on("data", (chunk) => { body += chunk; });
+        request.on("end", () => {
+          try {
+            const data = JSON.parse(body);
+            const dir = "/tmp/pomona-last-inspect";
+            mkdirSync(dir, { recursive: true });
+            writeFileSync(join(dir, "meta.json"), JSON.stringify({
+              sessionId: data.sessionId,
+              at: data.at,
+              sampleCount: data.sampleCount,
+              rejectedReason: data.rejectedReason,
+              photosCount: data.allDataUrls?.length ?? 0,
+              keptCount: data.keptDataUrls?.length ?? 0,
+            }, null, 2));
+            if (Array.isArray(data.allDataUrls)) {
+              data.allDataUrls.forEach((url, i) => {
+                const base64 = url.replace(/^data:image\/[a-z]+;base64,/, "");
+                writeFileSync(join(dir, `frame-${String(i).padStart(2, "0")}.jpg`), Buffer.from(base64, "base64"));
+              });
+            }
+            if (data.compositeDataUrl) {
+              const base64 = data.compositeDataUrl.replace(/^data:image\/[a-z]+;base64,/, "");
+              writeFileSync(join(dir, "composite.jpg"), Buffer.from(base64, "base64"));
+            }
+            console.log(`[vite] Saved ${data.allDataUrls?.length ?? 0} inspect frames to /tmp/pomona-last-inspect (rejectedReason: ${data.rejectedReason ?? "none"})`);
+          } catch (e) {
+            console.error("[vite] Failed to save debug capture:", e);
+          }
+          response.setHeader("Content-Type", "application/json");
+          response.end(JSON.stringify({ ok: true }));
+        });
       });
     },
     transformIndexHtml(html) {
@@ -47,6 +82,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    testTimeout: 15000,
     exclude: ["e2e/**", "node_modules/**"],
   },
 });
