@@ -52,7 +52,15 @@ import {
 
 import { traceStage, traceResponse, logScanResponse, type ScanTracing } from "./observability/scan-trace";
 
-type AppEnv = { Bindings: Env; Variables: { requestId: string; gateDecision: string; gradingStarted: boolean } };
+type AppEnv = {
+  Bindings: Env;
+  Variables: {
+    requestId: string;
+    flowStage: "scan" | "deep-scan";
+    gateDecision: string;
+    gradingStarted: boolean;
+  };
+};
 
 export interface VisionAdapterLike {
   readonly providerId: string;
@@ -202,13 +210,35 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
         logScanResponse("scan_response", { requestId }, response);
         if (c.get("gradingStarted") && c.get("gateDecision")) {
           const gateDecision = c.get("gateDecision");
+          const flowStage = c.get("flowStage") ?? (c.req.path.includes("deep-scan") ? "deep-scan" : "scan");
           const status = typeof response?.status === "string" ? response.status : "analysis_failed";
-          const mismatch = gateDecision === "pass_to_grading" && status !== "ok";
-          span?.setAttributes({ "flow.gate_decision": gateDecision, "flow.grading_status": status,
-            "flow.clef_pass_gemini_non_ok": mismatch });
-          console.log(JSON.stringify({ event: "gate_grading_outcome", requestId,
-            gateDecision, gradingStatus: status, clefPassGeminiNonOk: mismatch, nonOkValue: mismatch ? 1 : 0 }));
+          const scanClefBlockStatuses = new Set(["no_produce", "unclear_photo", "multiple_types", "single_produce", "analysis_failed"]);
+          const deepScanClefBlockStatuses = new Set(["no_produce", "unclear_photo", "analysis_failed"]);
+          const isScan = flowStage === "scan";
+          const relevantStatuses = isScan ? scanClefBlockStatuses : deepScanClefBlockStatuses;
+          const mismatch = gateDecision === "pass_to_grading" && relevantStatuses.has(status);
 
+          span?.setAttributes({
+            "flow.gate_decision": gateDecision,
+            "flow.grading_status": status,
+            "flow.clef_pass_gemini_non_ok": mismatch,
+            ...(isScan
+              ? { "flow.clef_pass_gemini_blocked_scan": mismatch }
+              : { "flow.clef_pass_gemini_blocked_deep_scan": mismatch }),
+          });
+
+          console.log(JSON.stringify({
+            event: "gate_grading_outcome",
+            requestId,
+            flowStage,
+            gateDecision,
+            gradingStatus: status,
+            clefPassGeminiNonOk: mismatch,
+            nonOkValue: mismatch ? 1 : 0,
+            ...(isScan
+              ? { clefPassGeminiBlockedScan: mismatch, scanBlockedValue: mismatch ? 1 : 0 }
+              : { clefPassGeminiBlockedDeepScan: mismatch, deepScanBlockedValue: mismatch ? 1 : 0 }),
+          }));
         }
       } finally {
         console.log(JSON.stringify({ event: "scan_complete", requestId,
@@ -534,6 +564,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
 
     const scanRequest: ScanRequest = parseResult.data;
     const requestId = c.get("requestId");
+    c.set("flowStage", "scan");
     console.log(JSON.stringify({ event: "scan_received", requestId, sessionId: scanRequest.sessionId,
       round: scanRequest.round, mimeType: scanRequest.imageMimeType, imagePayloadCharacters: scanRequest.imageBase64.length,
       selectionPresent: !!scanRequest.focusPolygon }));
@@ -671,10 +702,12 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
         )}`
       );
 
+      const repairNeeded = scanOutcome.attempts > 1;
       console.log(JSON.stringify({
         event: "scan_usage", requestId, sessionId: scanRequest.sessionId, round: scanRequest.round,
         provider: adapter.providerId, model: modelId, promptVersion: promptConfig.version,
-        attempts: scanOutcome.attempts, status: scanOutcome.response.status, usage: scanOutcome.usage,
+        attempts: scanOutcome.attempts, repairNeeded, repairNeededValue: repairNeeded ? 1 : 0,
+        status: scanOutcome.response.status, usage: scanOutcome.usage,
       }));
 
       const gateSpend = pendingGateSpend;
@@ -856,6 +889,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
     }
     const deepScanRequest = parseResult.data;
     const requestId = c.get("requestId");
+    c.set("flowStage", "deep-scan");
     console.log(JSON.stringify({ event: "deep_scan_received", requestId,
       sessionId: deepScanRequest.sessionId, mimeType: deepScanRequest.imageMimeType,
       sampleCount: deepScanRequest.sampleCount, imagePayloadCharacters: deepScanRequest.imageBase64.length }));
@@ -943,10 +977,12 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
         deps.tracing
       );
       const resultSizeBytes = Math.floor((deepScanRequest.imageBase64.length * 3) / 4);
+      const repairNeeded = scanOutcome.attempts > 1;
       console.log(JSON.stringify({
         event: "scan_usage", requestId, sessionId: deepScanRequest.sessionId, stage: "deep_scan",
         provider: adapter.providerId, model: adapter.modelId, promptVersion: DEEP_SCAN_PROMPT_VERSION,
-        attempts: scanOutcome.attempts, status: scanOutcome.response.status,
+        attempts: scanOutcome.attempts, repairNeeded, repairNeededValue: repairNeeded ? 1 : 0,
+        status: scanOutcome.response.status,
         framesSubmitted: deepScanRequest.sampleCount, compositeImageBytes: resultSizeBytes,
         usage: scanOutcome.usage,
       }));

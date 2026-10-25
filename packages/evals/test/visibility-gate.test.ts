@@ -243,13 +243,46 @@ function flowEvents(log: ReturnType<typeof vi.spyOn>) {
     .filter(event => event.event === "gate_grading_outcome");
 }
 
-it("records one dashboard outcome for a Clef pass followed by non-ok Gemini grading", async () => {
+it("records one dashboard outcome for a Clef pass followed by Gemini blocking on a Clef-validated reason", async () => {
+  const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  try {
+    const gradingOutput = {
+      status: "no_produce",
+      message: "No produce found",
+      produce: null,
+      candidates: [],
+      verdict: null,
+      followUp: null,
+      afterPurchase: null,
+    };
+    const { json } = await scan(vi.fn().mockResolvedValue(Response.json(output([0.1, 0.1, 0.1]))), { gradingOutput });
+    expect(json.status).toBe("no_produce");
+    expect(flowEvents(log)).toEqual([expect.objectContaining({
+      flowStage: "scan",
+      gateDecision: "pass_to_grading",
+      gradingStatus: "no_produce",
+      clefPassGeminiNonOk: true,
+      nonOkValue: 1,
+      clefPassGeminiBlockedScan: true,
+      scanBlockedValue: 1,
+    })]);
+  } finally { log.mockRestore(); }
+});
+
+it("does not count as blocked when Gemini returns non-ok for reasons Clef does not validate (e.g. insufficient_evidence)", async () => {
   const log = vi.spyOn(console, "log").mockImplementation(() => {});
   try {
     const { json } = await scan(vi.fn().mockResolvedValue(Response.json(output([0.1, 0.1, 0.1]))));
     expect(json.status).toBe("insufficient_evidence");
-    expect(flowEvents(log)).toEqual([expect.objectContaining({ gateDecision: "pass_to_grading",
-      gradingStatus: "insufficient_evidence", clefPassGeminiNonOk: true, nonOkValue: 1 })]);
+    expect(flowEvents(log)).toEqual([expect.objectContaining({
+      flowStage: "scan",
+      gateDecision: "pass_to_grading",
+      gradingStatus: "insufficient_evidence",
+      clefPassGeminiNonOk: false,
+      nonOkValue: 0,
+      clefPassGeminiBlockedScan: false,
+      scanBlockedValue: 0,
+    })]);
   } finally { log.mockRestore(); }
 });
 
