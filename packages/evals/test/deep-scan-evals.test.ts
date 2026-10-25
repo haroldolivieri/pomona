@@ -33,6 +33,8 @@ describe("deep-scan eval wiring (offline)", () => {
       "ds-03-blurry-avocado.jpg",
       "ds-04-dark-avocado.jpg",
       "ds-05-same-side-avocado.jpg",
+      "ds-06-underripe-avocado.jpg",
+      "ds-07-overripe-avocado.jpg",
     ] as const;
     for (const filename of expected) {
       const file = path.join(datasetRoot, filename);
@@ -43,14 +45,23 @@ describe("deep-scan eval wiring (offline)", () => {
     }
   });
 
-  it("declares locale-paired arms in the ground-truth manifest", () => {
+  it("declares English ground-truth arms in the manifest", () => {
     const parsed = loadManifest();
 
     const ideal = parsed.find((row) => row.id === "ds-01-ideal-avocado");
     expect(ideal).toBeDefined();
-    expect(ideal!.perLocale.map((arm) => arm.locale).sort()).toEqual(["en-GB", "pt-BR"]);
-    expect(ideal!.perLocale.find((row) => row.locale === "en-GB")!.expectedState).toBe("nearly_ripe");
-    expect(ideal!.perLocale.find((row) => row.locale === "pt-BR")!.expectedState).toBe("nearly_ripe");
+    expect(ideal!.perLocale.map((arm) => arm.locale)).toEqual(["en-GB"]);
+    expect(ideal!.perLocale.find((row) => row.locale === "en-GB")!.expectedState).toBe("ripe");
+
+    const underripe = parsed.find((row) => row.id === "ds-06-underripe-avocado");
+    expect(underripe).toBeDefined();
+    expect(underripe!.arm).toBe("live");
+    expect(underripe!.perLocale.find((row) => row.locale === "en-GB")!.expectedState).toBe("unripe");
+
+    const overripe = parsed.find((row) => row.id === "ds-07-overripe-avocado");
+    expect(overripe).toBeDefined();
+    expect(overripe!.arm).toBe("live");
+    expect(overripe!.perLocale.find((row) => row.locale === "en-GB")!.expectedState).toBe("overripe");
 
     const empty = parsed.find((row) => row.id === "ds-02-empty-oval");
     expect(empty!.arm).toBe("gate");

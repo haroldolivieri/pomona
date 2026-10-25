@@ -71,7 +71,7 @@ async function runDeepScanLiveBenchmark() {
   const adapter = geminiKey
     ? createGeminiVisionAdapter({
         apiKey: geminiKey,
-        modelId: process.env.EVAL_MODEL || "gemini-3.1-flash-lite",
+        modelId: process.env.EVAL_MODEL || "gemini-3.8-flash",
       })
     : createOpenAIVisionAdapter({
         apiKey: openaiKey!,

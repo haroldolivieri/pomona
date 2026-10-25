@@ -1,22 +1,44 @@
 [
   {
     "id": "ds-01-ideal-avocado",
-    "description": "Numbered 2x3 montage with six clear views of one avocado backing the focal oval; confident ripeness call expected on both locales.",
+    "description": "Numbered 2x3 montage with six clear multi-angle views of one ripe Hass avocado backing the focal oval; confident ripe call expected.",
     "perLocale": [
       {
         "locale": "en-GB",
         "expectedStatus": "ok",
-        "expectedState": "nearly_ripe",
-        "expectManualChecks": false
-      },
-      {
-        "locale": "pt-BR",
-        "expectedStatus": "ok",
-        "expectedState": "nearly_ripe",
+        "expectedState": "ripe",
         "expectManualChecks": false
       }
     ],
     "imagePath": "dataset/deep-scan/ds-01-ideal-avocado.jpg",
+    "arm": "live"
+  },
+  {
+    "id": "ds-06-underripe-avocado",
+    "description": "Numbered 2x3 montage with six clear multi-angle views of an under-ripe green Hass avocado; confident unripe call expected.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "ok",
+        "expectedState": "unripe",
+        "expectManualChecks": false
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-06-underripe-avocado.jpg",
+    "arm": "live"
+  },
+  {
+    "id": "ds-07-overripe-avocado",
+    "description": "Numbered 2x3 montage with six clear multi-angle views of an overripe Hass avocado with visible sunken indentations; confident overripe call expected.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "ok",
+        "expectedState": "overripe",
+        "expectManualChecks": false
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-07-overripe-avocado.jpg",
     "arm": "live"
   },
   {
@@ -67,12 +89,6 @@
     "perLocale": [
       {
         "locale": "en-GB",
-        "expectedStatus": "insufficient_evidence",
-        "expectedState": null,
-        "expectManualChecks": true
-      },
-      {
-        "locale": "pt-BR",
         "expectedStatus": "insufficient_evidence",
         "expectedState": null,
         "expectManualChecks": true

@@ -38,6 +38,12 @@ function fallbackMessage(status: string, displayLocale: SupportedLocale): string
         : translateShared(displayLocale, "verifier.failed");
 }
 
+function trimMax(str: unknown, max: number): string {
+  if (typeof str !== "string") return "";
+  if (str.length <= max) return str;
+  return str.slice(0, max);
+}
+
 export function verifyAndResolveDeepScanResponse(
   rawModelOutput: unknown,
   ctx: DeepScanVerifyContext
@@ -122,6 +128,31 @@ export function verifyAndResolveDeepScanResponse(
       : data;
 
   const finalMessage = canonical.message ?? (canonical.status === "ok" ? null : fallbackMessage(canonical.status, displayLocale));
+  if (canonical.afterPurchase && typeof canonical.afterPurchase === "object") {
+    const ap = { ...canonical.afterPurchase };
+    ap.eatWithinLabel = trimMax(ap.eatWithinLabel, 28);
+    if (ap.storage && typeof ap.storage === "object") {
+      const st = { ...ap.storage };
+      if (st.beforeCut && typeof st.beforeCut === "object") {
+        st.beforeCut = {
+          ...st.beforeCut,
+          whereLabel: trimMax(st.beforeCut.whereLabel, 24),
+          summary: trimMax(st.beforeCut.summary, 32),
+          tip: trimMax(st.beforeCut.tip, 90),
+        };
+      }
+      if (st.afterCut && typeof st.afterCut === "object") {
+        st.afterCut = {
+          ...st.afterCut,
+          whereLabel: trimMax(st.afterCut.whereLabel, 24),
+          summary: trimMax(st.afterCut.summary, 32),
+          tip: trimMax(st.afterCut.tip, 90),
+        };
+      }
+      ap.storage = st;
+    }
+    canonical.afterPurchase = ap;
+  }
   const envelope = DeepScanResponseSchema.safeParse({
     ...canonical,
     message: finalMessage,

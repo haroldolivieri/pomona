@@ -1,104 +1,66 @@
 {
-  "timestamp": "2026-10-25T14:06:53.811Z",
-  "model": "google:gemini-3.1-flash-lite",
+  "timestamp": "2026-10-25T19:06:14.249Z",
+  "model": "google:gemini-3.8-flash",
   "maxAttempts": 2,
-  "passed": 0,
+  "passed": 4,
   "total": 4,
   "results": [
     {
       "id": "ds-01-ideal-avocado",
       "locale": "en-GB",
-      "model": "google:gemini-3.1-flash-lite",
-      "pass": false,
-      "attemptsUsed": 2,
-      "reason": "expected ok, got analysis_failed",
-      "latencyMs": 7716,
+      "model": "google:gemini-3.8-flash",
+      "pass": true,
+      "attemptsUsed": 1,
+      "reason": "matched",
+      "latencyMs": 5882,
       "usage": {
         "promptTokens": 2393,
-        "completionTokens": 538,
-        "totalTokens": 2931
-      },
-      "rawOutput": {
-        "schemaVersion": "1.0",
-        "promptVersion": "deep_scan_v1",
-        "modelId": "gemini-3.1-flash-lite",
-        "status": "analysis_failed",
-        "message": "Analysis failed to produce a valid verified result.",
-        "abstentionReason": null,
-        "produce": {
-          "type": "unknown",
-          "displayName": "Unknown",
-          "variety": null
-        },
-        "ripeness": {
-          "state": "unknown",
-          "confidence": 0
-        },
-        "evidence": [],
-        "quality": {
-          "sufficientVisualEvidence": false,
-          "viewCoverage": "poor",
-          "reason": null
-        },
-        "manualChecks": null,
-        "recommendation": null,
-        "afterPurchase": null
-      }
-    },
-    {
-      "id": "ds-01-ideal-avocado",
-      "locale": "pt-BR",
-      "model": "google:gemini-3.1-flash-lite",
-      "pass": false,
-      "attemptsUsed": 2,
-      "reason": "expected state nearly_ripe, got ripe",
-      "latencyMs": 4714,
-      "usage": {
-        "promptTokens": 2393,
-        "completionTokens": 424,
-        "totalTokens": 2817
+        "completionTokens": 443,
+        "totalTokens": 2836
       },
       "rawOutput": {
         "status": "ok",
-        "message": "O abacate está maduro e pronto para consumo.",
+        "message": "This Hass avocado has an even, dark purplish-black skin indicating full ripeness.",
         "afterPurchase": {
           "readyInDays": {
             "min": 0,
-            "max": 0
+            "max": 1
           },
           "eatWithinDays": {
             "min": 1,
-            "max": 2
+            "max": 3
           },
-          "eatWithinLabel": "Consumir em até 2 dias",
+          "eatWithinLabel": "1-3 days",
           "storage": {
             "beforeCut": {
-              "where": "counter",
-              "whereLabel": "Bancada",
-              "summary": "Mantenha em temperatura ambiente",
-              "tip": "Se estiver muito maduro, coloque na geladeira para retardar o amadurecimento."
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Refrigerate whole",
+              "tip": "Store in the fridge to slow down further softening and preserve ripeness."
             },
             "afterCut": {
               "where": "fridge",
-              "whereLabel": "Geladeira",
-              "summary": "Armazene em recipiente fechado",
-              "tip": "Use limão ou azeite na superfície exposta para evitar a oxidação."
+              "whereLabel": "Fridge",
+              "summary": "Airtight in fridge",
+              "tip": "Squeeze lemon or lime juice over exposed flesh and seal tightly in film."
             }
           }
         },
         "abstentionReason": null,
         "produce": {
           "type": "avocado",
-          "displayName": "Abacate",
+          "displayName": "Avocado",
           "variety": "Hass"
         },
         "ripeness": {
           "state": "ripe",
-          "confidence": 0.95
+          "confidence": 0.94
         },
         "evidence": [
-          "casca escura e rugosa característica da variedade",
-          "textura firme com leve cedência ao toque"
+          "Uniform dark purplish-black pebbled skin",
+          "Absence of bright green undertones across all sides",
+          "Intact stem button seated firmly in stem cavity",
+          "Plump, taut skin without sunken indentations or collapse"
         ],
         "quality": {
           "sufficientVisualEvidence": true,
@@ -111,87 +73,194 @@
         },
         "schemaVersion": "1.0",
         "promptVersion": "deep_scan_v1",
-        "modelId": "gemini-3.1-flash-lite"
+        "modelId": "gemini-3.8-flash"
+      }
+    },
+    {
+      "id": "ds-06-underripe-avocado",
+      "locale": "en-GB",
+      "model": "google:gemini-3.8-flash",
+      "pass": true,
+      "attemptsUsed": 1,
+      "reason": "matched",
+      "latencyMs": 4565,
+      "usage": {
+        "promptTokens": 2393,
+        "completionTokens": 413,
+        "totalTokens": 2806
+      },
+      "rawOutput": {
+        "status": "ok",
+        "message": "This avocado is bright green and firm, indicating it is unripe.",
+        "afterPurchase": {
+          "readyInDays": {
+            "min": 4,
+            "max": 6
+          },
+          "eatWithinDays": {
+            "min": 5,
+            "max": 8
+          },
+          "eatWithinLabel": "5-8 days",
+          "storage": {
+            "beforeCut": {
+              "where": "counter",
+              "whereLabel": "Countertop",
+              "summary": "Room temperature whole",
+              "tip": "Ripen at room temperature away from direct sunlight until the skin darkens."
+            },
+            "afterCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Refrigerate airtight",
+              "tip": "Brush cut flesh with lemon juice and store in a sealed container."
+            }
+          }
+        },
+        "abstentionReason": null,
+        "produce": {
+          "type": "avocado",
+          "displayName": "Avocado",
+          "variety": "Hass"
+        },
+        "ripeness": {
+          "state": "unripe",
+          "confidence": 0.95
+        },
+        "evidence": [
+          "Uniform bright green pebbled skin",
+          "No darkening or purplish black tones",
+          "Intact stem button firmly attached"
+        ],
+        "quality": {
+          "sufficientVisualEvidence": true,
+          "viewCoverage": "good",
+          "reason": null
+        },
+        "manualChecks": null,
+        "recommendation": {
+          "eatWhen": "in_a_few_days"
+        },
+        "schemaVersion": "1.0",
+        "promptVersion": "deep_scan_v1",
+        "modelId": "gemini-3.8-flash"
+      }
+    },
+    {
+      "id": "ds-07-overripe-avocado",
+      "locale": "en-GB",
+      "model": "google:gemini-3.8-flash",
+      "pass": true,
+      "attemptsUsed": 1,
+      "reason": "matched",
+      "latencyMs": 5294,
+      "usage": {
+        "promptTokens": 2393,
+        "completionTokens": 414,
+        "totalTokens": 2807
+      },
+      "rawOutput": {
+        "status": "ok",
+        "message": "This avocado is overripe with deep sunken indentations indicating internal breakdown.",
+        "afterPurchase": {
+          "readyInDays": {
+            "min": 0,
+            "max": 0
+          },
+          "eatWithinDays": {
+            "min": 1,
+            "max": 1
+          },
+          "eatWithinLabel": "Use immediately",
+          "storage": {
+            "beforeCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Fridge / whole",
+              "tip": "Refrigerate immediately to slow further decay and use as soon as possible."
+            },
+            "afterCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Fridge / airtight",
+              "tip": "Store in an airtight container with a squeeze of lemon juice."
+            }
+          }
+        },
+        "abstentionReason": null,
+        "produce": {
+          "type": "avocado",
+          "displayName": "Avocado",
+          "variety": "Hass"
+        },
+        "ripeness": {
+          "state": "overripe",
+          "confidence": 0.95
+        },
+        "evidence": [
+          "deep prominent dents and collapsed skin",
+          "dark brown to blackened pebbled skin",
+          "shrivelled and wrinkled skin texture",
+          "sunken hollow area around body"
+        ],
+        "quality": {
+          "sufficientVisualEvidence": true,
+          "viewCoverage": "good",
+          "reason": null
+        },
+        "manualChecks": null,
+        "recommendation": {
+          "eatWhen": "avoid"
+        },
+        "schemaVersion": "1.0",
+        "promptVersion": "deep_scan_v1",
+        "modelId": "gemini-3.8-flash"
       }
     },
     {
       "id": "ds-05-same-side-avocado",
       "locale": "en-GB",
-      "model": "google:gemini-3.1-flash-lite",
-      "pass": false,
-      "attemptsUsed": 2,
-      "reason": "expected status insufficient_evidence, got no_produce",
-      "latencyMs": 7006,
+      "model": "google:gemini-3.8-flash",
+      "pass": true,
+      "attemptsUsed": 1,
+      "reason": "matched",
+      "latencyMs": 20840,
       "usage": {
         "promptTokens": 2393,
-        "completionTokens": 835,
-        "totalTokens": 3228
+        "completionTokens": 2599,
+        "totalTokens": 4992
       },
       "rawOutput": {
-        "status": "no_produce",
-        "message": "The image displays multiple fruits instead of a single fruit.",
+        "status": "insufficient_evidence",
+        "message": "Please turn the avocado to capture the other side.",
         "afterPurchase": null,
-        "abstentionReason": null,
+        "abstentionReason": "same_side_only",
         "produce": {
-          "type": "unknown",
-          "displayName": "Unknown",
-          "variety": null
+          "type": "avocado",
+          "displayName": "Avocado",
+          "variety": "Hass"
         },
         "ripeness": {
           "state": "unknown",
-          "confidence": 0
+          "confidence": 0.5
         },
         "evidence": [],
         "quality": {
           "sufficientVisualEvidence": false,
           "viewCoverage": "poor",
-          "reason": null
+          "reason": "Only one side of the avocado is shown across all views."
         },
-        "manualChecks": [],
+        "manualChecks": [
+          {
+            "trait": "Firmness",
+            "how": "Gently squeeze the avocado in the palm of your hand without poking with fingertips.",
+            "whatItMeans": "Yielding slightly to gentle pressure indicates it is ripe and ready to eat."
+          }
+        ],
         "recommendation": null,
         "schemaVersion": "1.0",
         "promptVersion": "deep_scan_v1",
-        "modelId": "gemini-3.1-flash-lite"
-      }
-    },
-    {
-      "id": "ds-05-same-side-avocado",
-      "locale": "pt-BR",
-      "model": "google:gemini-3.1-flash-lite",
-      "pass": false,
-      "attemptsUsed": 2,
-      "reason": "expected status insufficient_evidence, got no_produce",
-      "latencyMs": 5531,
-      "usage": {
-        "promptTokens": 2393,
-        "completionTokens": 534,
-        "totalTokens": 2927
-      },
-      "rawOutput": {
-        "status": "no_produce",
-        "message": "A imagem contém dois abacates. Por favor, envie uma foto de apenas um.",
-        "afterPurchase": null,
-        "abstentionReason": null,
-        "produce": {
-          "type": "unknown",
-          "displayName": "Unknown",
-          "variety": null
-        },
-        "ripeness": {
-          "state": "unknown",
-          "confidence": 0
-        },
-        "evidence": [],
-        "quality": {
-          "sufficientVisualEvidence": false,
-          "viewCoverage": "poor",
-          "reason": null
-        },
-        "manualChecks": [],
-        "recommendation": null,
-        "schemaVersion": "1.0",
-        "promptVersion": "deep_scan_v1",
-        "modelId": "gemini-3.1-flash-lite"
+        "modelId": "gemini-3.8-flash"
       }
     }
   ],

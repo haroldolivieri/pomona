@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import {
   sharpnessScore,
   similarityScore,
@@ -11,6 +13,7 @@ import {
 } from "@pomona/contract";
 import { verifyAndResolveDeepScanResponse } from "@pomona/proxy";
 import type { DeepScanRequest, DeepScanResponseModel } from "@pomona/contract";
+import { extractTilesFromJpeg } from "./tile-extractor";
 
 const THUMB_SIZE = 32 * 32;
 
@@ -438,6 +441,81 @@ describe("photo-checker deterministic evals", () => {
         expect(outcome.response.abstentionReason).toBe("same_side_only");
         expect(outcome.response.manualChecks?.length).toBe(1);
         expect(outcome.response.afterPurchase).toBeNull();
+      }
+    });
+  });
+
+  describe("real deep-scan fixture image tests", () => {
+    const datasetDir = path.resolve(__dirname, "../dataset/deep-scan");
+
+    it("evaluates ds-05-same-side-avocado.jpg and catches lack of rotation locally (not_rotated)", () => {
+      const buf = fs.readFileSync(path.join(datasetDir, "ds-05-same-side-avocado.jpg"));
+      const { tiles } = extractTilesFromJpeg(buf);
+      expect(tiles).toHaveLength(6);
+
+      const { kept, stats } = selectFrames(tiles);
+      expect(stats.rejectedSimilarity).toBe(5);
+      expect(stats.stationaryRatio).toBe(1);
+      expect(stats.rotationSpread).toBe(0);
+      expect(kept).toHaveLength(1);
+
+      const decision = evaluateFrameRejection(stats, kept.length);
+      expect(decision).toBe("not_rotated");
+    });
+
+    it("evaluates ds-03-blurry-avocado.jpg and detects blur degradation", () => {
+      const buf = fs.readFileSync(path.join(datasetDir, "ds-03-blurry-avocado.jpg"));
+      const { tiles } = extractTilesFromJpeg(buf);
+
+      const { kept, stats } = selectFrames(tiles);
+      expect(stats.rejectedBlur).toBeGreaterThanOrEqual(4);
+      expect(kept.length).toBeLessThan(2);
+    });
+
+    it("evaluates ds-04-dark-avocado.jpg and catches stationary dark tiles", () => {
+      const buf = fs.readFileSync(path.join(datasetDir, "ds-04-dark-avocado.jpg"));
+      const { tiles } = extractTilesFromJpeg(buf);
+
+      const { kept, stats } = selectFrames(tiles);
+      expect(stats.stationaryRatio).toBe(1);
+      expect(evaluateFrameRejection(stats, kept.length)).toBe("not_rotated");
+    });
+
+    it("evaluates ds-02-empty-oval.jpg and rejects for low exposure / empty surface", () => {
+      const buf = fs.readFileSync(path.join(datasetDir, "ds-02-empty-oval.jpg"));
+      const { tiles } = extractTilesFromJpeg(buf);
+
+      for (const tile of tiles) {
+        expect(exposureScore(tile.gray)).toBeLessThan(0.05);
+      }
+      const { kept, stats } = selectFrames(tiles);
+      expect(stats.rejectedExposure).toBe(6);
+      expect(kept).toHaveLength(0);
+      expect(evaluateFrameRejection(stats, kept.length)).toBe("too_dark_or_bright");
+    });
+
+    it("accepts valid multi-angle rotation grids with full view diversity (ds-01 ripe, ds-06 underripe, ds-07 overripe)", () => {
+      const validFixtures = [
+        "ds-01-ideal-avocado.jpg",
+        "ds-06-underripe-avocado.jpg",
+        "ds-07-overripe-avocado.jpg",
+      ];
+
+      for (const file of validFixtures) {
+        const buf = fs.readFileSync(path.join(datasetDir, file));
+        const { tiles } = extractTilesFromJpeg(buf);
+        expect(tiles).toHaveLength(6);
+
+        const { kept, stats } = selectFrames(tiles);
+        expect(stats.rejectedBlur).toBe(0);
+        expect(stats.rejectedExposure).toBe(0);
+        expect(stats.rejectedSimilarity).toBe(0);
+        expect(stats.stationaryRatio).toBe(0);
+        expect(stats.rotationSpread).toBeGreaterThanOrEqual(6.5);
+        expect(kept).toHaveLength(6);
+
+        const decision = evaluateFrameRejection(stats, kept.length);
+        expect(decision).toBeNull();
       }
     });
   });
