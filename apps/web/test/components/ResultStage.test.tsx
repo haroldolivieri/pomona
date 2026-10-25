@@ -130,9 +130,8 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(screen.getByText(/❄️ After cut/i)).toBeInTheDocument();
     expect(screen.getByText("Fridge · wrapped")).toBeInTheDocument();
 
-    // Hint box directly above CTA with flip icon
-    expect(screen.getByTestId("follow-up-hint")).toHaveTextContent("The blue one could be sweeter. Flip it and snap.");
-    expect(screen.getByTestId("flip-hint-icon")).toBeInTheDocument();
+    // Follow-up hint panel is removed (CTA button label is sufficient)
+    expect(screen.queryByTestId("follow-up-hint")).not.toBeInTheDocument();
     expect(screen.getByTestId("cta-compare-runner-up")).toBeInTheDocument();
   });
 
@@ -219,8 +218,8 @@ describe("ResultStage (Mockup Parity)", () => {
     const tick = screen.getByTestId("score-prev-mark");
     expect(tick).toBeInTheDocument();
 
-    // Hint and CTA
-    expect(screen.getByTestId("follow-up-hint")).toHaveTextContent(/1st Winner \(8\.6\) was only graded from the top/i);
+    // CTA button without redundant hint panel
+    expect(screen.queryByTestId("follow-up-hint")).not.toBeInTheDocument();
     expect(screen.getByTestId("cta-final-check-first-pick")).toBeInTheDocument();
   });
 
@@ -447,7 +446,7 @@ describe("ResultStage (Mockup Parity)", () => {
     // Expand sheet
     fireEvent.click(screen.getByTestId("sheet-drag-area"));
 
-    expect(screen.getByTestId("follow-up-hint")).toHaveTextContent("The blue one could be sweeter. Flip it and snap.");
+    expect(screen.queryByTestId("follow-up-hint")).not.toBeInTheDocument();
     expect(screen.getByText("3–5 days")).toBeInTheDocument();
     expect(screen.getByText("Yellow field spot")).toBeInTheDocument();
 
@@ -468,8 +467,8 @@ describe("ResultStage (Mockup Parity)", () => {
       />
     );
 
-    expect(screen.getByTestId("follow-up-hint")).toHaveTextContent("Check underside before storing for 2–3 days");
-    expect(screen.getByText("Ready in 2–3d · Keeps 5–7 days")).toBeInTheDocument();
+    expect(screen.queryByTestId("follow-up-hint")).not.toBeInTheDocument();
+    expect(screen.getByText("Ready in 2-3d · Keeps 5-7 days")).toBeInTheDocument();
     expect(screen.getByText("Even form")).toBeInTheDocument();
 
     // Test 3: later_this_week
@@ -489,8 +488,8 @@ describe("ResultStage (Mockup Parity)", () => {
       />
     );
 
-    expect(screen.getByTestId("follow-up-hint")).toHaveTextContent("Check underside for bruises before long storage");
-    expect(screen.getByText("Ripens in 4–6d · Keeps 7–10 days")).toBeInTheDocument();
+    expect(screen.queryByTestId("follow-up-hint")).not.toBeInTheDocument();
+    expect(screen.getByText("Ripens in 4-6d · Keeps 7-10 days")).toBeInTheDocument();
     expect(screen.getByText("Green stem")).toBeInTheDocument();
 
     // Test 4: back to ready_now - restores initial text
@@ -503,7 +502,7 @@ describe("ResultStage (Mockup Parity)", () => {
       />
     );
 
-    expect(screen.getByTestId("follow-up-hint")).toHaveTextContent("The blue one could be sweeter. Flip it and snap.");
+    expect(screen.queryByTestId("follow-up-hint")).not.toBeInTheDocument();
     expect(screen.getByText("3–5 days")).toBeInTheDocument();
     expect(screen.getByText("Yellow field spot")).toBeInTheDocument();
   });
@@ -540,7 +539,7 @@ describe("ResultStage (Mockup Parity)", () => {
     // Advisory banner is shown under the tabs
     const banner = screen.getByTestId("ripeness-mismatch-banner");
     expect(banner).toBeInTheDocument();
-    expect(banner).toHaveTextContent("All items in view are already ripe — eat sooner");
+    expect(banner).toHaveTextContent("All items in view are already ripe, eat sooner");
 
     // Mismatch tag is anchored to the winner box
     const mismatchTag = screen.getByTestId("winner-mismatch-tag");
@@ -553,7 +552,7 @@ describe("ResultStage (Mockup Parity)", () => {
 
     // Open sheet to inspect headline and eyebrow
     fireEvent.click(screen.getByTestId("sheet-drag-area"));
-    expect(screen.getByText("No items will keep 2–3 days.")).toBeInTheDocument();
+    expect(screen.getByText("No items will keep 2-3 days.")).toBeInTheDocument();
     expect(screen.getAllByText(/All items in view are already ripe/i).length).toBeGreaterThanOrEqual(1);
   });
 
@@ -582,7 +581,7 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(screen.queryByTestId("ripeness-target-switch")).not.toBeInTheDocument();
     const lockedGoal = screen.getByTestId("locked-ripeness-goal");
     expect(lockedGoal).toBeInTheDocument();
-    expect(lockedGoal).toHaveTextContent("In 2–3 days");
+    expect(lockedGoal).toHaveTextContent("In 2-3 days");
   });
 
   it("auto-scrolls photo so winner is centered in visible photo area above bottom sheet", () => {
@@ -630,5 +629,108 @@ describe("ResultStage (Mockup Parity)", () => {
     // After image load and coverRect computation, auto-centering runs and applies translation
     // Since winner is low in frame (Y=800), desiredPanY is negative to pull image up into view
     expect(photoViewport.style.transform).not.toBe("translate3d(0, 0px, 0)");
+  });
+});
+
+describe("ResultStage deep-scan banner", () => {
+  const marginalFirstPick = {
+    id: "c1",
+    box: [360, 240, 680, 560] as [number, number, number, number],
+    score: 4.8,
+    initialScore: 4.8,
+    ripeness: "ripe" as const,
+    traits: [],
+    flipSummary: null,
+    anglesInspected: 1,
+    role: "first_pick" as const,
+  };
+  const singleResponse = {
+    schemaVersion: "1.0" as const,
+    promptVersion: "v1",
+    modelId: "test",
+    round: 1 as const,
+    status: "ok" as const,
+    message: null,
+    produce: { type: "watermelon", displayName: "Watermelon", variety: null },
+    candidates: [
+      { id: "c1", box: [360, 240, 680, 560] as [number, number, number, number], score: 4.8, ripeness: "ripe" as const, traits: [], flipSummary: null },
+    ],
+    verdict: { winnerId: "c1", runnerUpId: "c1", confidence: "low" as const, headline: "Hard to say." },
+    followUp: null,
+    afterPurchase: null,
+  };
+  const marginalState = {
+    ...initialScanMachineState(),
+    phase: "S4_InitialResult" as const,
+    firstPick: marginalFirstPick,
+    lastResponse: singleResponse,
+  };
+
+  it("offers the Inspect banner for a marginal single-candidate verdict", () => {
+    const onDeepScan = vi.fn();
+    render(<ResultStage state={marginalState} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} onDeepScan={onDeepScan} />);
+    const banner = screen.getByTestId("ds-banner");
+    expect(banner).toBeInTheDocument();
+    expect(banner).toHaveTextContent("Double check this fruit");
+    const cta = screen.getByTestId("ds-banner-cta");
+    expect(cta).toHaveTextContent("✦ Inspect Winner");
+    fireEvent.click(cta);
+    expect(onDeepScan).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays hidden without a wired handler and for a confident verdict", () => {
+    const { container } = render(<ResultStage state={marginalState} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} />);
+    expect(container.querySelector('[data-testid="ds-banner"]')).toBeNull();
+
+    const confident = {
+      ...marginalState,
+      lastResponse: {
+        ...singleResponse,
+        verdict: { winnerId: "c1", runnerUpId: "c1", confidence: "high" as const, headline: "Buy it." },
+      },
+    };
+    const { container: strong } = render(<ResultStage state={confident} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} onDeepScan={vi.fn()} />);
+    expect(strong.querySelector('[data-testid="ds-banner"]')).toBeNull();
+  });
+
+  it("renders collapsible tactile checks card in comparison sheet body", () => {
+    const state = {
+      ...initialScanMachineState(),
+      phase: "S4_InitialResult" as const,
+      firstPick: marginalFirstPick,
+      lastResponse: {
+        ...singleResponse,
+        produce: { type: "watermelon", displayName: "Melancia", variety: null },
+      },
+    };
+
+    render(
+      <ResultStage
+        state={state}
+        onCompareWithRunnerUp={vi.fn()}
+        onStartFinalCheck={vi.fn()}
+        onReset={vi.fn()}
+      />
+    );
+
+    const card = screen.getByTestId("compare-tactile-checks");
+    expect(card).toBeInTheDocument();
+    expect(screen.getByTestId("compare-visual-score-label")).toHaveTextContent("Visual score");
+    expect(screen.getByTestId("compare-tactile-checks-toggle")).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByTestId("compare-tactile-checks-subtitle")).toHaveTextContent("Photos assess the exterior");
+    expect(screen.queryByTestId("compare-tactile-checks-list")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("compare-tactile-checks-toggle"));
+    expect(screen.getByTestId("compare-tactile-checks-dialog")).toBeInTheDocument();
+    expect(screen.getByTestId("compare-tactile-checks-toggle")).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByTestId("compare-tactile-checks-disclaimer")).toHaveTextContent(
+      "Even with a high visual score, photos alone can never be 100% sure about ripeness"
+    );
+    expect(screen.getByTestId("compare-tactile-checks-list")).toBeInTheDocument();
+    expect(screen.getByTestId("compare-tactile-checks-list")).toHaveTextContent("Field spot");
+
+    fireEvent.click(screen.getByTestId("compare-tactile-checks-close-button"));
+    expect(screen.queryByTestId("compare-tactile-checks-dialog")).not.toBeInTheDocument();
+    expect(screen.getByTestId("compare-tactile-checks-toggle")).toHaveAttribute("aria-expanded", "false");
   });
 });

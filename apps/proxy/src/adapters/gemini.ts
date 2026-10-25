@@ -13,6 +13,7 @@ import {
 import type { VisionProviderAdapter, AdapterInput, AdapterRawResult } from "./types";
 import { normalizeTokenUsage } from "./types";
 import { getGatewayTraceHeaders, type GatewayRouting } from "./gateway";
+import { deepScanProviderSchema } from "../prompts/deep-scan";
 
 /**
  * Gemini's OpenAPI responseSchema requires `items` on arrays to be a single schema object
@@ -106,9 +107,10 @@ export function createGeminiVisionAdapter(options: GeminiVisionAdapterOptions): 
     async analyzeProduce(input: AdapterInput, signal?: AbortSignal): Promise<AdapterRawResult> {
       const model = google(modelId);
 
+      const schema = input.schema ?? (input.kind?.kind === "deep_scan" ? deepScanProviderSchema : GeminiProviderSchema);
       const result = await generateFn({
         model: model as any,
-        schema: GeminiProviderSchema as any,
+        schema: schema as any,
         temperature: 0.1,
         system: input.systemPrompt,
         headers: getGatewayTraceHeaders(options.gateway, input.trace),

@@ -1,15 +1,17 @@
 import { currentDisplayLocale } from "../i18n/copy";
 import { uiCopy } from "../i18n/copy";
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   type Candidate,
   type TargetRipenessWindow,
   resolveCandidatesForTarget,
+  resolveTactileChecks,
 } from "@pomona/contract";
 import type { ScanMachineState } from "../state/scan-state-machine";
 import { describeBoxPosition } from "../lib/spatial-a11y";
 import { SeasonalityStrip } from "./SeasonalityStrip";
+import { StorageCardsRow, SeasonalityPanelCard, ResultTopBar, CircularScoreMeter, TactileChecksCard } from "./ResultCards";
 import { computeObjectFitCoverRect, type RenderedCoverRect } from "../lib/image-pipeline";
 
 export interface ResultStageProps {
@@ -18,6 +20,7 @@ export interface ResultStageProps {
   onStartFinalCheck: () => void;
   onReset: () => void;
   onSetTargetRipeness?: (target: TargetRipenessWindow) => void;
+  onDeepScan?: () => void;
 }
 
 export const ResultStage: React.FC<ResultStageProps> = ({
@@ -26,6 +29,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   onStartFinalCheck,
   onReset,
   onSetTargetRipeness,
+  onDeepScan,
 }) => {
   const { t } = useTranslation();
   // 3-way bottom sheet snap mode:
@@ -47,6 +51,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const [sheetHeight, setSheetHeight] = useState<number>(0);
   const [minPeekHeight, setMinPeekHeight] = useState<number>(76);
   const [defaultPeekHeight, setDefaultPeekHeight] = useState<number>(180);
+  const [hasOverflow, setHasOverflow] = useState<boolean>(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [coverRect, setCoverRect] = useState<RenderedCoverRect | null>(null);
@@ -89,6 +94,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
   const updateSheetDimensions = () => {
     if (sheetRef.current && sheetRef.current.offsetHeight > 0) {
       setSheetHeight(sheetRef.current.offsetHeight);
+      const isOverflowing = sheetRef.current.scrollHeight > sheetRef.current.clientHeight + 2;
+      setHasOverflow(isOverflowing);
     }
     if (minPeekRef.current && minPeekRef.current.offsetHeight > 0) {
       setMinPeekHeight(minPeekRef.current.offsetHeight);
@@ -97,6 +104,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
       setDefaultPeekHeight(defaultPeekRef.current.offsetHeight);
     }
   };
+
+  useLayoutEffect(() => {
+    updateSheetDimensions();
+  }, [sheetMode, phase, targetRipeness, lastResponse]);
 
   useEffect(() => {
     updateSheetDimensions();
@@ -285,12 +296,21 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
   const isLostStyle = phase === "S5B1_RunnerUpBeaten" || phase === "S7A_FirstPickWonFinal" || phase === "S7B_FirstPickLostFinal";
   const isFullyOpen = sheetMode === "expanded";
+  const canScroll = isFullyOpen && hasOverflow;
 
   const denseCandidatesNote =
     (lastResponse.candidates?.length ?? 0) >= 15
       ? uiCopy("copy.topPicksShownFromAllVisibleItems", { count: lastResponse.candidates.length })
       : "";
   const fullSubtitle = subtitle + denseCandidatesNote;
+
+  const tactileChecks = useMemo(() => {
+    const produceName =
+      produce?.displayName ||
+      produce?.type ||
+      activeWinner?.id;
+    return resolveTactileChecks(produceName, currentDisplayLocale());
+  }, [produce, activeWinner?.id]);
 
   // Calculate translation distance needed to tuck the sheet to each snap height:
   // - 'expanded': translateY = 0 (full sheet visible)
@@ -447,91 +467,13 @@ export const ResultStage: React.FC<ResultStageProps> = ({
       </div>
 
       {/* Topbar pinned at top of screen: Left ✕, Center produce chip, Right ↻ retake */}
-      <div
-        style={{
-          position: "absolute",
-          top: "max(16px, env(safe-area-inset-top))",
-          left: "14px",
-          right: "14px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          zIndex: 25,
-        }}
-      >
-        {/* Close button */}
-        <button
-          onClick={onReset}
-          data-testid="close-button"
-          aria-label={uiCopy("copy.resetAndScanAgain")}
-          style={{
-            width: "36px",
-            height: "36px",
-            borderRadius: "50%",
-            backgroundColor: "rgba(251, 250, 246, 0.88)",
-            color: "#142117",
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "14px",
-            fontWeight: 700,
-            cursor: "pointer",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-          }}
-        >
-          ✕
-        </button>
-
-        {/* Produce Name Chip */}
-        <div
-          data-testid="produce-name-chip"
-          style={{
-            backgroundColor: "rgba(251, 250, 246, 0.88)",
-            color: "#142117",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            fontSize: "12px",
-            fontWeight: 700,
-            padding: "7px 14px",
-            borderRadius: "999px",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-          }}
-        >
-          {produce?.displayName || uiCopy("copy.produce")}
-        </div>
-
-        {/* Retake button */}
-        <button
-          onClick={onReset}
-          data-testid="retake-button"
-          aria-label={uiCopy("copy.retakePhoto")}
-          style={{
-            width: "36px",
-            height: "36px",
-            borderRadius: "50%",
-            backgroundColor: "rgba(251, 250, 246, 0.88)",
-            color: "#142117",
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "16px",
-            fontWeight: 700,
-            cursor: "pointer",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-          }}
-        >
-          ↻
-        </button>
-      </div>
+      <ResultTopBar
+        onClose={onReset}
+        closeAria={uiCopy("copy.resetAndScanAgain")}
+        onRetake={onReset}
+        retakeAria={uiCopy("copy.retakePhoto")}
+        chip={produce?.displayName || uiCopy("copy.produce")}
+      />
 
       {/* Full-bleed Photo Viewport with Bounding Boxes (fills whole screen behind sheet, auto-centers winner above sheet) */}
       <div
@@ -783,6 +725,58 @@ export const ResultStage: React.FC<ResultStageProps> = ({
       <div
         ref={sheetRef}
         data-testid="result-bottom-sheet"
+        onTouchStart={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest("button, a, input, select, textarea, [role='tab']")) return;
+          if (canScroll && sheetRef.current && sheetRef.current.scrollTop > 0) return;
+          handleDragStart(e.touches[0].clientY);
+        }}
+        onTouchMove={(e) => {
+          if (dragStartY.current !== null) {
+            const rawDeltaY = e.touches[0].clientY - dragStartY.current;
+            if (canScroll && rawDeltaY < 0) {
+              dragStartY.current = null;
+              setDragOffsetY(0);
+              setIsDragging(false);
+              return;
+            }
+            handleDragMove(e.touches[0].clientY);
+          }
+        }}
+        onTouchEnd={(e) => {
+          if (dragStartY.current !== null) {
+            const clientY = e.changedTouches?.[0]?.clientY;
+            handleDragEnd(clientY);
+          }
+        }}
+        onPointerDown={(e) => {
+          if (e.pointerType === "mouse") {
+            const target = e.target as HTMLElement;
+            if (target.closest("button, a, input, select, textarea, [role='tab']")) return;
+            if (canScroll && sheetRef.current && sheetRef.current.scrollTop > 0) return;
+            handleDragStart(e.clientY);
+          }
+        }}
+        onPointerMove={(e) => {
+          if (e.pointerType === "mouse" && dragStartY.current !== null) {
+            handleDragMove(e.clientY);
+          }
+        }}
+        onPointerUp={(e) => {
+          if (e.pointerType === "mouse" && dragStartY.current !== null) {
+            handleDragEnd(e.clientY);
+          }
+        }}
+        onClick={(e) => {
+          if (Date.now() < suppressClickUntil.current) return;
+          const target = e.target as HTMLElement;
+          if (target.closest("button, a, input, select, textarea, [role='tab']")) return;
+          if (sheetMode !== "expanded") {
+            handleSheetToggle();
+          } else if (target.closest("[data-testid='sheet-drag-area'], [data-testid='sheet-header-summary'], [data-testid='sheet-peek-bar']")) {
+            handleSheetToggle();
+          }
+        }}
         style={{
           position: "absolute",
           left: 0,
@@ -804,30 +798,20 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           display: "flex",
           flexDirection: "column",
           gap: "4px",
-          boxShadow: "0 -8px 32px rgba(0, 0, 0, 0.22)",
+          boxShadow: "0 -8px 32px rgba(0, 0, 0, 0.22), 0 200px 0 0 var(--surface-sheet)",
           transform: `translate3d(0, ${currentTranslate}px, 0)`,
           transition: isDragging
             ? "none"
             : "transform 0.32s cubic-bezier(0.2, 0.0, 0, 1.0)",
-          overflow: "visible",
-          touchAction: "none",
+          overflowY: canScroll ? "auto" : (isFullyOpen ? "hidden" : "visible"),
+          overflowX: "hidden",
+          WebkitOverflowScrolling: "touch",
+          touchAction: canScroll ? "pan-y" : "none",
+          overscrollBehavior: "contain",
           userSelect: "none",
+          cursor: isDragging ? "grabbing" : (sheetMode === "expanded" ? "default" : "pointer"),
         }}
       >
-        {/* Solid background skirt extending below the sheet to prevent any gap during drag */}
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            top: "90%",
-            left: 0,
-            right: 0,
-            height: "100vh",
-            backgroundColor: "var(--surface-sheet)",
-            pointerEvents: "none",
-            zIndex: -1,
-          }}
-        />
         {/* Material 3 Drag Handle Affordance: dedicated touch target with accessible single-pointer/keyboard alternative */}
         <div
           ref={defaultPeekRef}
@@ -1187,75 +1171,24 @@ export const ResultStage: React.FC<ResultStageProps> = ({
 
                 {/* Circular Score Meter next to headline */}
                 {activeWinner && (
-                  <div
-                    data-testid="circular-score-meter"
-                    style={{
-                      position: "relative",
-                      width: "48px",
-                      height: "48px",
-                      flexShrink: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <svg
-                      width="48"
-                      height="48"
-                      viewBox="0 0 48 48"
-                      style={{ transform: "rotate(-90deg)", position: "absolute", inset: 0 }}
-                    >
-                      {/* Track circle */}
-                      <circle
-                        cx="24"
-                        cy="24"
-                        r="19"
-                        fill="none"
-                        stroke="var(--surface-track)"
-                        strokeWidth="3.5"
-                      />
-                      {/* Progress circle */}
-                      <circle
-                        cx="24"
-                        cy="24"
-                        r="19"
-                        fill="none"
-                        stroke={isMismatch ? winnerBorderColor : "#F2C935"}
-                        strokeWidth="3.5"
-                        strokeDasharray={2 * Math.PI * 19}
-                        strokeDashoffset={
-                          2 * Math.PI * 19 * (1 - Math.min(10, Math.max(0, activeWinner.score)) / 10)
-                        }
-                        strokeLinecap="round"
-                      />
-                      {/* Previous tick mark if multi-round */}
-                      {prevMarkScore !== null && (
-                        <circle
-                          data-testid="score-prev-mark"
-                          cx="24"
-                          cy="24"
-                          r="19"
-                          fill="none"
-                          stroke="#142117"
-                          strokeWidth="3.5"
-                          strokeDasharray={`2 ${2 * Math.PI * 19 - 2}`}
-                          strokeDashoffset={
-                            -1 * (2 * Math.PI * 19 * (Math.min(10, Math.max(0, prevMarkScore)) / 10) - 1)
-                          }
-                          opacity={0.7}
-                        />
-                      )}
-                    </svg>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <CircularScoreMeter
+                      score={Math.min(10, Math.max(0, activeWinner.score))}
+                      prevMark={prevMarkScore}
+                      strokeColor={isMismatch ? winnerBorderColor : undefined}
+                    />
                     <span
-                      className="tabular-nums"
+                      data-testid="compare-visual-score-label"
                       style={{
-                        fontSize: "13px",
-                        fontWeight: 800,
-                        color: "var(--text-primary)",
-                        lineHeight: 1,
+                        fontSize: "9.5px",
+                        fontWeight: 600,
+                        color: "var(--text-muted)",
+                        marginTop: "3px",
+                        letterSpacing: "0.03em",
+                        textTransform: "uppercase",
                       }}
                     >
-                      {activeWinner.score.toFixed(1)}
+                      {uiCopy("result.visualScoreLabel")}
                     </span>
                   </div>
                 )}
@@ -1281,22 +1214,11 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 </div>
               )}
               {lastResponse.seasonality && (
-                <div
-                  data-testid="seasonality-panel"
-                  style={{
-                    backgroundColor: "var(--surface-card)",
-                    border: "1px solid var(--surface-card-border)",
-                    borderRadius: "13px",
-                    padding: "8px 10px",
-                    marginTop: "6px",
-                  }}
-                >
-                  <SeasonalityStrip
-                    seasonality={lastResponse.seasonality}
-                    selectedOriginCode={selectedOriginCode}
-                    onSelectOrigin={setSelectedOriginCode}
-                  />
-                </div>
+                <SeasonalityPanelCard
+                  seasonality={lastResponse.seasonality}
+                  selectedOriginCode={selectedOriginCode}
+                  onSelectOrigin={setSelectedOriginCode}
+                />
               )}
             </div>
 
@@ -1320,10 +1242,18 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             onTouchStart={(e) => {
               const target = e.target as HTMLElement;
               if (target.closest("button") || target.closest("[role='tab']")) return;
+              if (canScroll && sheetRef.current && sheetRef.current.scrollTop > 0) return;
               handleDragStart(e.touches[0].clientY);
             }}
             onTouchMove={(e) => {
               if (dragStartY.current !== null) {
+                const rawDeltaY = e.touches[0].clientY - dragStartY.current;
+                if (canScroll && rawDeltaY < 0) {
+                  dragStartY.current = null;
+                  setDragOffsetY(0);
+                  setIsDragging(false);
+                  return;
+                }
                 handleDragMove(e.touches[0].clientY);
               }
             }}
@@ -1353,160 +1283,26 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               flexDirection: "column",
               gap: "6px",
               flex: 1,
-              overflow: "hidden", // ZERO SCROLLING
-              touchAction: "none",
+              overflow: "visible",
+              touchAction: isFullyOpen ? "pan-y" : "none",
             }}
           >
             {/* Storage Cards Layout (2 Rows) */}
+            {afterPurchase && (
+              <StorageCardsRow
+                afterPurchase={afterPurchase}
+                eatWithinOverride={targetResolution?.eatWithinOverride}
+              />
+            )}
 
-        {/* Storage Cards Layout (2 Rows) */}
-        {afterPurchase && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "2px" }}>
-            {/* Row 1: Full-width card: 🗓 Eat within (left) — {eatWithinLabel} (right bold) */}
-            <div
-              style={{
-                backgroundColor: "var(--surface-card)",
-                border: "1px solid var(--surface-card-border)",
-                borderRadius: "13px",
-                padding: "8px 12px",
-                display: "grid",
-                gridTemplateColumns: "minmax(0, 1fr)",
-                gap: "4px",
-                alignItems: "center",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "10px",
-                  fontWeight: 700,
-                  letterSpacing: "0.06em",
-                  color: "var(--text-muted)",
-                  textTransform: "uppercase",
-                }}
-              >
-                {t("result.eatWithin")}
-              </span>
-              <strong style={{ fontSize: "12px", fontWeight: 600, lineHeight: 1.35, overflowWrap: "anywhere", color: "var(--text-primary)" }}>
-                {targetResolution?.eatWithinOverride || afterPurchase.eatWithinLabel}
-              </strong>
-            </div>
-
-            {/* Row 2: Two equal side-by-side cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
-              {/* Card 1: 🧺 Before cut */}
-              <div
-                style={{
-                  backgroundColor: "var(--surface-card)",
-                  border: "1px solid var(--surface-card-border)",
-                  borderRadius: "13px",
-                  padding: "8px 10px",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "9.5px",
-                    fontWeight: 700,
-                    letterSpacing: "0.06em",
-                    color: "var(--text-muted)",
-                    textTransform: "uppercase",
-                    display: "block",
-                  }}
-                >
-                  {t("result.beforeCut")}
-                </span>
-                <strong
-                  style={{
-                    fontSize: "12.5px",
-                    fontWeight: 700,
-                    display: "block",
-                    marginTop: "3px",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {afterPurchase.storage.beforeCut.summary}
-                </strong>
-              </div>
-
-              {/* Card 2: ❄️ After cut */}
-              <div
-                style={{
-                  backgroundColor: "var(--surface-card)",
-                  border: "1px solid var(--surface-card-border)",
-                  borderRadius: "13px",
-                  padding: "8px 10px",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "9.5px",
-                    fontWeight: 700,
-                    letterSpacing: "0.06em",
-                    color: "var(--text-muted)",
-                    textTransform: "uppercase",
-                    display: "block",
-                  }}
-                >
-                  {t("result.afterCut")}
-                </span>
-                <strong
-                  style={{
-                    fontSize: "12.5px",
-                    fontWeight: 700,
-                    display: "block",
-                    marginTop: "3px",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {afterPurchase.storage.afterCut.summary}
-                </strong>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Card Order: S4 & S5B-2 have Follow-up Hint Box, S5B-1/S7A/S7B have Green Confirmation Card */}
-        {followUpHint && (phase === "S4_InitialResult" || phase === "S5B2_RunnerUpTookLead") && (
-          <div
-            data-testid="follow-up-hint"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "9px",
-              padding: "9px 12px",
-              borderRadius: "12px",
-              backgroundColor: "var(--surface-hint-warn)",
-              border: "1px solid var(--surface-hint-warn-border)",
-              fontSize: "12px",
-              lineHeight: 1.35,
-              color: "var(--text-primary)",
-              marginTop: "2px",
-            }}
-          >
-            {/* Flip / Rotation icon */}
-            <span
-              data-testid="flip-hint-icon"
-              style={{
-                width: "20px",
-                height: "20px",
-                borderRadius: "50%",
-                backgroundColor: phase === "S4_InitialResult" ? "rgba(47, 109, 181, 0.15)" : "rgba(200, 156, 20, 0.15)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                color: phase === "S4_InitialResult" ? "#2F6DB5" : "#C89C14",
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                <path d="M3 3v5h5" />
-                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-                <path d="M16 16h5v5" />
-              </svg>
-            </span>
-            <span>{followUpHint}</span>
-          </div>
-        )}
+            {/* Tactile checks for extra evidence */}
+            {tactileChecks.length > 0 && (
+              <TactileChecksCard
+                checks={tactileChecks}
+                defaultOpen={false}
+                testId="compare-tactile-checks"
+              />
+            )}
 
         {confirmationBanner && (phase === "S5B1_RunnerUpBeaten" || phase === "S7A_FirstPickWonFinal" || phase === "S7B_FirstPickLostFinal") && (
           <div
@@ -1545,6 +1341,53 @@ export const ResultStage: React.FC<ResultStageProps> = ({
             <span>{confirmationBanner}</span>
           </div>
         )}
+
+        {/* Deep Scan banner for marginal single-fruit verdicts */}
+        {Boolean(onDeepScan) &&
+          lastResponse.candidates?.length === 1 &&
+          lastResponse.verdict?.confidence === "low" && (
+            <div
+              data-testid="ds-banner"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                background: "var(--surface-hint-ok)",
+                border: "1px solid var(--surface-hint-ok-border)",
+                borderRadius: "14px",
+                padding: "10px 12px",
+                margin: "4px 0",
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-primary)" }}>
+                  {t("deepScan.bannerTitle")}
+                </div>
+                <div style={{ fontSize: "11px", color: "var(--text-primary)", opacity: 0.8 }}>
+                  {t("deepScan.bannerBody")}
+                </div>
+              </div>
+              <button
+                onClick={onDeepScan}
+                data-testid="ds-banner-cta"
+                style={{
+                  flex: 0,
+                  padding: "10px 14px",
+                  borderRadius: "12px",
+                  border: "none",
+                  backgroundColor: "#F5D547",
+                  color: "#132418",
+                  fontFamily: "Inter, system-ui, sans-serif",
+                  fontWeight: 700,
+                  fontSize: "13px",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                ✦ {t("deepScan.inspectWinner")}
+              </button>
+            </div>
+          )}
 
         {/* Divider 3: Before Primary Action Button */}
         <div

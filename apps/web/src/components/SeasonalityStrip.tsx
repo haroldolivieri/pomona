@@ -28,12 +28,13 @@ export const SeasonalityStrip: React.FC<SeasonalityStripProps> = ({
   onSelectOrigin,
 }) => {
   const { t } = useTranslation();
-  const selected = seasonality.origins.find((o) => o.code === selectedOriginCode) ?? null;
+  const origins = Array.isArray(seasonality?.origins) ? seasonality.origins : [];
+  const selected = origins.find((o) => o.code === selectedOriginCode) ?? null;
   const active = selected ?? seasonality;
-  const style = BADGE_STYLES[active.status];
+  const style = BADGE_STYLES[active.status] ?? BADGE_STYLES.in_season;
 
   const showPills =
-    seasonality.origins.length > 0 &&
+    origins.length > 0 &&
     (seasonality.status === "off_season" ||
       seasonality.status === "imported_year_round" ||
       selected !== null);
@@ -70,13 +71,22 @@ export const SeasonalityStrip: React.FC<SeasonalityStripProps> = ({
       </div>
 
       {showPills && (
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            marginTop: "6px",
+            marginRight: "-10px",
+          }}
+        >
           <span
             style={{
               fontSize: "9.5px",
               fontWeight: 600,
               color: "var(--text-muted)",
               whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             {selected ? t("result.originLabel") : t("result.importedFrom")}
@@ -97,6 +107,7 @@ export const SeasonalityStrip: React.FC<SeasonalityStripProps> = ({
               touchAction: "pan-x",
               flex: 1,
               minWidth: 0,
+              paddingRight: "10px",
             }}
           >
             {seasonality.origins.map((origin) => {

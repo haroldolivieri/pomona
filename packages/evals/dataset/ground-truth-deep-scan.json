@@ -1,0 +1,100 @@
+[
+  {
+    "id": "ds-01-ideal-avocado",
+    "description": "Numbered 2x3 montage with six clear multi-angle views of one ripe Hass avocado backing the focal oval; confident ripe call expected.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "ok",
+        "expectedState": "ripe",
+        "expectManualChecks": false
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-01-ideal-avocado.jpg",
+    "arm": "live"
+  },
+  {
+    "id": "ds-06-underripe-avocado",
+    "description": "Numbered 2x3 montage with six clear multi-angle views of an under-ripe green Hass avocado; confident unripe call expected.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "ok",
+        "expectedState": "unripe",
+        "expectManualChecks": false
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-06-underripe-avocado.jpg",
+    "arm": "live"
+  },
+  {
+    "id": "ds-07-overripe-avocado",
+    "description": "Numbered 2x3 montage with six clear multi-angle views of an overripe Hass avocado with visible sunken indentations; confident overripe call expected.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "ok",
+        "expectedState": "overripe",
+        "expectManualChecks": false
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-07-overripe-avocado.jpg",
+    "arm": "live"
+  },
+  {
+    "id": "ds-02-empty-oval",
+    "description": "Montage of numbered cream tiles with no produce inside; the Clef gate must deny with no_produce, no Gemini call.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "no_produce",
+        "expectedState": null,
+        "expectManualChecks": false
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-02-empty-oval.jpg",
+    "arm": "gate"
+  },
+  {
+    "id": "ds-03-blurry-avocado",
+    "description": "Montage with heavy motion blur on every tile; gate denies with unclear_photo.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "unclear_photo",
+        "expectedState": null,
+        "expectManualChecks": false
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-03-blurry-avocado.jpg",
+    "arm": "gate"
+  },
+  {
+    "id": "ds-04-dark-avocado",
+    "description": "Montage rendered nearly black on every tile; gate denies with unclear_photo.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "unclear_photo",
+        "expectedState": null,
+        "expectManualChecks": false
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-04-dark-avocado.jpg",
+    "arm": "gate"
+  },
+  {
+    "id": "ds-05-same-side-avocado",
+    "description": "Numbered 2x3 montage showing the same side repeatedly without rotation; expects insufficient_evidence with abstentionReason same_side_only and manual checks.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "insufficient_evidence",
+        "expectedState": null,
+        "expectManualChecks": true
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-05-same-side-avocado.jpg",
+    "arm": "live"
+  }
+]

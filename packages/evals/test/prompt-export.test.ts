@@ -2,8 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { v1PromptConfig } from "@pomona/proxy";
-import type { ScanRequest } from "@pomona/contract";
+import { v1PromptConfig, deepScanPromptConfig } from "@pomona/proxy";
+import type { ScanRequest, DeepScanRequest } from "@pomona/contract";
 import promptTemplate from "../prompts/system-and-user.json";
 import { templateFocusPolygon, templateRoundTwoContext, templateRoundThreeContext, renderDocumentationTemplate } from "../scripts/prompt-examples";
 
@@ -52,7 +52,24 @@ const expectedFiles: Record<string, string> = {
   "round3-user.txt": v1PromptConfig.buildUserPrompt(
     makeRequest({ round: 3, followUpContext: templateRoundThreeContext })
   ),
+  "deep-scan-system.txt": deepScanPromptConfig.buildSystemPrompt(makeDeepScanRequest()),
+  "deep-scan-user.txt": deepScanPromptConfig.buildUserPrompt(makeDeepScanRequest()),
+  "deep-scan-user-repair.txt": deepScanPromptConfig.buildUserPrompt(makeDeepScanRequest(), [
+    "{{validationErrors}}",
+  ]),
 };
+
+function makeDeepScanRequest(overrides: Partial<DeepScanRequest> = {}): DeepScanRequest {
+  return {
+    schemaVersion: "1.0",
+    sessionId: "00000000-0000-0000-0000-000000000000",
+    locale: "en-GB",
+    imageBase64: "<image-base64>",
+    imageMimeType: "image/jpeg",
+    sampleCount: 25,
+    ...overrides,
+  };
+}
 
 describe("docs/prompts export stays in sync with production prompt builders", () => {
   it("exports every expected prompt file", () => {
@@ -64,11 +81,17 @@ describe("docs/prompts export stays in sync with production prompt builders", ()
   it("file bodies match the rendered production prompts exactly", () => {
     for (const [file, body] of Object.entries(expectedFiles)) {
       const content = fs.readFileSync(path.join(DOCS_PROMPTS_DIR, file), "utf-8");
-      const builder = file.includes("system")
-        ? "v1PromptConfig.buildSystemPrompt(request)"
-        : file.includes("repair")
-          ? "v1PromptConfig.buildRepairPrompt(request, repairErrors)"
-          : "v1PromptConfig.buildUserPrompt(request)";
+      const builder = file.startsWith("deep-scan-")
+        ? file.includes("repair")
+          ? "deepScanPromptConfig.buildRepairPrompt(request, repairErrors)"
+          : file.includes("system")
+            ? "deepScanPromptConfig.buildSystemPrompt(request)"
+            : "deepScanPromptConfig.buildUserPrompt(request)"
+        : file.includes("system")
+          ? "v1PromptConfig.buildSystemPrompt(request)"
+          : file.includes("repair")
+            ? "v1PromptConfig.buildRepairPrompt(request, repairErrors)"
+            : "v1PromptConfig.buildUserPrompt(request)";
       expect(content.split("\n")[1]).toBe(`# Builder: ${builder}`);
       expect(content).not.toMatch(/\b(?:evals?|promptfoo|benchmark|ground[- ]truth)\b|scenario\s+\d|dataset\//i);
       expect(content).not.toMatch(/\b(?:watermelons?|avocados?|tomato(?:es)?|potato(?:es)?|grapes?|carrots?|bananas?|pineapples?|apples?|oranges?|citrus|onions?|lemons?|berries|roma)\b|field spot|webbing|chalky|8\.8[–-]9\.5|6\.0[–-]8\.0/i);

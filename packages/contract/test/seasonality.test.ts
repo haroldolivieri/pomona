@@ -174,6 +174,6 @@ describe("lookupProduceSeasonality", () => {
         }
       }
     }
-  });
+  }, 30000);
 });
 

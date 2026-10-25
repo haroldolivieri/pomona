@@ -137,6 +137,7 @@ export const ModelStatusSchema = z.enum([
   "insufficient_evidence",
   "multiple_types",
   "analysis_failed",
+  "single_produce",
 ]);
 
 export const ScanStatusSchema = z.enum([
@@ -147,9 +148,42 @@ export const ScanStatusSchema = z.enum([
   "multiple_types",
   "analysis_failed",
   "rate_limited",
+  "single_produce",
 ]);
 
 export const AbstentionReasonSchema = z.enum(["missing_evidence", "assessed_tie"]);
+
+export const DeepScanAbstentionReasonSchema = z.enum([
+  "insufficient_view_coverage",
+  "same_side_only",
+]);
+
+export const ManualCheckSchema = z.object({
+  trait: z.string().min(1).max(40),
+  how: z.string().min(1).max(240),
+  whatItMeans: z.string().min(1).max(240),
+});
+
+export const DeepScanQualitySchema = z.object({
+  sufficientVisualEvidence: z.boolean(),
+  viewCoverage: z.enum(["poor", "fair", "good"]),
+  reason: z.string().nullable(),
+});
+
+export const DeepScanRipenessSchema = z.object({
+  state: z.enum(["unripe", "nearly_ripe", "ripe", "overripe", "spoiled", "unknown"]),
+  confidence: z.number().min(0).max(1),
+});
+
+export const DeepScanRequestSchema = ScanRequestSchema.pick({
+  schemaVersion: true,
+  sessionId: true,
+  locale: true,
+  imageBase64: true,
+  imageMimeType: true,
+}).extend({
+  sampleCount: z.number().int().min(1).max(30), // capture telemetry echo
+});
 
 // Model schema: omits server-injected fields (schemaVersion, promptVersion, modelId, round) for LLM generateObject calls
 export const ScanResponseModelSchema = z.object({
@@ -171,6 +205,23 @@ export const ScanResponseModelSchema = z.object({
   afterPurchase: AfterPurchaseSchema.nullable(),
 });
 
+export const DeepScanResponseModelSchema = ScanResponseModelSchema.pick({
+  status: true,
+  message: true,
+  afterPurchase: true,
+}).extend({
+  abstentionReason: DeepScanAbstentionReasonSchema.nullable().optional(),
+  produce: ProduceInfoSchema.extend({
+    type: z.string().min(1),
+    displayName: z.string().min(1),
+  }),
+  ripeness: DeepScanRipenessSchema,
+  evidence: z.array(z.string().min(1)).max(6),
+  quality: DeepScanQualitySchema,
+  manualChecks: z.array(ManualCheckSchema).min(0).max(3).nullable(),
+  recommendation: z.object({ eatWhen: z.enum(["today_or_tomorrow", "in_a_few_days", "avoid"]).nullable() }).nullable(),
+});
+
 // Full response schema: includes server-injected metadata + rate_limited status
 export const ScanResponseSchema = z.object({
   schemaVersion: z.literal("1.0"),
@@ -186,6 +237,16 @@ export const ScanResponseSchema = z.object({
   verdict: VerdictSchema.nullable(),
   followUp: FollowUpSchema.nullable(),
   afterPurchase: AfterPurchaseSchema.nullable(),
+  seasonality: SeasonalityInfoSchema.nullable().optional(),
+});
+
+// Full deep-scan response schema: model body with server-injected metadata and rate_limited status
+export const DeepScanResponseSchema = DeepScanResponseModelSchema.extend({
+  schemaVersion: z.literal("1.0"),
+  promptVersion: z.string(),
+  modelId: z.string(),
+  status: ScanStatusSchema,
+  // Server-injected deterministically from the same seasonality dataset as the normal scan.
   seasonality: SeasonalityInfoSchema.nullable().optional(),
 });
 
@@ -207,3 +268,8 @@ export type ScanStatus = z.infer<typeof ScanStatusSchema>;
 export type ScanRequest = z.infer<typeof ScanRequestSchema>;
 export type ScanResponse = z.infer<typeof ScanResponseSchema>;
 export type ScanResponseModel = z.infer<typeof ScanResponseModelSchema>;
+export type DeepScanAbstentionReason = z.infer<typeof DeepScanAbstentionReasonSchema>;
+export type ManualCheck = z.infer<typeof ManualCheckSchema>;
+export type DeepScanRequest = z.infer<typeof DeepScanRequestSchema>;
+export type DeepScanResponseModel = z.infer<typeof DeepScanResponseModelSchema>;
+export type DeepScanResponse = z.infer<typeof DeepScanResponseSchema>;

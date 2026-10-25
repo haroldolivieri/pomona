@@ -12,6 +12,13 @@
       "preview_id": "60d7d61a6c244f13bce5676209ccac74"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "POMONA_CAPTURES_BUCKET",
+      "bucket_name": "pomona-captures",
+      "preview_bucket_name": "pomona-captures-preview"
+    }
+  ],
   "assets": {
     "directory": "../web/dist",
     "binding": "ASSETS",
@@ -19,6 +26,8 @@
   },
   "vars": {
     "VISION_GATE_ENABLED": "true",
+    "DEEP_SCAN_STORAGE_ENABLED": "true",
+    "SCAN_STORAGE_ENABLED": "true",
     "AI_GATEWAY_ACCOUNT_ID": "553fb87d04f36b2f088f1250f34503cc",
     "AI_GATEWAY_ID": "pomona",
     "ACTIVE_PROMPT_VERSION": "v1",

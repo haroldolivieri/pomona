@@ -33,25 +33,34 @@
     <div id="root">
       <div style="position:relative;width:100%;height:100dvh;background-color:#000000;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;">
         <!-- Top bar silhouette -->
-        <div style="position:absolute;top:0;left:0;right:0;padding-top:max(16px, env(safe-area-inset-top));padding-left:20px;padding-right:20px;padding-bottom:16px;display:flex;justify-content:space-between;align-items:center;z-index:10;background:linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);">
-          <div style="background:rgba(251,250,246,0.92);color:#142117;padding:7px 14px;border-radius:999px;display:inline-flex;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.18);">
-            <span style="font-family:Fraunces,Georgia,serif;font-size:15px;font-weight:700;letter-spacing:0.02em;color:#142117;">Pomona</span>
+        <div style="position:absolute;top:0;left:0;right:0;padding-top:max(16px, env(safe-area-inset-top));padding-left:16px;padding-right:16px;padding-bottom:16px;display:flex;justify-content:space-between;align-items:center;z-index:20;background:linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);box-sizing:border-box;">
+          <!-- Left: Brand pill (Pomona wordmark) -->
+          <div style="display:flex;align-items:center;flex:1;justify-content:flex-start;">
+            <div style="background:rgba(251,250,246,0.92);color:#142117;height:36px;width:92px;border-radius:999px;display:inline-flex;align-items:center;justify-content:flex-start;padding:0 12px;box-shadow:0 2px 8px rgba(0,0,0,0.18);user-select:none;flex-shrink:0;box-sizing:border-box;overflow:hidden;">
+              <span style="font-family:Fraunces,Georgia,serif;font-size:17px;font-weight:700;color:#142117;line-height:1;width:12px;text-align:center;display:inline-block;flex-shrink:0;">P</span><span style="font-family:Fraunces,Georgia,serif;font-size:16px;font-weight:700;color:#142117;line-height:1;letter-spacing:0.01em;">omona</span>
+            </div>
           </div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <div style="width:36px;height:36px;border-radius:50%;background-color:rgba(251,250,246,0.92);color:#142117;display:flex;align-items:center;justify-content:center;font-size:14px;">⚡</div>
+          <!-- Center: empty (tab switcher removed from static skeleton) -->
+          <div style="display:flex;align-items:center;justify-content:center;"></div>
+          <!-- Right: Flash button -->
+          <div style="display:flex;gap:8px;align-items:center;flex:1;justify-content:flex-end;">
+            <div style="width:36px;height:36px;border-radius:50%;background-color:rgba(251,250,246,0.92);color:#142117;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.18);flex-shrink:0;">⚡</div>
           </div>
         </div>
-        <!-- Center reticle framing brackets silhouette -->
-        <div style="position:absolute;top:43%;left:50%;transform:translate(-50%, -50%);width:228px;height:240px;pointer-events:none;">
-          <span style="position:absolute;top:-2px;left:-2px;width:24px;height:24px;border-color:#F5D547;border-style:solid;border-width:0;border-top-width:3.5px;border-left-width:3.5px;border-top-left-radius:16px;"></span>
-          <span style="position:absolute;top:-2px;right:-2px;width:24px;height:24px;border-color:#F5D547;border-style:solid;border-width:0;border-top-width:3.5px;border-right-width:3.5px;border-top-right-radius:16px;"></span>
-          <span style="position:absolute;bottom:-2px;left:-2px;width:24px;height:24px;border-color:#F5D547;border-style:solid;border-width:0;border-bottom-width:3.5px;border-left-width:3.5px;border-bottom-left-radius:16px;"></span>
-          <span style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-color:#F5D547;border-style:solid;border-width:0;border-bottom-width:3.5px;border-right-width:3.5px;border-bottom-right-radius:16px;"></span>
+
+        <!-- Center reticle framing brackets silhouette (matching top: 46% and 20px radius) -->
+        <div style="position:absolute;top:46%;left:50%;transform:translate(-50%, -50%);width:228px;height:240px;border-radius:20px;pointer-events:none;z-index:2;">
+          <span style="position:absolute;top:-2px;left:-2px;width:24px;height:24px;border-color:#F5D547;border-style:solid;border-width:0;border-top-width:3.5px;border-left-width:3.5px;border-top-left-radius:20px;box-sizing:border-box;"></span>
+          <span style="position:absolute;top:-2px;right:-2px;width:24px;height:24px;border-color:#F5D547;border-style:solid;border-width:0;border-top-width:3.5px;border-right-width:3.5px;border-top-right-radius:20px;box-sizing:border-box;"></span>
+          <span style="position:absolute;bottom:-2px;left:-2px;width:24px;height:24px;border-color:#F5D547;border-style:solid;border-width:0;border-bottom-width:3.5px;border-left-width:3.5px;border-bottom-left-radius:20px;box-sizing:border-box;"></span>
+          <span style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-color:#F5D547;border-style:solid;border-width:0;border-bottom-width:3.5px;border-right-width:3.5px;border-bottom-right-radius:20px;box-sizing:border-box;"></span>
         </div>
+
+
         <!-- Bottom shutter silhouette -->
-        <div style="position:absolute;bottom:0;left:0;right:0;padding-top:16px;padding-left:20px;padding-right:20px;padding-bottom:max(24px, env(safe-area-inset-bottom));display:flex;justify-content:center;align-items:center;z-index:10;background:linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);">
-          <div style="width:68px;height:68px;border-radius:50%;border:4px solid #FFFFFF;padding:4px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;">
-            <div style="width:100%;height:100%;border-radius:50%;background-color:#F5D547;"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;padding-top:12px;padding-left:20px;padding-right:20px;padding-bottom:max(24px, env(safe-area-inset-bottom));display:flex;justify-content:center;align-items:center;z-index:20;background:linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%);box-sizing:border-box;">
+          <div style="width:68px;height:68px;border-radius:50%;border:4px solid #FFFFFF;padding:4px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0, 0, 0, 0.35);">
+            <div style="width:100%;height:100%;border-radius:50%;background-color:#F5D547;box-shadow:0 0 10px rgba(245,213,71,0.4);"></div>
           </div>
         </div>
       </div>

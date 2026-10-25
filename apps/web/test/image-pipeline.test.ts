@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   normalizeFreehandPolygon,
   remapBoxFromCropToFrame,
   computeScaledDimensions,
   downsampleDataUrl,
   computeObjectFitCoverRect,
+  captureDeepScanCrop,
 } from "../src/lib/image-pipeline";
 import { describeBoxPosition } from "../src/lib/spatial-a11y";
 
@@ -94,6 +95,43 @@ describe("image-pipeline & spatial-a11y", () => {
     it("gracefully falls back when dimensions are zero or invalid", () => {
       expect(computeObjectFitCoverRect(0, 0, 0, 0)).toEqual({ left: 0, top: 0, width: 0, height: 0 });
       expect(computeObjectFitCoverRect(300, 400, 0, 0)).toEqual({ left: 0, top: 0, width: 300, height: 400 });
+    });
+  });
+
+  describe("captureDeepScanCrop", () => {
+    it("preserves the oval area inside a consistent square without cutting the top", () => {
+      const mockVideo = {
+        videoWidth: 1920,
+        videoHeight: 1080,
+      } as unknown as HTMLVideoElement;
+
+      let drawnWidth = 0;
+      let drawnHeight = 0;
+      const originalCreate = document.createElement.bind(document);
+      vi.spyOn(document, "createElement").mockImplementation((tag) => {
+        if (tag === "canvas") {
+          const fakeCanvas = {
+            set width(val: number) { drawnWidth = val; },
+            get width() { return drawnWidth; },
+            set height(val: number) { drawnHeight = val; },
+            get height() { return drawnHeight; },
+            getContext: () => ({
+              drawImage: vi.fn(),
+            }),
+            toDataURL: () => "data:image/jpeg;base64,mock-square-crop",
+          } as unknown as HTMLCanvasElement;
+          return fakeCanvas;
+        }
+        return originalCreate(tag);
+      });
+
+      const res = captureDeepScanCrop(mockVideo, 390, 700, "image/jpeg", 0.85);
+      expect(res).toBe("data:image/jpeg;base64,mock-square-crop");
+      // Dest size is a 1:1 square
+      expect(drawnWidth).toBe(drawnHeight);
+      expect(drawnWidth).toBeGreaterThanOrEqual(448);
+
+      vi.restoreAllMocks();
     });
   });
 });

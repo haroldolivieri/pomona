@@ -22,7 +22,7 @@ describe("resolveCandidatesForTarget", () => {
     expect(res.winner?.id).toBe("c2");
     expect(res.isExactMatch).toBe(true);
     expect(res.winner?.score).toBeGreaterThanOrEqual(8.4);
-    expect(res.followUpHintOverride).toBe("Check underside before storing for 2–3 days");
+    expect(res.followUpHintOverride).toBe("Check underside before storing for 2-3 days");
   });
 
   it("ranks underripe candidate first for later_this_week and calculates suitability score", () => {

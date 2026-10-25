@@ -10,6 +10,8 @@
     "eval:live": "npx tsx scripts/run-live-eval.ts",
     "eval:mask": "playwright test --config playwright.mask.config.ts",
     "eval:gate:live": "node --import tsx scripts/run-visibility-gate-eval.ts",
+    "eval:ds:live": "npx tsx scripts/run-deep-scan-live-eval.ts",
+    "eval:ds:gate": "node --import tsx scripts/run-deep-scan-gate-eval.ts",
     "dev:clef:local": "node --import tsx scripts/dev-clef-local.ts",
     "dev:clef:stack": "node --import tsx scripts/dev-clef-local.ts --stack"
   },
@@ -19,6 +21,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
+    "@types/jpeg-js": "^0.3.7",
+    "jpeg-js": "^0.4.4",
     "promptfoo": "^0.113.0",
     "tsx": "^4.23.15",
     "typescript": "^5.8.2",

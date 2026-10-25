@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createProxyApp, createInMemoryQuotaStore, calculateTokenSpendMicroCents } from "@pomona/proxy";
+import { createProxyApp, createInMemoryQuotaStore, calculateTokenSpendMicroCents, buildVisibilityGateInput, buildDeepScanGateInput, resolveDeepScanGate } from "@pomona/proxy";
 import { annotatedOutput } from "./annotated-fixture";
 import { ScanResponseSchema } from "@pomona/contract";
 
@@ -15,7 +15,7 @@ const abstention = {
 };
 const output = (scores: number[]) => ({
   model: "clef-flash",
-  answers: Object.fromEntries(["no_produce", "unclear_photo", "multiple_types"].map((key, i) => [key, { type: "noul", noul: scores[i] }])),
+  answers: Object.fromEntries(["no_produce", "unclear_photo", "multiple_types", "single_produce"].map((key, i) => [key, { type: "noul", noul: scores[i] ?? 0.01 }])),
   usage: { input_tokens: 1500, output_tokens: 0 },
 });
 
@@ -77,16 +77,26 @@ describe("Clef visibility gate acceptance and failure scenarios", () => {
   });
 
   it("preserves Portuguese gate responses when extending the localized release", async () => {
-    const { json, grade } = await scan(vi.fn().mockResolvedValue(Response.json(output([0.95, 0.01, 0.01]))),
+    const { json, grade } = await scan(vi.fn().mockResolvedValue(Response.json(output([0.95, 0.01, 0.01, 0.01]))),
       { body: { locale: "pt-BR" } });
     expect(json.status).toBe("no_produce");
     expect(json.message).toBe("Não há frutas, verduras ou legumes frescos visíveis. Fotografe os itens que deseja comparar.");
     expect(grade).not.toHaveBeenCalled();
   });
+
+  it("preserves Portuguese gate response for single_produce", async () => {
+    const { json, grade } = await scan(vi.fn().mockResolvedValue(Response.json(output([0.01, 0.01, 0.01, 0.95]))),
+      { body: { locale: "pt-BR" } });
+    expect(json.status).toBe("single_produce");
+    expect(json.message).toBe("Apenas um produto detectado. Para avaliar uma só fruta, use o Inspecionar para verificar todos os lados.");
+    expect(grade).not.toHaveBeenCalled();
+  });
+
   it.each([
-    ["no_produce", [0.9025, 0.2521, 0.088]],
-    ["unclear_photo", [0.2623, 0.7393, 0.1972]],
-    ["multiple_types", [0.0344, 0.0439, 0.8803]],
+    ["no_produce", [0.9025, 0.2521, 0.088, 0.01]],
+    ["unclear_photo", [0.2623, 0.7393, 0.1972, 0.01]],
+    ["multiple_types", [0.0344, 0.0439, 0.8803, 0.01]],
+    ["single_produce", [0.0246, 0.0179, 0.0081, 0.9315]],
   ])("clear %s skips grading, preserves quota and accounts gate usage", async (status, scores) => {
     const run = vi.fn().mockResolvedValue(Response.json(output(scores as number[])));
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -94,7 +104,7 @@ describe("Clef visibility gate acceptance and failure scenarios", () => {
     const events = log.mock.calls.flatMap(args => { try { return [JSON.parse(String(args[0]))]; } catch { return []; } });
     const requestId = result.response.headers.get("X-Pomona-Request-Id");
     expect(events).toContainEqual(expect.objectContaining({ event: "gate_usage", requestId, threshold: 0.70,
-      scores: { no_produce: scores[0], unclear_photo: scores[1], multiple_types: scores[2] } }));
+      scores: { no_produce: scores[0], unclear_photo: scores[1], multiple_types: scores[2], single_produce: scores[3] } }));
     expect(events).toContainEqual(expect.objectContaining({ event: "scan_response", requestId,
       response: expect.objectContaining({ status }) }));
     log.mockRestore();
@@ -111,6 +121,7 @@ describe("Clef visibility gate acceptance and failure scenarios", () => {
     expect(input.questions.no_produce.instructions).toBe("Is there no real fresh produce in the foreground?");
     expect(input.state).toContain("Missing underside views are OK");
     expect(input.questions.unclear_photo.instructions).toBe("Do blur, glare, or packaging hide most produce surfaces?");
+    expect(input.questions.single_produce.instructions).toBe("Is only one single piece of produce visible rather than multiple items to compare?");
   });
 
   it.each([[0.01, 0.01, 0.01], [0.6999, 0.01, 0.01], [0.70, 0.70, 0.01]])(
@@ -340,4 +351,44 @@ it("a failed combined spend write does not consume the daily success quota", asy
   const { json } = await scan(vi.fn().mockResolvedValue(Response.json(output([0.1, 0.1, 0.1]))), { store, gradingOutput });
   expect(json.status).toBe("analysis_failed");
   expect(daily).not.toHaveBeenCalled();
+});
+
+describe("Clef deep-scan gate mode (exactly two questions)", () => {
+  const noul = (v: number) => ({ type: "noul", noul: v });
+  const dsOutput = (np: number, up: number) => ({
+    model: "clef-flash",
+    answers: { no_produce: noul(np), unclear_photo: noul(up) },
+    usage: { input_tokens: 1200, output_tokens: 0 },
+  });
+
+  it("buildDeepScanGateInput keeps round-1 guard text, adds the composite preamble, and asks exactly two questions", () => {
+    const roundOne = buildVisibilityGateInput({ imageBase64: "bQ==", imageMimeType: "image/webp", focusPolygon: null });
+    const input = buildDeepScanGateInput("bQ==", "image/webp");
+    expect(input.state).toContain("This is a grid of multiple views of one fruit.");
+    expect(input.state).toContain("Printed pictures are not produce");
+    expect(Object.keys(input.questions).sort()).toEqual(["no_produce", "unclear_photo"]);
+    expect(input.questions.no_produce).toEqual(roundOne.questions.no_produce);
+    expect(input.questions.unclear_photo).toEqual(roundOne.questions.unclear_photo);
+    expect(input.images).toEqual(roundOne.images);
+  });
+
+  it("resolveDeepScanGate returns the single failing status at the 0.70 threshold", () => {
+    expect(resolveDeepScanGate(dsOutput(0.9, 0.1))).toMatchObject({ status: "no_produce" });
+    expect(resolveDeepScanGate(dsOutput(0.2, 0.8))).toMatchObject({ status: "unclear_photo" });
+  });
+
+  it("simultaneous failures and clean passes resolve to null status with scores", () => {
+    const both = resolveDeepScanGate(dsOutput(0.9, 0.9));
+    expect(both.status).toBeNull();
+    expect(both.scores).toEqual({ no_produce: 0.9, unclear_photo: 0.9 });
+    const clean = resolveDeepScanGate(dsOutput(0.1, 0.2));
+    expect(clean.status).toBeNull();
+    expect(clean.scores).toEqual({ no_produce: 0.1, unclear_photo: 0.2 });
+  });
+
+  it("well-formed usage passes through even when answers fail; unknown envelopes return all-null", () => {
+    const badAnswers = resolveDeepScanGate({ answers: { no_produce: { type: "noul", noul: "high" }, unclear_photo: noul(0.1) }, usage: { input_tokens: 5, output_tokens: 2 } });
+    expect(badAnswers).toMatchObject({ status: null, scores: null, usage: { totalTokens: 7 } });
+    expect(resolveDeepScanGate("garbage")).toMatchObject({ status: null, usage: null, scores: null });
+  });
 });

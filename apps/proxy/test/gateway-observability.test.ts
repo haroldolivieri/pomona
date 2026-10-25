@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createProxyApp } from "@pomona/proxy";
+import { createProxyApp } from "../src/index";
 
 type TestEnv = Record<string, string | undefined> & { COOKIE_SIGNING_SECRET: string };
 
@@ -46,6 +46,54 @@ function metrics(log: ReturnType<typeof vi.spyOn>) {
   });
 }
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+describe("Deep Scan scan_usage telemetry", () => {
+  const dsRequest = {
+    schemaVersion: "1.0", sessionId: "550e8400-e29b-41d4-a716-446655440000", locale: "en-GB",
+    imageBase64: "Y29tcG9zaXRl", imageMimeType: "image/webp", sampleCount: 25,
+  };
+  const dsOk = {
+    status: "ok", abstentionReason: null, message: null,
+    produce: { type: "avocado", displayName: "Avocado", variety: null },
+    ripeness: { state: "nearly_ripe", confidence: 0.85 },
+    evidence: ["Tile 2: color lift"], quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
+    manualChecks: null, recommendation: null,
+    afterPurchase: {
+      readyInDays: { min: 1, max: 2 },
+      eatWithinDays: { min: 3, max: 4 },
+      eatWithinLabel: "3-4 days",
+      storage: {
+        beforeCut: { where: "counter", whereLabel: "Counter", summary: "Whole on the counter", tip: "Softens daily" },
+        afterCut: { where: "fridge", whereLabel: "Fridge", summary: "Sealed in the fridge", tip: "Keep chilled" },
+      },
+    },
+  };
+  const dsClef = {
+    model: "clef-flash",
+    answers: { no_produce: { type: "noul", noul: 0.1 }, unclear_photo: { type: "noul", noul: 0.1 } },
+    usage: { input_tokens: 900, output_tokens: 0 },
+  };
+
+  it("logs the deep-scan usage row with frames and composite bytes, still never charging quota", async () => {
+    const fetch = vi.fn().mockImplementation(async () => providerResponse("gemini", dsOk));
+    vi.stubGlobal("fetch", fetch);
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const app = createProxyApp();
+    const response = await app.request("/api/v1/deep-scan", {
+      method: "POST", headers: { "Content-Type": "application/json", Origin: "https://pomona.example" },
+      body: JSON.stringify(dsRequest),
+    }, { ...env, DEFAULT_MODEL: "gemini-3.1-flash-lite", AI: { run: vi.fn().mockResolvedValue(Response.json(dsClef)) } });
+    expect(response.status).toBe(200);
+    const rows = metrics(log);
+    const usageRow = rows.find((row) => row.event === "scan_usage" && row.stage === "deep_scan");
+    expect(usageRow).toBeDefined();
+    expect(usageRow.framesSubmitted).toBe(25);
+    expect(usageRow.compositeImageBytes).toBeGreaterThan(0);
+    expect(usageRow.attempts).toBeGreaterThanOrEqual(1);
+    expect(usageRow.status).toBe("ok");
+    expect(usageRow.promptVersion).toBe("deep_scan_v1");
+  });
+});
 
 describe("Gateway production routing and usage scenarios", () => {
   it.each(["gemini", "openai"])("%s: routes a real SDK request through Gateway with trace metadata and usage", async (provider) => {

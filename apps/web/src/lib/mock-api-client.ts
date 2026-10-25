@@ -1,13 +1,38 @@
-import { isSupportedLocale } from "@pomona/contract";
-import { uiCopy } from "../i18n/copy";
-import { lookupProduceSeasonality, type ScanRequest, type ScanResponse } from "@pomona/contract";
+import { isSupportedLocale, lookupProduceSeasonality, type ScanRequest, type ScanResponse, type DeepScanRequest, type DeepScanResponse } from "@pomona/contract";
 import type { PomonaApiClient, QuotaInfo } from "./api-client";
+import { uiCopy } from "../i18n/copy";
 
 function mockSeasonality(request: ScanRequest) {
   return lookupProduceSeasonality("watermelon", { locale: request.locale }, new Date().getMonth() + 1, isSupportedLocale(request.locale) ? request.locale : "en-GB");
 }
 
-export function createMockApiClient(): PomonaApiClient {
+// Same deterministic dataset the proxy injects for deep scan — no second data source.
+function mockDeepScanSeasonality(request: DeepScanRequest) {
+  return lookupProduceSeasonality("avocado", { locale: request.locale }, new Date().getMonth() + 1, isSupportedLocale(request.locale) ? request.locale : "en-GB");
+}
+
+export interface MockApiClientOptions {
+  deepScanLatencyMs?: number;
+}
+
+const mockDsLatencyKey = "pomona-mock-ds-latency";
+
+export function createMockApiClient(options: MockApiClientOptions = {}): PomonaApiClient {
+  const dsLatencyMs =
+    options.deepScanLatencyMs ??
+    (() => {
+      try {
+        if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+          const stored = localStorage.getItem(mockDsLatencyKey);
+          if (stored !== null && stored !== "") {
+            const parsed = Number(stored);
+            if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+          }
+        }
+      } catch {}
+      return undefined;
+    })() ??
+    2000;
   let mockRemainingScans = 10;
 
   return {
@@ -295,6 +320,117 @@ export function createMockApiClient(): PomonaApiClient {
             },
           },
           seasonality: mockSeasonality(request),
+        },
+      };
+    },
+
+    async submitDeepScan(request: DeepScanRequest): Promise<{
+      remainingScans: number;
+      response: DeepScanResponse;
+    }> {
+      // Keep the laser analysing stage visible long enough to be seen in demos
+      await new Promise((resolve) => setTimeout(resolve, dsLatencyMs));
+      const locale = isSupportedLocale(request.locale) ? request.locale : "en-GB";
+      const forced = (() => {
+        try {
+          if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+            return localStorage.getItem("pomona-force-ds-error");
+          }
+        } catch {}
+        return null;
+      })();
+
+      if (forced === "no_produce") {
+        return {
+          remainingScans: mockRemainingScans,
+          response: {
+            schemaVersion: "1.0",
+            promptVersion: "deep_scan_v1",
+            modelId: "gemini-3.1-flash-lite (mocked)",
+            status: "insufficient_evidence",
+            abstentionReason: null,
+            message: uiCopy("errors.noProduce", undefined, locale),
+            produce: { type: "unknown", displayName: uiCopy("deepScan.mock.unidentifiedFruit", undefined, locale), variety: null },
+            ripeness: { state: "unknown", confidence: 0.1 },
+            evidence: [],
+            quality: { sufficientVisualEvidence: false, viewCoverage: "poor", reason: null },
+            manualChecks: [],
+            recommendation: null,
+            afterPurchase: null,
+          },
+        };
+      }
+
+      if (forced === "same_side") {
+        return {
+          remainingScans: mockRemainingScans,
+          response: {
+            schemaVersion: "1.0",
+            promptVersion: "deep_scan_v1",
+            modelId: "gemini-3.1-flash-lite (mocked)",
+            status: "insufficient_evidence",
+            abstentionReason: "same_side_only",
+            message: null,
+            produce: { type: "avocado", displayName: uiCopy("deepScan.mock.avocado", undefined, locale), variety: null },
+            ripeness: { state: "unknown", confidence: 0.3 },
+            evidence: [],
+            quality: { sufficientVisualEvidence: false, viewCoverage: "fair", reason: null },
+            manualChecks: [
+              {
+                trait: uiCopy("deepScan.mock.firmness", undefined, locale),
+                how: uiCopy("deepScan.mock.firmnessHow", undefined, locale),
+                whatItMeans: uiCopy("deepScan.mock.firmnessMeans", undefined, locale),
+              },
+              {
+                trait: uiCopy("deepScan.mock.smell", undefined, locale),
+                how: uiCopy("deepScan.mock.smellHow", undefined, locale),
+                whatItMeans: uiCopy("deepScan.mock.smellMeans", undefined, locale),
+              },
+            ],
+            recommendation: null,
+            afterPurchase: null,
+          },
+        };
+      }
+
+      // Successful scans decrement daily scan quota
+      mockRemainingScans = Math.max(0, mockRemainingScans - 1);
+
+      return {
+        remainingScans: mockRemainingScans,
+        response: {
+          schemaVersion: "1.0",
+          promptVersion: "deep_scan_v1",
+          modelId: "gemini-3.1-flash-lite (mocked)",
+          status: "ok",
+          abstentionReason: null,
+          message: null,
+          produce: { type: "avocado", displayName: uiCopy("deepScan.mock.avocado", undefined, locale), variety: uiCopy("deepScan.mock.variety", undefined, locale) },
+          ripeness: { state: "nearly_ripe", confidence: 0.86 },
+          evidence: [uiCopy("deepScan.mock.evidence1", undefined, locale), uiCopy("deepScan.mock.evidence2", undefined, locale), uiCopy("deepScan.mock.evidence3", undefined, locale)],
+          quality: { sufficientVisualEvidence: true, viewCoverage: "good", reason: null },
+          manualChecks: null,
+          recommendation: { eatWhen: "in_a_few_days" },
+          afterPurchase: {
+            readyInDays: { min: 1, max: 2 },
+            eatWithinDays: { min: 3, max: 4 },
+            eatWithinLabel: uiCopy("deepScan.mock.eatWithin", undefined, locale),
+            storage: {
+              beforeCut: {
+                where: "counter",
+                whereLabel: uiCopy("copy.counter", undefined, locale),
+                summary: uiCopy("copy.counterWhole", undefined, locale),
+                tip: uiCopy("copy.roomTemperature", undefined, locale),
+              },
+              afterCut: {
+                where: "fridge",
+                whereLabel: uiCopy("copy.fridge", undefined, locale),
+                summary: uiCopy("copy.fridgeSealed", undefined, locale),
+                tip: uiCopy("copy.wrapTightly", undefined, locale),
+              },
+            },
+          },
+          seasonality: mockDeepScanSeasonality(request),
         },
       };
     },

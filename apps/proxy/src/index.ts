@@ -5,11 +5,17 @@ import { bodyLimit } from "hono/body-limit";
 import { getCookie, setCookie } from "hono/cookie";
 import {
   ScanRequestSchema,
+  DeepScanRequestSchema,
   isSupportedLocale,
+  resolveDisplayLocale,
+  translateShared,
+  LOCALE_COOKIE,
   lookupProduceSeasonality,
   type ScanRequest,
   type ScanResponse,
   type SeasonalityInfo,
+  type DeepScanResponse,
+  type DeepScanRequest,
 } from "@pomona/contract";
 import type { Env } from "./types";
 import {
@@ -29,11 +35,20 @@ import {
   type VisionProviderAdapter,
   runVerifiedVisionScan,
 } from "./adapters/types";
+import { runVerifiedDeepScan } from "./adapters/deep-scan";
 import { createGeminiVisionAdapter } from "./adapters/gemini";
 import { createOpenAIVisionAdapter } from "./adapters/openai";
 import { getGatewayRouting } from "./adapters/gateway";
 import { verifyAndResolveScanResponse } from "./verifier/verify-response";
-import { runVisibilityGate, visibilityGateResponse, gateDenialStatus, VISIBILITY_GATE_MODEL, VISIBILITY_GATE_THRESHOLD } from "./gate/visibility";
+import {
+  runVisibilityGate,
+  runDeepScanVisibilityGate,
+  visibilityGateResponse,
+  deepScanGateResponse,
+  gateDenialStatus,
+  VISIBILITY_GATE_MODEL,
+  VISIBILITY_GATE_THRESHOLD,
+} from "./gate/visibility";
 
 import { traceStage, traceResponse, logScanResponse, type ScanTracing } from "./observability/scan-trace";
 
@@ -93,10 +108,87 @@ function getClientIp(req: Request): string {
   );
 }
 
+// Deterministic seasonality enrichment shared by the scan and deep-scan endpoints —
+// a single dataset source (contract seasonality data), never part of an LLM prompt.
+function deterministicSeasonality(
+  produce: { type?: string | null; displayName?: string | null } | null,
+  cf: { country?: string; latitude?: string } | undefined,
+  locale: string
+): SeasonalityInfo | null {
+  if (!produce || !(produce.type || produce.displayName)) return null;
+  const regionInput = {
+    cfCountry: cf?.country,
+    cfLatitude: cf?.latitude,
+    locale,
+  };
+  const currentMonth = new Date().getUTCMonth() + 1;
+  let seasonality: SeasonalityInfo | null = null;
+  if (produce.type) {
+    seasonality = lookupProduceSeasonality(produce.type, regionInput, currentMonth, isSupportedLocale(locale) ? locale : "en-GB");
+  }
+  if (!seasonality && produce.displayName) {
+    seasonality = lookupProduceSeasonality(produce.displayName, regionInput, currentMonth, isSupportedLocale(locale) ? locale : "en-GB");
+  }
+  return seasonality;
+}
+
+function resolveAiGatewayConfig(env: Env): { id: string; token?: string } | undefined {
+  return env.LOCAL_CLEF_TEST !== "true" && env.AI_GATEWAY_ID
+    ? { id: env.AI_GATEWAY_ID, token: env.AI_GATEWAY_TOKEN }
+    : undefined;
+}
+
+function resolveNormalizedVisionAdapter(
+  modelId: string,
+  env: Env,
+  customFactory?: (modelId: string, env: Env) => VisionAdapterLike
+): VisionProviderAdapter {
+  const factory = customFactory ?? defaultAdapterFactory;
+  const adapter = factory(modelId, env);
+  return {
+    providerId: adapter.providerId,
+    modelId: adapter.modelId,
+    async analyzeProduce(input, signal) {
+      const res: any = await adapter.analyzeProduce(input, signal);
+      if (res && "rawOutput" in res && !("object" in res)) {
+        return {
+          object: res.rawOutput,
+          usage: res.usage ?? { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        };
+      }
+      return res;
+    },
+  };
+}
+
+function isUpstreamRateLimited(err: unknown): boolean {
+  const status = (err as any)?.statusCode ?? (err as any)?.status;
+  const msg = String((err as any)?.message || "").toLowerCase();
+  return (
+    status === 429 ||
+    msg.includes("429") ||
+    msg.includes("resource has been exhausted")
+  );
+}
+
+function enrichWithSeasonality<T extends { produce: { type?: string | null; displayName?: string | null } | null }>(
+  response: T,
+  req: Request,
+  locale: string,
+  stage?: string
+): T & { seasonality: SeasonalityInfo | null } {
+  const cf = (req as { cf?: { country?: string; latitude?: string } }).cf;
+  const seasonality = deterministicSeasonality(response.produce, cf, locale);
+  console.log(
+    `[proxy:seasonality]${stage ? ` stage=${stage}` : ""} produce=${JSON.stringify(response.produce)}, seasonality=${seasonality ? `${seasonality.produceSlug} (${seasonality.status})` : "null"}`
+  );
+  return { ...response, seasonality };
+}
+
 export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
-  app.use("/api/v1/scan", async (c, next) => {
+  const requestTracing = async (c: any, next: () => Promise<void>) => {
     const requestId = crypto.randomUUID();
     c.set("requestId", requestId);
     c.header("X-Pomona-Request-Id", requestId);
@@ -123,7 +215,9 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
           durationMs: Date.now() - startedAt, httpStatus: c.res.status }));
       }
     });
-  });
+  };
+  app.use("/api/v1/scan", requestTracing);
+  app.use("/api/v1/deep-scan", requestTracing);
 
   // CORS middleware: allow web client origins and expose custom headers
   app.use(
@@ -190,6 +284,45 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
     });
   }
 
+  interface AuthenticatedDeviceContext {
+    deviceId: string;
+    token: string;
+    ip: string;
+    store: QuotaStore;
+    quotaResult: Awaited<ReturnType<typeof checkQuotaAndSelectModel>>;
+  }
+
+  async function authenticateDeviceAndCheckQuota(
+    c: any,
+    defaultModel?: string
+  ): Promise<AuthenticatedDeviceContext> {
+    const { deviceId, token } = await resolveDeviceIdentity(c);
+    applyDeviceTokenHeaders(c, token);
+
+    const store = resolveQuotaStore(c.env, deps.quotaStore);
+    const ip = getClientIp(c.req.raw);
+
+    const parsedDeviceLimit = c.env.DEVICE_DAILY_LIMIT
+      ? parseInt(c.env.DEVICE_DAILY_LIMIT, 10)
+      : undefined;
+    const quotaResult = await checkQuotaAndSelectModel(store, {
+      deviceId,
+      ip,
+      defaultModel: defaultModel ?? c.env.DEFAULT_MODEL,
+      deviceDailyLimit: Number.isFinite(parsedDeviceLimit) ? parsedDeviceLimit : undefined,
+    });
+
+    c.header(REMAINING_SCANS_HEADER, quotaResult.remainingDeviceScans.toString());
+
+    return {
+      deviceId,
+      token,
+      ip,
+      store,
+      quotaResult,
+    };
+  }
+
   /**
    * POST /api/v1/quota/override
    * Tester endpoint: override backend quota / remaining scans for this device only.
@@ -249,50 +382,117 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
    * GET /api/v1/quota
    */
   app.get("/api/v1/quota", async (c) => {
-    const { deviceId, token } = await resolveDeviceIdentity(c);
-    applyDeviceTokenHeaders(c, token);
-
-    const store = resolveQuotaStore(c.env, deps.quotaStore);
-    const ip = getClientIp(c.req.raw);
-
     // Support query param ?scans=N or header for test override
     const overrideHeader = c.req.header("X-Pomona-Quota-Override");
     const queryScans = c.req.query("scans") ?? overrideHeader;
     if (typeof queryScans !== "undefined" && queryScans !== null) {
+      const { deviceId, token } = await resolveDeviceIdentity(c);
+      applyDeviceTokenHeaders(c, token);
       const parsed = parseInt(String(queryScans), 10);
       if (!isNaN(parsed) && parsed >= 0) {
+        const store = resolveQuotaStore(c.env, deps.quotaStore);
         const dateStr = formatDateKey(new Date());
         await store.setDeviceDailyLimit(deviceId, parsed);
         await store.setDailyDeviceCount(deviceId, dateStr, 0);
       }
     }
 
-    const parsedDeviceLimit = c.env.DEVICE_DAILY_LIMIT ? parseInt(c.env.DEVICE_DAILY_LIMIT, 10) : undefined;
-    const quotaResult = await checkQuotaAndSelectModel(store, {
-      deviceId,
-      ip,
-      defaultModel: c.env.DEFAULT_MODEL,
-      deviceDailyLimit: Number.isFinite(parsedDeviceLimit) ? parsedDeviceLimit : undefined,
-    });
+    const auth = await authenticateDeviceAndCheckQuota(c);
 
     const monthStr = formatMonthKey(new Date());
-    const monthlySpend = await store.getMonthlySpendMicroCents(monthStr);
+    const monthlySpend = await auth.store.getMonthlySpendMicroCents(monthStr);
     const budgetOpen = monthlySpend < MONTHLY_HARD_CAP_MICRO_CENTS;
 
-    c.header(REMAINING_SCANS_HEADER, quotaResult.remainingDeviceScans.toString());
-
     return c.json({
-      remainingDeviceScans: quotaResult.remainingDeviceScans,
+      remainingDeviceScans: auth.quotaResult.remainingDeviceScans,
       budgetOpen,
     });
   });
+
+  const CAPTURE_STORAGE_TTL_SECONDS = 2592000; // 30 days (30 * 24 * 60 * 60 seconds)
+  const scanStorageEnabled = (env: Env) => env.SCAN_STORAGE_ENABLED === "true" || env.DEEP_SCAN_STORAGE_ENABLED === "true";
+
+  const base64ToUint8Array = (base64: string): Uint8Array => {
+    const clean = base64.replace(/^data:[^;]+;base64,/, "").trim();
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(clean, "base64");
+    }
+    const binary = atob(clean);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  };
+
+  const storeScanCapture = async (
+    env: Env,
+    request: ScanRequest,
+    outcome: Record<string, unknown>
+  ) => {
+    if (!scanStorageEnabled(env) || (!env.POMONA_CAPTURES_BUCKET && !env.POMONA_QUOTA_KV)) return null;
+    const requestId = outcome.requestId ?? request.sessionId;
+    delete outcome.requestId;
+    const key = `scan:${requestId}`;
+    const storedAt = new Date().toISOString();
+    const mimeType = request.imageMimeType || "image/jpeg";
+    const imageBytes = base64ToUint8Array(request.imageBase64);
+
+    const record = {
+      key,
+      requestId,
+      sessionId: request.sessionId,
+      round: request.round,
+      locale: request.locale ?? "en-GB",
+      mimeType,
+      focusPolygon: request.focusPolygon ?? null,
+      imageBase64: request.imageBase64,
+      storedAt,
+      outcome,
+    };
+
+    if (env.POMONA_CAPTURES_BUCKET) {
+      try {
+        const imageKey = `scans/${requestId}.jpg`;
+        const metaKey = `scans/${requestId}.json`;
+        await env.POMONA_CAPTURES_BUCKET.put(imageKey, imageBytes, {
+          httpMetadata: { contentType: mimeType },
+          customMetadata: {
+            requestId: String(requestId),
+            sessionId: String(request.sessionId),
+            outcome: String(outcome.outcome ?? "unknown"),
+            produce: String((outcome.produce as Record<string, string>)?.displayName ?? outcome.produce ?? "unknown"),
+            storedAt,
+          },
+        });
+        await env.POMONA_CAPTURES_BUCKET.put(metaKey, JSON.stringify(record), {
+          httpMetadata: { contentType: "application/json" },
+        });
+        console.log(JSON.stringify({ event: "scan_stored_r2", requestId, imageKey, metaKey, bytes: imageBytes.byteLength }));
+      } catch (err) {
+        console.warn("[proxy] scan R2 storage failed:", err instanceof Error ? err.message : err);
+      }
+    }
+
+    if (env.POMONA_QUOTA_KV) {
+      try {
+        await env.POMONA_QUOTA_KV.put(key, JSON.stringify(record), {
+          expirationTtl: CAPTURE_STORAGE_TTL_SECONDS,
+        });
+        console.log(JSON.stringify({ event: "scan_stored", requestId, key, bytes: record.imageBase64.length }));
+      } catch (error) {
+        console.warn("[proxy] scan capture storing failed:", error instanceof Error ? error.message : error);
+      }
+    }
+
+    return key;
+  };
 
   /**
    * POST /api/v1/scan
    */
   app.post("/api/v1/scan", async (c) => {
-    const { deviceId, token } = await resolveDeviceIdentity(c);
-    applyDeviceTokenHeaders(c, token);
+    const auth = await authenticateDeviceAndCheckQuota(c);
 
     let rawBody: unknown;
     try {
@@ -340,16 +540,10 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
     console.log(
       `[proxy] Scan request valid: round ${scanRequest.round}, mime: ${scanRequest.imageMimeType}, base64 length: ${scanRequest.imageBase64.length} chars, focusPolygon: ${scanRequest.focusPolygon ? `${scanRequest.focusPolygon.length} pts` : "null"}`
     );
-    const store = resolveQuotaStore(c.env, deps.quotaStore);
-    const ip = getClientIp(c.req.raw);
-
-    const parsedDeviceLimitPost = c.env.DEVICE_DAILY_LIMIT ? parseInt(c.env.DEVICE_DAILY_LIMIT, 10) : undefined;
-    const quotaResult = await checkQuotaAndSelectModel(store, {
-      deviceId,
-      ip,
-      defaultModel: c.env.DEFAULT_MODEL,
-      deviceDailyLimit: Number.isFinite(parsedDeviceLimitPost) ? parsedDeviceLimitPost : undefined,
-    });
+    const store = auth.store;
+    const ip = auth.ip;
+    const deviceId = auth.deviceId;
+    const quotaResult = auth.quotaResult;
 
     const promptVersion = c.env.ACTIVE_PROMPT_VERSION || "v1";
 
@@ -393,9 +587,7 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
           "image.selection_present": !!scanRequest.focusPolygon,
         }, async span => {
           try {
-            const result = await runVisibilityGate(c.env.AI!, scanRequest, requestId,
-              c.env.LOCAL_CLEF_TEST !== "true" && c.env.AI_GATEWAY_ID
-                ? { id: c.env.AI_GATEWAY_ID, token: c.env.AI_GATEWAY_TOKEN } : undefined);
+            const result = await runVisibilityGate(c.env.AI!, scanRequest, requestId, resolveAiGatewayConfig(c.env));
             span?.setAttributes({ "gate.decision": result.status ?? "pass_to_grading",
               "gate.scores": JSON.stringify(result.scores),
               "gate.usage_known": result.usage !== null, "gate.timed_out": false,
@@ -421,14 +613,23 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
         }
         if (gate.status) {
           await recordGateSpend();
+          await storeScanCapture(c.env, scanRequest, {
+            requestId,
+            outcome: "gate_denied",
+            gateStatus: gate.status,
+          });
           c.header(REMAINING_SCANS_HEADER, quotaResult.remainingDeviceScans.toString());
           return c.json(visibilityGateResponse(gate.status, scanRequest, promptVersion), 200);
         }
-        // Include the gate's spend before starting another paid model call.
+        const parsedLimit = c.env.DEVICE_DAILY_LIMIT ? parseInt(c.env.DEVICE_DAILY_LIMIT, 10) : undefined;
         const afterGate = await checkQuotaAndSelectModel(store, { deviceId, ip, defaultModel: modelId, pendingSpendMicroCents: pendingGateSpend,
-          deviceDailyLimit: Number.isFinite(parsedDeviceLimitPost) ? parsedDeviceLimitPost : undefined });
+          deviceDailyLimit: Number.isFinite(parsedLimit) ? parsedLimit : undefined });
         if (!afterGate.allowed) {
           await recordGateSpend();
+          await storeScanCapture(c.env, scanRequest, {
+            requestId,
+            outcome: "rate_limited",
+          });
           c.header(REMAINING_SCANS_HEADER, afterGate.remainingDeviceScans.toString());
           return c.json(visibilityGateResponse("rate_limited", scanRequest, promptVersion), 200);
         }
@@ -440,38 +641,24 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
           model: VISIBILITY_GATE_MODEL, outcome: "analysis_failed", usage: null }));
         if (!denial) c.set("gateDecision", "error_fallback");
         if (denial) {
+          await storeScanCapture(c.env, scanRequest, {
+            requestId,
+            outcome: "gate_denied",
+            gateStatus: denial,
+          });
           c.header(REMAINING_SCANS_HEADER, quotaResult.remainingDeviceScans.toString());
           return c.json(visibilityGateResponse(denial, scanRequest, promptVersion), 200);
         }
       }
     }
     try {
-      const adapterFactory = deps.adapterFactory ?? defaultAdapterFactory;
-      const adapter = adapterFactory(modelId, c.env);
+      const adapter = resolveNormalizedVisionAdapter(modelId, c.env, deps.adapterFactory);
       const promptConfig = getPromptConfig(promptVersion);
-
-      // Adapters may have different analyzeProduce signatures (pure VisionProviderAdapter
-      // returns { object, usage }, while test mocks might return { rawOutput, usage }).
-      // We normalize to handle both.
-      const normalizedAdapter: VisionProviderAdapter = {
-        providerId: adapter.providerId,
-        modelId: adapter.modelId,
-        async analyzeProduce(input, signal) {
-          const res: any = await adapter.analyzeProduce(input, signal);
-          if (res && "rawOutput" in res && !("object" in res)) {
-            return {
-              object: res.rawOutput,
-              usage: res.usage ?? { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-            };
-          }
-          return res;
-        },
-      };
 
       c.set("gradingStarted", adapter.providerId === "google");
       const scanOutcome = await runVerifiedVisionScan(
         scanRequest,
-        normalizedAdapter,
+        adapter,
         promptConfig,
         undefined,
         requestId,
@@ -504,35 +691,28 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
 
       c.header(REMAINING_SCANS_HEADER, recordResult.remainingDeviceScans.toString());
 
-      // Deterministic seasonality enrichment: never part of the LLM prompt or model schema.
-      const baseResponse = scanOutcome.response;
-      let seasonality: SeasonalityInfo | null = null;
-      if (baseResponse.status === "ok" && (baseResponse.produce?.type || baseResponse.produce?.displayName)) {
-        const cf = (c.req.raw as { cf?: { country?: string; latitude?: string } }).cf;
-        const regionInput = {
-          cfCountry: cf?.country,
-          cfLatitude: cf?.latitude,
-          locale: scanRequest.locale,
-        };
-        const currentMonth = new Date().getUTCMonth() + 1;
-        if (baseResponse.produce?.type) {
-          seasonality = lookupProduceSeasonality(baseResponse.produce.type, regionInput, currentMonth, isSupportedLocale(scanRequest.locale) ? scanRequest.locale : "en-GB");
-        }
-        if (!seasonality && baseResponse.produce?.displayName) {
-          seasonality = lookupProduceSeasonality(baseResponse.produce.displayName, regionInput, currentMonth, isSupportedLocale(scanRequest.locale) ? scanRequest.locale : "en-GB");
-        }
-      }
-      console.log(`[proxy:seasonality] produce=${JSON.stringify(baseResponse.produce)}, seasonality=${seasonality ? seasonality.produceSlug + ' (' + seasonality.status + ')' : 'null'}`);
-      return c.json({ ...baseResponse, seasonality } satisfies ScanResponse, 200);
+      await storeScanCapture(c.env, scanRequest, {
+        requestId,
+        outcome: "graded",
+        status: scanOutcome.response.status,
+        attempts: scanOutcome.attempts,
+        provider: adapter.providerId,
+        model: modelId,
+        produce: scanOutcome.response.produce?.displayName ?? null,
+        candidatesCount: scanOutcome.response.candidates?.length ?? 0,
+        verdict: scanOutcome.response.verdict?.headline ?? null,
+      });
+
+      return c.json(enrichWithSeasonality(scanOutcome.response, c.req.raw, scanRequest.locale) satisfies ScanResponse, 200);
 
     } catch (err: any) {
       await recordGateSpend();
-      // Catch upstream provider rate limits (429) and translate to status: "rate_limited"
-      const is429 =
-        err?.statusCode === 429 ||
-        err?.status === 429 ||
-        String(err?.message || "").includes("429") ||
-        String(err?.message || "").toLowerCase().includes("resource has been exhausted");
+      await storeScanCapture(c.env, scanRequest, {
+        requestId,
+        outcome: "error",
+        error: err instanceof Error ? err.message : String(err),
+      });
+      const is429 = isUpstreamRateLimited(err);
 
       if (is429) {
         c.header(REMAINING_SCANS_HEADER, quotaResult.remainingDeviceScans.toString());
@@ -574,6 +754,372 @@ export function createProxyApp(deps: CreateProxyAppOptions = {}): Hono<AppEnv> {
 
   app.get("/", (c) => c.env.ASSETS ? serveLocalizedDocument(c.req.raw, c.env.ASSETS) : c.notFound());
   app.get("/index.html", (c) => c.env.ASSETS ? serveLocalizedDocument(c.req.raw, c.env.ASSETS) : c.notFound());
+  /**
+   * POST /api/v1/deep-scan — guided multi-angle capture of a single fruit.
+   * Free during MVP: no device quota consumption, no budget charge
+   * (TODO: add deep-scan pricing to MODEL_PRICING before charging).
+   */
+  const DEEP_SCAN_BODY_BYTES = 1_048_576;
+  const deepScanStorageEnabled = (env: Env) => env.DEEP_SCAN_STORAGE_ENABLED === "true";
+
+  const storeDeepScanCapture = async (
+    env: Env,
+    request: DeepScanRequest,
+    outcome: Record<string, unknown>
+  ) => {
+    if (!deepScanStorageEnabled(env) || (!env.POMONA_CAPTURES_BUCKET && !env.POMONA_QUOTA_KV)) return null;
+    const requestId = outcome.requestId ?? request.sessionId;
+    delete outcome.requestId;
+    const key = `deep-scan:${requestId}`;
+    const storedAt = new Date().toISOString();
+    const mimeType = request.imageMimeType || "image/jpeg";
+    const imageBytes = base64ToUint8Array(request.imageBase64);
+
+    const record = {
+      key,
+      requestId,
+      sessionId: request.sessionId,
+      locale: request.locale,
+      mimeType,
+      sampleCount: request.sampleCount,
+      compositeImageBase64: request.imageBase64,
+      storedAt,
+      outcome,
+    };
+
+    if (env.POMONA_CAPTURES_BUCKET) {
+      try {
+        const imageKey = `deep-scans/${requestId}.jpg`;
+        const metaKey = `deep-scans/${requestId}.json`;
+        await env.POMONA_CAPTURES_BUCKET.put(imageKey, imageBytes, {
+          httpMetadata: { contentType: mimeType },
+          customMetadata: {
+            requestId: String(requestId),
+            sessionId: String(request.sessionId),
+            sampleCount: String(request.sampleCount),
+            outcome: String(outcome.outcome ?? "unknown"),
+            produce: String((outcome.produce as Record<string, string>)?.displayName ?? outcome.produce ?? "unknown"),
+            storedAt,
+          },
+        });
+        await env.POMONA_CAPTURES_BUCKET.put(metaKey, JSON.stringify(record), {
+          httpMetadata: { contentType: "application/json" },
+        });
+        console.log(JSON.stringify({ event: "deep_scan_stored_r2", requestId, imageKey, metaKey, bytes: imageBytes.byteLength }));
+      } catch (err) {
+        console.warn("[proxy] deep-scan R2 storage failed:", err instanceof Error ? err.message : err);
+      }
+    }
+
+    if (env.POMONA_QUOTA_KV) {
+      try {
+        await env.POMONA_QUOTA_KV.put(key, JSON.stringify(record), {
+          expirationTtl: CAPTURE_STORAGE_TTL_SECONDS,
+        });
+        console.log(JSON.stringify({ event: "deep_scan_stored", requestId, key, bytes: record.compositeImageBase64.length }));
+      } catch (error) {
+        console.warn("[proxy] deep-scan capture storing failed:", error instanceof Error ? error.message : error);
+      }
+    }
+    return key;
+  };
+  const DEEP_SCAN_PROMPT_VERSION = "deep_scan_v1";
+
+  app.use(
+    "/api/v1/deep-scan",
+    bodyLimit({
+      maxSize: DEEP_SCAN_BODY_BYTES,
+      onError: (c) => {
+        console.warn("[proxy] Deep-scan body exceeded size limit:", c.req.header("content-length"));
+        const locale = resolveDisplayLocale(getCookie(c, LOCALE_COOKIE), c.req.header("accept-language"));
+        return c.json(
+          { status: "analysis_failed", message: translateShared(locale, "gate.tooLarge") },
+          413
+        );
+      },
+    })
+  );
+
+  app.post("/api/v1/deep-scan", async (c) => {
+    const auth = await authenticateDeviceAndCheckQuota(c);
+
+    let rawBody: unknown;
+    try {
+      rawBody = await c.req.json();
+    } catch {
+      return c.json({ error: "Invalid JSON body" }, 400);
+    }
+    const parseResult = DeepScanRequestSchema.safeParse(rawBody);
+    if (!parseResult.success) {
+      console.warn("[proxy] DeepScanRequestSchema validation failed:", JSON.stringify(parseResult.error.errors));
+      return c.json({ error: "Invalid deep scan request", details: parseResult.error.errors }, 400);
+    }
+    const deepScanRequest = parseResult.data;
+    const requestId = c.get("requestId");
+    console.log(JSON.stringify({ event: "deep_scan_received", requestId,
+      sessionId: deepScanRequest.sessionId, mimeType: deepScanRequest.imageMimeType,
+      sampleCount: deepScanRequest.sampleCount, imagePayloadCharacters: deepScanRequest.imageBase64.length }));
+
+    if (!auth.quotaResult.allowed) {
+      return c.json(deepScanGateResponse("rate_limited", deepScanRequest.locale, DEEP_SCAN_PROMPT_VERSION), 200);
+    }
+
+    const gateEnabled = c.env.VISION_GATE_ENABLED === "true";
+
+    if (gateEnabled) {
+      if (!c.env.AI) {
+        return c.json(deepScanGateResponse("analysis_failed", deepScanRequest.locale, DEEP_SCAN_PROMPT_VERSION), 200);
+      }
+      const startedAt = Date.now();
+      try {
+        const gate = await traceStage(deps.tracing, "scan.clef", {
+          requestId, model: VISIBILITY_GATE_MODEL, "gate.timeout_ms": 3000, "gate.threshold": VISIBILITY_GATE_THRESHOLD,
+          "gate.stage": "deep-scan", stage: "deep-scan",
+          "image.payload_characters": deepScanRequest.imageBase64.length,
+          "image.selection_present": false,
+        }, async span => {
+          try {
+            const result = await runDeepScanVisibilityGate(
+              c.env.AI!, deepScanRequest.imageBase64, deepScanRequest.imageMimeType, requestId,
+              resolveAiGatewayConfig(c.env)
+            );
+            span?.setAttributes({ "gate.decision": result.status ?? "pass_to_grading",
+              "gate.scores": JSON.stringify(result.scores), "gate.usage_known": result.usage !== null, "gate.timed_out": false,
+              ...(result.usage ? { "tokens.input": result.usage.promptTokens, "tokens.output": result.usage.completionTokens } : {}) });
+            console.log(JSON.stringify({ event: "gate_usage", requestId, sessionId: deepScanRequest.sessionId,
+              model: VISIBILITY_GATE_MODEL, stage: "deep-scan", durationMs: Date.now() - startedAt,
+              status: result.status ?? "pass_to_grading", scores: result.scores, threshold: VISIBILITY_GATE_THRESHOLD, usage: result.usage }));
+            return result;
+          } catch (error) {
+            const outcome = gateDenialStatus(error) ?? "pass_to_grading";
+            const timedOut = error instanceof Error && error.name === "TimeoutError";
+            span?.setAttributes({ "gate.decision": outcome, "gate.timed_out": timedOut });
+            console.log(JSON.stringify({ event: "gate_failure", requestId, model: VISIBILITY_GATE_MODEL, stage: "deep-scan",
+              durationMs: Date.now() - startedAt, outcome, timedOut, timeoutMs: 3000,
+              errorType: error instanceof Error ? error.name : "UnknownError", usage: null }));
+            throw error;
+          }
+        });
+        c.set("gateDecision", gate.scores ? gate.status ?? "pass_to_grading" : "invalid_output_fallback");
+        // Timeline below skips gate token spend on purpose: deep scan is free during MVP.
+        if (gate.status) {
+          const denialMessage = gate.status === "no_produce" ? "gate.noProduce" : "gate.unclearPhoto";
+          console.log(JSON.stringify({ event: "deep_scan_gate_denial", requestId, stage: "deep-scan",
+            gateStatus: gate.status, message: denialMessage }));
+          await storeDeepScanCapture(c.env, deepScanRequest, {
+            requestId,
+            outcome: "gate_denied",
+            gateStatus: gate.status,
+          });
+          return c.json(deepScanGateResponse(gate.status, deepScanRequest.locale, DEEP_SCAN_PROMPT_VERSION), 200);
+        }
+      } catch (error) {
+        const denial = gateDenialStatus(error);
+        c.set("gateDecision", denial ? "gate_denied" : "error_fallback");
+        if (denial) {
+          await storeDeepScanCapture(c.env, deepScanRequest, {
+            requestId,
+            outcome: "gate_denied",
+            gateStatus: denial,
+          });
+          return c.json(deepScanGateResponse(denial === "rate_limited" ? "rate_limited" : "analysis_failed", deepScanRequest.locale, DEEP_SCAN_PROMPT_VERSION), 200);
+        }
+        // Clef timeout/errors fail open into Gemini, mirroring round-1.
+        if (error instanceof Error && error.name === "TimeoutError") c.set("gateDecision", "timeout_fallback");
+      }
+    }
+
+    try {
+      const modelId = auth.quotaResult.modelId;
+      const adapter = resolveNormalizedVisionAdapter(modelId, c.env, deps.adapterFactory);
+
+      c.set("gradingStarted", adapter.providerId === "google");
+      const scanOutcome = await runVerifiedDeepScan(
+        deepScanRequest,
+        adapter,
+        DEEP_SCAN_PROMPT_VERSION,
+        undefined,
+        requestId,
+        deps.tracing
+      );
+      const resultSizeBytes = Math.floor((deepScanRequest.imageBase64.length * 3) / 4);
+      console.log(JSON.stringify({
+        event: "scan_usage", requestId, sessionId: deepScanRequest.sessionId, stage: "deep_scan",
+        provider: adapter.providerId, model: adapter.modelId, promptVersion: DEEP_SCAN_PROMPT_VERSION,
+        attempts: scanOutcome.attempts, status: scanOutcome.response.status,
+        framesSubmitted: deepScanRequest.sampleCount, compositeImageBytes: resultSizeBytes,
+        usage: scanOutcome.usage,
+      }));
+
+      const recordResult = await recordScanOutcome(auth.store, {
+        deviceId: auth.deviceId,
+        ip: auth.ip,
+        modelId,
+        usage: scanOutcome.usage,
+        status: scanOutcome.response.status,
+      });
+
+      c.header(REMAINING_SCANS_HEADER, recordResult.remainingDeviceScans.toString());
+
+      await storeDeepScanCapture(c.env, deepScanRequest, {
+        requestId,
+        outcome: "graded",
+        status: scanOutcome.response.status,
+        attempts: scanOutcome.attempts,
+        provider: adapter.providerId,
+        model: adapter.modelId,
+        produce: scanOutcome.response.produce?.displayName ?? null,
+        ripeness: scanOutcome.response.ripeness?.state ?? null,
+        confidence: scanOutcome.response.ripeness?.confidence ?? null,
+      });
+
+      return c.json(enrichWithSeasonality(scanOutcome.response, c.req.raw, deepScanRequest.locale, "deep-scan"), 200);
+    } catch (err) {
+      console.warn("[proxy] deep-scan analysis error:", err instanceof Error ? err.message : err);
+      await storeDeepScanCapture(c.env, deepScanRequest, {
+        requestId,
+        outcome: "error",
+        error: err instanceof Error ? err.message : String(err),
+      });
+      if (isUpstreamRateLimited(err)) {
+        return c.json(deepScanGateResponse("rate_limited", deepScanRequest.locale, DEEP_SCAN_PROMPT_VERSION), 200);
+      }
+      return c.json(deepScanGateResponse("analysis_failed", deepScanRequest.locale, DEEP_SCAN_PROMPT_VERSION), 200);
+    }
+  });
+
+  app.get("/api/v1/scan/storage/:id", async (c) => {
+    if (!scanStorageEnabled(c.env) || (!c.env.POMONA_CAPTURES_BUCKET && !c.env.POMONA_QUOTA_KV)) {
+      return c.json({ error: "Scan storage is disabled" }, 404);
+    }
+    const id = c.req.param("id");
+    if (c.env.POMONA_CAPTURES_BUCKET) {
+      const obj = await c.env.POMONA_CAPTURES_BUCKET.get(`scans/${id}.json`);
+      if (obj) {
+        try {
+          const data = await obj.json<Record<string, unknown>>();
+          return c.json({ ...data, imageUrl: `/api/v1/scan/storage/${id}/image` }, 200);
+        } catch {
+          return c.json({ error: "Stored scan capture is unreadable" }, 500);
+        }
+      }
+    }
+    if (c.env.POMONA_QUOTA_KV) {
+      const raw = await c.env.POMONA_QUOTA_KV.get(`scan:${id}`, "text");
+      if (raw) {
+        try {
+          const data = JSON.parse(raw);
+          return c.json({ ...data, imageUrl: `/api/v1/scan/storage/${id}/image` }, 200);
+        } catch {
+          return c.json({ error: "Stored scan capture is unreadable" }, 500);
+        }
+      }
+    }
+    return c.json({ error: "Scan capture not found" }, 404);
+  });
+
+  app.get("/api/v1/scan/storage/:id/image", async (c) => {
+    if (!scanStorageEnabled(c.env) || (!c.env.POMONA_CAPTURES_BUCKET && !c.env.POMONA_QUOTA_KV)) {
+      return c.json({ error: "Scan storage is disabled" }, 404);
+    }
+    const id = c.req.param("id");
+    if (c.env.POMONA_CAPTURES_BUCKET) {
+      const obj = await c.env.POMONA_CAPTURES_BUCKET.get(`scans/${id}.jpg`);
+      if (obj) {
+        return new Response(obj.body, {
+          headers: {
+            "Content-Type": obj.httpMetadata?.contentType || "image/jpeg",
+            "Cache-Control": "public, max-age=86400",
+          },
+        });
+      }
+    }
+    if (c.env.POMONA_QUOTA_KV) {
+      const raw = await c.env.POMONA_QUOTA_KV.get(`scan:${id}`, "text");
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          const bytes = base64ToUint8Array(parsed.imageBase64);
+          return new Response(bytes as unknown as BodyInit, {
+            headers: {
+              "Content-Type": parsed.mimeType || "image/jpeg",
+              "Cache-Control": "public, max-age=86400",
+            },
+          });
+        } catch {
+          return c.json({ error: "Failed to decode stored image" }, 500);
+        }
+      }
+    }
+    return c.json({ error: "Scan capture not found" }, 404);
+  });
+
+  app.get("/api/v1/deep-scan/storage/:id", async (c) => {
+    if (!deepScanStorageEnabled(c.env) || (!c.env.POMONA_CAPTURES_BUCKET && !c.env.POMONA_QUOTA_KV)) {
+      return c.json({ error: "Deep-scan storage is disabled" }, 404);
+    }
+    const id = c.req.param("id");
+    if (c.env.POMONA_CAPTURES_BUCKET) {
+      const obj = await c.env.POMONA_CAPTURES_BUCKET.get(`deep-scans/${id}.json`);
+      if (obj) {
+        try {
+          const data = await obj.json<Record<string, unknown>>();
+          return c.json({ ...data, imageUrl: `/api/v1/deep-scan/storage/${id}/image` }, 200);
+        } catch {
+          return c.json({ error: "Stored deep-scan capture is unreadable" }, 500);
+        }
+      }
+    }
+    if (c.env.POMONA_QUOTA_KV) {
+      const raw = await c.env.POMONA_QUOTA_KV.get(`deep-scan:${id}`, "text");
+      if (raw) {
+        try {
+          const data = JSON.parse(raw);
+          return c.json({ ...data, imageUrl: `/api/v1/deep-scan/storage/${id}/image` }, 200);
+        } catch {
+          return c.json({ error: "Stored deep-scan capture is unreadable" }, 500);
+        }
+      }
+    }
+    return c.json({ error: "Deep-scan capture not found" }, 404);
+  });
+
+  app.get("/api/v1/deep-scan/storage/:id/image", async (c) => {
+    if (!deepScanStorageEnabled(c.env) || (!c.env.POMONA_CAPTURES_BUCKET && !c.env.POMONA_QUOTA_KV)) {
+      return c.json({ error: "Deep-scan storage is disabled" }, 404);
+    }
+    const id = c.req.param("id");
+    if (c.env.POMONA_CAPTURES_BUCKET) {
+      const obj = await c.env.POMONA_CAPTURES_BUCKET.get(`deep-scans/${id}.jpg`);
+      if (obj) {
+        return new Response(obj.body, {
+          headers: {
+            "Content-Type": obj.httpMetadata?.contentType || "image/jpeg",
+            "Cache-Control": "public, max-age=86400",
+          },
+        });
+      }
+    }
+    if (c.env.POMONA_QUOTA_KV) {
+      const raw = await c.env.POMONA_QUOTA_KV.get(`deep-scan:${id}`, "text");
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          const bytes = base64ToUint8Array(parsed.compositeImageBase64);
+          return new Response(bytes as unknown as BodyInit, {
+            headers: {
+              "Content-Type": parsed.mimeType || "image/jpeg",
+              "Cache-Control": "public, max-age=86400",
+            },
+          });
+        } catch {
+          return c.json({ error: "Failed to decode stored composite image" }, 500);
+        }
+      }
+    }
+    return c.json({ error: "Deep-scan capture not found" }, 404);
+  });
+
   return app;
 }
 
@@ -584,9 +1130,13 @@ export { createGeminiVisionAdapter } from "./adapters/gemini";
 export { createOpenAIVisionAdapter } from "./adapters/openai";
 export { getPromptConfig } from "./prompts";
 export { v1PromptConfig } from "./prompts/v1";
+export { deepScanPromptConfig, deepScanProviderSchema } from "./prompts/deep-scan";
 export { getGatewayRouting } from "./adapters/gateway";
 export { traceStage, traceResponse, logScanResponse } from "./observability/scan-trace";
 export { createInMemoryQuotaStore, calculateTokenSpendMicroCents } from "./quota/budget";
 export { buildVisibilityGateInput, resolveVisibilityGate, runVisibilityGate, VISIBILITY_GATE_MODEL, VISIBILITY_GATE_THRESHOLD } from "./gate/visibility";
+export { buildDeepScanGateInput, resolveDeepScanGate } from "./gate/visibility";
+export { verifyAndResolveDeepScanResponse } from "./verifier/verify-deep-scan";
+export { runVerifiedDeepScan } from "./adapters/deep-scan";
 export type { VisibilityGateRequest } from "./gate/visibility";
 

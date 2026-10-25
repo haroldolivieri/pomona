@@ -199,3 +199,149 @@ textarea {
   z-index: 12;
 }
 
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ds-laser-sweep {
+  0% {
+    top: -40px;
+    opacity: 0.85;
+  }
+  50% {
+    top: calc(100% - 2px);
+    opacity: 1;
+  }
+  100% {
+    top: -40px;
+    opacity: 0.85;
+  }
+}
+
+@keyframes ds-dot-blink {
+  0% {
+    opacity: 0.35;
+    transform: translate(-50%, -50%) scale(0.7);
+  }
+  25%, 55% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+  75%, 100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+}
+
+.ds-blinking-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #F5D547;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 0 10px rgba(245, 213, 71, 0.7), 0 0 20px rgba(245, 213, 71, 0.35);
+  animation: ds-dot-blink 2.4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 4;
+}
+
+@keyframes ds-3d-scan-sweep {
+  0% {
+    transform: translateY(0px);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(9.5px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0px);
+    opacity: 0.8;
+  }
+}
+
+@keyframes ds-3d-node-pulse {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+/* Initial entrance transitions from static skeleton to interactive page */
+@keyframes pomona-fade-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pomona-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes p-recoil-bounce {
+  0% {
+    transform: translateX(0);
+  }
+  30% {
+    transform: translateX(-6px);
+  }
+  65% {
+    transform: translateX(3px);
+  }
+  85% {
+    transform: translateX(-1px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes p-recoil-bounce {
+    0%, 100% {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes pomona-fade-down {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes pomona-fade-up {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+

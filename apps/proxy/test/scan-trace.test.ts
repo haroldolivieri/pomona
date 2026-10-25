@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { logScanResponse, traceStage, traceResponse } from "@pomona/proxy";
+import { logScanResponse, traceStage, traceResponse } from "../src/index";
 
 afterEach(() => vi.restoreAllMocks());
 

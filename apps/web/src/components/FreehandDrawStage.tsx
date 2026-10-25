@@ -33,6 +33,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const [canAnalyseDrawn, setCanAnalyseDrawn] = useState<boolean>(false);
   const [normalizedResult, setNormalizedResult] = useState<NormalizePolygonResult | null>(null);
+  const [isAnalysing, setIsAnalysing] = useState<boolean>(false);
 
   const updateCoverRect = () => {
     const vp = containerRef.current;
@@ -101,14 +102,18 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
   };
 
   const handleAnalyseDrawn = () => {
+    if (isAnalysing) return;
     if (normalizedResult && normalizedResult.valid) {
       // Pass null for cropRect: the full image is sent with focusPolygon in [0..1000] image space.
       // Candidate bounding boxes returned by the model are already in [0..1000] image space!
+      setIsAnalysing(true);
       onAnalyse(normalizedResult.polygon, null);
     }
   };
 
   const handleWholePhoto = () => {
+    if (isAnalysing) return;
+    setIsAnalysing(true);
     onAnalyse(null, { x: 0, y: 0, width: 1000, height: 1000 });
   };
 
@@ -299,7 +304,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
           </svg>
         </div>
 
-        {errorMessage && (
+        {errorMessage && !isAnalysing && (
           <div
             style={{
               position: "absolute",
@@ -331,7 +336,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
           backgroundColor: "var(--surface-sheet)",
           color: "var(--text-primary)",
           borderRadius: "26px 26px 0 0",
-          paddingTop: "16px",
+          paddingTop: "20px",
           paddingLeft: "18px",
           paddingRight: "18px",
           paddingBottom: "max(24px, env(safe-area-inset-bottom))",
@@ -339,19 +344,6 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
           zIndex: 20,
         }}
       >
-        {/* Drag handle */}
-        <div
-          className="grab"
-          style={{
-            width: "36px",
-            height: "4px",
-            borderRadius: "4px",
-            backgroundColor: "var(--text-muted)",
-            opacity: 0.35,
-            margin: "-4px auto 12px",
-          }}
-        />
-
         {/* Eyebrow */}
         <div
           style={{
@@ -405,6 +397,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
         >
           <button
             onClick={handleWholePhoto}
+            disabled={isAnalysing}
             data-testid="whole-photo-button"
             style={{
               flex: 1,
@@ -417,16 +410,17 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
               fontWeight: 700,
               fontSize: "13px",
               lineHeight: 1,
-              cursor: "pointer",
+              cursor: isAnalysing ? "not-allowed" : "pointer",
+              opacity: isAnalysing ? 0.6 : 1,
               textAlign: "center",
             }}
           >
-            {t("draw.wholePhoto")}
+            {isAnalysing ? t("camera.scanningTitle") : t("draw.wholePhoto")}
           </button>
 
           <button
             onClick={handleAnalyseDrawn}
-            disabled={!canAnalyseDrawn}
+            disabled={!canAnalyseDrawn || isAnalysing}
             data-testid="analyse-drawn-button"
             style={{
               flex: 1,
@@ -439,12 +433,12 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
               fontWeight: 700,
               fontSize: "13px",
               lineHeight: 1,
-              cursor: canAnalyseDrawn ? "pointer" : "not-allowed",
-              opacity: canAnalyseDrawn ? 1 : 0.45,
+              cursor: canAnalyseDrawn && !isAnalysing ? "pointer" : "not-allowed",
+              opacity: canAnalyseDrawn && !isAnalysing ? 1 : 0.45,
               textAlign: "center",
             }}
           >
-            {t("draw.analyseDrawn")}
+            {isAnalysing ? t("camera.scanningTitle") : t("draw.analyseDrawn")}
           </button>
         </div>
       </div>

@@ -29,9 +29,10 @@ export function createOpenAIVisionAdapter(options: OpenAIVisionAdapterOptions): 
     async analyzeProduce(input: AdapterInput, signal?: AbortSignal): Promise<AdapterRawResult> {
       const model = openai(modelId);
 
+      const schema = input.schema ?? ScanResponseModelSchema;
       const result = await generateFn({
         model: model as any,
-        schema: ScanResponseModelSchema,
+        schema: schema as any,
         system: input.systemPrompt,
         headers: getGatewayTraceHeaders(options.gateway, input.trace),
         messages: [

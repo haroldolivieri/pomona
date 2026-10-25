@@ -28,6 +28,7 @@ describe("Published build: 5-tap version toast only", () => {
     getQuota: vi.fn().mockResolvedValue({ remainingDeviceScans: 10, budgetOpen: true }),
     overrideQuota: vi.fn().mockResolvedValue({ success: true, remainingDeviceScans: 10 }),
     submitScan: vi.fn(),
+    submitDeepScan: vi.fn(),
   });
 
   it("shows a version toast after 5 taps and never unlocks debug UI", async () => {

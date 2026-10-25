@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { Point } from "@pomona/contract";
 import type { CropRect } from "../lib/image-pipeline";
+import { ThreeDScanAnimation } from "./CameraCaptureUi";
 
 export type CoordinatePoint = Point | { x: number; y: number };
 
@@ -375,7 +376,7 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
           backgroundColor: "var(--surface-sheet)",
           color: "var(--text-primary)",
           borderRadius: "26px 26px 0 0",
-          paddingTop: "16px",
+          paddingTop: "20px",
           paddingLeft: "18px",
           paddingRight: "18px",
           paddingBottom: "max(24px, env(safe-area-inset-bottom))",
@@ -383,19 +384,6 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
           zIndex: 20,
         }}
       >
-        {/* Drag handle */}
-        <div
-          className="grab"
-          style={{
-            width: "36px",
-            height: "4px",
-            borderRadius: "4px",
-            backgroundColor: "var(--text-muted)",
-            opacity: 0.35,
-            margin: "-4px auto 12px",
-          }}
-        />
-
         {/* Eyebrow */}
         <div
           style={{
@@ -411,18 +399,22 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
           {uiCopy("copy.pomonaVision")}</div>
 
         {/* Headline */}
-        <div
-          className="font-serif"
-          style={{
-            fontSize: "24px",
-            fontWeight: 600,
-            lineHeight: 1.1,
-            letterSpacing: "-0.015em",
-            margin: "6px 0 4px",
-            color: "var(--text-primary)",
-          }}
-        >
-          {uiCopy("copy.checkingRipeness")}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "6px 0 4px" }}>
+          <ThreeDScanAnimation testId="analysing-3d-scan" size={22} />
+          <div
+            className="font-serif"
+            style={{
+              fontSize: "24px",
+              fontWeight: 600,
+              lineHeight: 1.1,
+              letterSpacing: "-0.015em",
+              margin: 0,
+              color: "var(--text-primary)",
+            }}
+          >
+            {uiCopy("copy.checkingRipeness")}
+          </div>
+        </div>
 
         {/* Subhead */}
         <div
