@@ -127,5 +127,20 @@
     ],
     "imagePath": "dataset/deep-scan/ds-09-overripe-mandarin.jpg",
     "arm": "live"
+  },
+  {
+    "id": "ds-10-overripe-puffy-mandarin",
+    "description": "Numbered 2x3 montage of a second overripe mandarin whose unpressed outer peel appears round in tiles 1, 2 and 6, but in tiles 3, 4 and 5 finger pressure causes a deep hollow cave-in with concentric radial skin folds around the pressing thumb. Must classify as overripe with a low visual score (<= 4.5).",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "ok",
+        "expectedState": "overripe",
+        "expectManualChecks": false,
+        "maxVisualScore": 4.5
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-10-overripe-puffy-mandarin.jpg",
+    "arm": "live"
   }
 ]

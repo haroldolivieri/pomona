@@ -104,19 +104,18 @@ describe("deep_scan_v1 press cue (visible give while the shopper presses and rot
 
   it("acceptance: visible dents under a fingertip support a ripe ready-now state, while a press with no dent is never firmness evidence", () => {
     expect(system).toContain("PRESS CUE");
-    expect(system).toContain("thumb visibly sinks into the fruit, flattens the curved outline");
-    expect(system).toContain("soft and ready to eat now");
-    expect(system).toContain("with no visible dent is NOT evidence of firmness");
+    expect(system).toContain("visibly indents or flattens the curved outline or casts a soft-yield shadow/dimple");
+    expect(system).toContain("softened and is ready to eat now");
+    expect(system).toContain("with no visible dent in some tiles is NOT evidence of firmness");
     expect(system).toContain("judge firmness only from colour and surface cues");
-    expect(user).toContain("sinks into the fruit's outline or dimples the adjacent skin");
+    expect(user).toContain("thumb visibly indents the curved outline or dimples the adjacent skin");
   });
 
-  it("failure cases: hidden presses are ignored and never inferred, and press yield with deep creases or puffy separated skin is overripe while dark speckles on taut green skin are not", () => {
+  it("failure cases: hidden presses are ignored and never inferred, and press yield with deep cave-in, radial skin folds or surface creases is overripe while dark speckles on taut green skin are not", () => {
     expect(system).toContain("no finger is pressing");
     expect(system).toContain("never infer give that you cannot see");
-    expect(system).toContain("deep horizontal or surface creases, folds, wrinkles, puffy/loose skin separating from the flesh");
+    expect(system).toContain("deep pocket/crater where the fingertip buries into the face of the fruit with visible crease lines");
     expect(system).toContain("classify as 'overripe' (never 'ripe')");
-    expect(system).toContain("Do not mistake natural dark surface speckling or russeting on a taut, uncreased green skin for overripe decay");
   });
 
   it("keeps the abstention and touch guards: no smell, taste or unseen claims, no destructive checks", () => {

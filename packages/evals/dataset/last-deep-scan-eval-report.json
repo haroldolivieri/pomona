@@ -1,26 +1,26 @@
 {
-  "timestamp": "2026-10-26T13:28:09.664Z",
-  "model": "google:gemini-3.8-flash",
+  "timestamp": "2026-10-26T13:55:32.563Z",
+  "model": "google:gemini-3.1-flash-lite",
   "maxAttempts": 2,
-  "passed": 6,
-  "total": 6,
+  "passed": 7,
+  "total": 7,
   "results": [
     {
       "id": "ds-01-ideal-avocado",
       "locale": "en-GB",
-      "model": "google:gemini-3.8-flash",
+      "model": "google:gemini-3.1-flash-lite",
       "pass": true,
       "attemptsUsed": 1,
       "reason": "matched",
-      "latencyMs": 5216,
+      "latencyMs": 4580,
       "usage": {
-        "promptTokens": 2877,
-        "completionTokens": 419,
-        "totalTokens": 3296
+        "promptTokens": 3062,
+        "completionTokens": 1172,
+        "totalTokens": 4234
       },
       "rawOutput": {
         "status": "ok",
-        "message": "This Hass avocado has a dark purplish-black pebbled skin and is ripe.",
+        "message": "This Hass avocado appears ripe and ready to eat.",
         "afterPurchase": {
           "readyInDays": {
             "min": 0,
@@ -28,21 +28,21 @@
           },
           "eatWithinDays": {
             "min": 1,
-            "max": 3
+            "max": 2
           },
-          "eatWithinLabel": "1-3 days",
+          "eatWithinLabel": "1-2 days",
           "storage": {
             "beforeCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Fridge to slow ripening",
-              "tip": "Store whole in the crisper drawer to maintain optimal texture."
+              "summary": "Fridge / whole",
+              "tip": "Keep in the fridge to maintain freshness."
             },
             "afterCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Fridge / airtight",
-              "tip": "Cover tightly with clingfilm or lemon juice in an airtight container."
+              "summary": "Fridge / cut",
+              "tip": "Store in an airtight container with a squeeze of lemon juice."
             }
           }
         },
@@ -54,12 +54,10 @@
         },
         "ripeness": {
           "state": "ripe",
-          "confidence": 0.9
+          "confidence": 0.85
         },
         "evidence": [
-          "deep purplish-black pebbled skin across entire fruit",
-          "plump and taut silhouette with no sunken creases",
-          "intact dry stem button firmly seated"
+          "dark pebbly skin characteristic of a ripe Hass avocado"
         ],
         "quality": {
           "sufficientVisualEvidence": true,
@@ -72,47 +70,47 @@
         },
         "schemaVersion": "1.0",
         "promptVersion": "deep_scan_v1",
-        "modelId": "gemini-3.8-flash"
+        "modelId": "gemini-3.1-flash-lite"
       }
     },
     {
       "id": "ds-06-underripe-avocado",
       "locale": "en-GB",
-      "model": "google:gemini-3.8-flash",
+      "model": "google:gemini-3.1-flash-lite",
       "pass": true,
       "attemptsUsed": 1,
       "reason": "matched",
-      "latencyMs": 4358,
+      "latencyMs": 3634,
       "usage": {
-        "promptTokens": 2877,
-        "completionTokens": 258,
-        "totalTokens": 3135
+        "promptTokens": 3062,
+        "completionTokens": 974,
+        "totalTokens": 4036
       },
       "rawOutput": {
         "status": "ok",
-        "message": "This avocado is firm and unripe, needing several days at room temperature to soften.",
+        "message": "This avocado is currently unripe and will need a few days to ripen.",
         "afterPurchase": {
           "readyInDays": {
             "min": 3,
             "max": 5
           },
           "eatWithinDays": {
-            "min": 5,
-            "max": 8
+            "min": 1,
+            "max": 3
           },
-          "eatWithinLabel": "5-8 days",
+          "eatWithinLabel": "1-3 days",
           "storage": {
             "beforeCut": {
               "where": "counter",
-              "whereLabel": "Countertop",
-              "summary": "Countertop / whole",
-              "tip": "Leave at room temperature to ripen; place with bananas or apples to speed up softening."
+              "whereLabel": "Counter",
+              "summary": "Counter / whole",
+              "tip": "Keep at room temperature until it yields to gentle pressure."
             },
             "afterCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Fridge / sealed",
-              "tip": "Rub exposed flesh with lemon juice, wrap tightly in cling film, and use within 2 days."
+              "summary": "Fridge / cut",
+              "tip": "Store in an airtight container with a squeeze of lemon to prevent browning."
             }
           }
         },
@@ -124,13 +122,11 @@
         },
         "ripeness": {
           "state": "unripe",
-          "confidence": 0.94
+          "confidence": 0.9
         },
         "evidence": [
-          "Uniform bright green pebbled skin",
-          "Intact stem button firmly attached",
-          "Plump, firm, and unyielding contours",
-          "Absence of dark purplish-black colouring"
+          "Deep green pebbled skin",
+          "Firm texture with no visible give"
         ],
         "quality": {
           "sufficientVisualEvidence": true,
@@ -143,50 +139,26 @@
         },
         "schemaVersion": "1.0",
         "promptVersion": "deep_scan_v1",
-        "modelId": "gemini-3.8-flash"
+        "modelId": "gemini-3.1-flash-lite"
       }
     },
     {
       "id": "ds-07-overripe-avocado",
       "locale": "en-GB",
-      "model": "google:gemini-3.8-flash",
+      "model": "google:gemini-3.1-flash-lite",
       "pass": true,
       "attemptsUsed": 1,
       "reason": "matched",
-      "latencyMs": 5707,
+      "latencyMs": 1552,
       "usage": {
-        "promptTokens": 2877,
-        "completionTokens": 424,
-        "totalTokens": 3301
+        "promptTokens": 3062,
+        "completionTokens": 215,
+        "totalTokens": 3277
       },
       "rawOutput": {
         "status": "ok",
-        "message": "This avocado is overripe with deep sunken dents and collapsed skin.",
-        "afterPurchase": {
-          "readyInDays": {
-            "min": 0,
-            "max": 0
-          },
-          "eatWithinDays": {
-            "min": 1,
-            "max": 1
-          },
-          "eatWithinLabel": "Use immediately",
-          "storage": {
-            "beforeCut": {
-              "where": "fridge",
-              "whereLabel": "Fridge",
-              "summary": "Fridge / whole",
-              "tip": "Refrigerate immediately and check internal flesh for browning or rancidity."
-            },
-            "afterCut": {
-              "where": "fridge",
-              "whereLabel": "Fridge",
-              "summary": "Fridge / airtight",
-              "tip": "Store any usable flesh in an airtight container with lemon juice."
-            }
-          }
-        },
+        "message": "This avocado is overripe and should not be consumed.",
+        "afterPurchase": null,
         "abstentionReason": null,
         "produce": {
           "type": "avocado",
@@ -195,13 +167,12 @@
         },
         "ripeness": {
           "state": "overripe",
-          "confidence": 0.98
+          "confidence": 0.95
         },
         "evidence": [
-          "Deep sunken dents and collapsed skin hollows",
-          "Pronounced wrinkling and folding of the peel",
-          "Very dark purplish-black skin throughout",
-          "Loose peel separating from the underlying flesh"
+          "deep sunken hollows on the skin surface",
+          "skin shows permanent indentations and creases",
+          "puffy peel texture indicating separation from flesh"
         ],
         "quality": {
           "sufficientVisualEvidence": true,
@@ -210,29 +181,29 @@
         },
         "manualChecks": null,
         "recommendation": {
-          "eatWhen": "today_or_tomorrow"
+          "eatWhen": "avoid"
         },
         "schemaVersion": "1.0",
         "promptVersion": "deep_scan_v1",
-        "modelId": "gemini-3.8-flash"
+        "modelId": "gemini-3.1-flash-lite"
       }
     },
     {
       "id": "ds-05-same-side-avocado",
       "locale": "en-GB",
-      "model": "google:gemini-3.8-flash",
+      "model": "google:gemini-3.1-flash-lite",
       "pass": true,
       "attemptsUsed": 1,
       "reason": "matched",
-      "latencyMs": 3947,
+      "latencyMs": 3057,
       "usage": {
-        "promptTokens": 2877,
-        "completionTokens": 197,
-        "totalTokens": 3074
+        "promptTokens": 3062,
+        "completionTokens": 787,
+        "totalTokens": 3849
       },
       "rawOutput": {
         "status": "insufficient_evidence",
-        "message": "Please turn the avocado around to show the other sides.",
+        "message": "Please provide views of the sides and bottom to assess ripeness accurately.",
         "afterPurchase": null,
         "abstentionReason": "same_side_only",
         "produce": {
@@ -242,72 +213,65 @@
         },
         "ripeness": {
           "state": "unknown",
-          "confidence": 0.5
+          "confidence": 0
         },
         "evidence": [],
         "quality": {
           "sufficientVisualEvidence": false,
           "viewCoverage": "poor",
-          "reason": "Every tile shows an identical angle and side of the avocado."
+          "reason": "Only the top view is visible; side and bottom views are needed."
         },
         "manualChecks": [
           {
-            "trait": "Firmness check",
-            "how": "Gently press the neck of the avocado with your thumb.",
-            "whatItMeans": "If it yields slightly under gentle pressure, it is ripe; if rock hard, it needs more time."
-          },
-          {
-            "trait": "Stem button inspection",
-            "how": "Gently flick the small stem cap at the top.",
-            "whatItMeans": "Green underneath indicates ripe flesh; brown suggests it is overripe."
+            "trait": "Gentle press",
+            "how": "Gently press the fruit with your thumb or fingertip while rotating it.",
+            "whatItMeans": "A slight, elastic give indicates it is ripe; deep indentation or hollow feel suggests overripeness."
           }
         ],
-        "recommendation": {
-          "eatWhen": null
-        },
+        "recommendation": null,
         "schemaVersion": "1.0",
         "promptVersion": "deep_scan_v1",
-        "modelId": "gemini-3.8-flash"
+        "modelId": "gemini-3.1-flash-lite"
       }
     },
     {
       "id": "ds-08-soft-press-avocado",
       "locale": "en-GB",
-      "model": "google:gemini-3.8-flash",
+      "model": "google:gemini-3.1-flash-lite",
       "pass": true,
-      "attemptsUsed": 2,
+      "attemptsUsed": 1,
       "reason": "matched",
-      "latencyMs": 10021,
+      "latencyMs": 2230,
       "usage": {
-        "promptTokens": 2904,
-        "completionTokens": 233,
-        "totalTokens": 3137
+        "promptTokens": 3089,
+        "completionTokens": 389,
+        "totalTokens": 3478
       },
       "rawOutput": {
         "status": "ok",
-        "message": "This green-skin avocado is ripe and ready to eat now.",
+        "message": "This avocado is ripe and ready to eat.",
         "afterPurchase": {
           "readyInDays": {
             "min": 0,
-            "max": 1
+            "max": 0
           },
           "eatWithinDays": {
             "min": 1,
-            "max": 3
+            "max": 2
           },
-          "eatWithinLabel": "1-3 days",
+          "eatWithinLabel": "1-2 days",
           "storage": {
             "beforeCut": {
-              "where": "fridge",
-              "whereLabel": "Fridge",
-              "summary": "Fridge / whole",
-              "tip": "Chill to slow down softening and keep it in prime condition."
+              "where": "counter",
+              "whereLabel": "Counter",
+              "summary": "Counter / whole",
+              "tip": "Keep at room temperature until ready to eat."
             },
             "afterCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Fridge / airtight",
-              "tip": "Store in an airtight container with lemon juice on exposed flesh."
+              "summary": "Fridge / cut",
+              "tip": "Store in an airtight container with a squeeze of lemon to prevent browning."
             }
           }
         },
@@ -315,16 +279,15 @@
         "produce": {
           "type": "avocado",
           "displayName": "Avocado",
-          "variety": "Green-skin"
+          "variety": "unknown"
         },
         "ripeness": {
           "state": "ripe",
-          "confidence": 0.88
+          "confidence": 0.95
         },
         "evidence": [
-          "Vibrant green skin with natural dark russeting",
-          "Firm, plump overall contour without collapsing folds",
-          "Slight elastic yield under gentle thumb pressure"
+          "skin visibly dents under a gentle press",
+          "flesh yields to light thumb pressure"
         ],
         "quality": {
           "sufficientVisualEvidence": true,
@@ -337,25 +300,25 @@
         },
         "schemaVersion": "1.0",
         "promptVersion": "deep_scan_v1",
-        "modelId": "gemini-3.8-flash"
+        "modelId": "gemini-3.1-flash-lite"
       }
     },
     {
       "id": "ds-09-overripe-mandarin",
       "locale": "en-GB",
-      "model": "google:gemini-3.8-flash",
+      "model": "google:gemini-3.1-flash-lite",
       "pass": true,
       "attemptsUsed": 1,
       "reason": "matched",
-      "latencyMs": 6101,
+      "latencyMs": 4112,
       "usage": {
-        "promptTokens": 2877,
-        "completionTokens": 424,
-        "totalTokens": 3301
+        "promptTokens": 3062,
+        "completionTokens": 1126,
+        "totalTokens": 4188
       },
       "rawOutput": {
         "status": "ok",
-        "message": "This mandarin is overripe, showing clear creases, dehydration, and a collapsed peel.",
+        "message": "This mandarin is overripe, showing surface creases and soft, sunken areas.",
         "afterPurchase": {
           "readyInDays": {
             "min": 0,
@@ -365,19 +328,19 @@
             "min": 1,
             "max": 1
           },
-          "eatWithinLabel": "Use immediately",
+          "eatWithinLabel": "1 day",
           "storage": {
             "beforeCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Refrigerate immediately",
-              "tip": "Chill to slow further drying out and loss of juice."
+              "summary": "Fridge / whole",
+              "tip": "Keep refrigerated to slow further softening."
             },
             "afterCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Airtight container",
-              "tip": "Keep peeled segments sealed in the fridge."
+              "summary": "Fridge / sealed",
+              "tip": "Store in an airtight container."
             }
           }
         },
@@ -385,17 +348,16 @@
         "produce": {
           "type": "mandarin",
           "displayName": "Mandarin",
-          "variety": "Clementine"
+          "variety": null
         },
         "ripeness": {
           "state": "overripe",
-          "confidence": 0.95
+          "confidence": 0.9
         },
         "evidence": [
-          "Deep horizontal surface creases across the peel",
-          "Loose, puffy skin clearly collapsed away from flesh",
-          "Sunken indentation around the stem end",
-          "Visible wrinkling and loss of turgor across rind"
+          "visible surface creases",
+          "sunken hollows",
+          "skin yields easily to pressure"
         ],
         "quality": {
           "sufficientVisualEvidence": true,
@@ -408,7 +370,77 @@
         },
         "schemaVersion": "1.0",
         "promptVersion": "deep_scan_v1",
-        "modelId": "gemini-3.8-flash"
+        "modelId": "gemini-3.1-flash-lite"
+      }
+    },
+    {
+      "id": "ds-10-overripe-puffy-mandarin",
+      "locale": "en-GB",
+      "model": "google:gemini-3.1-flash-lite",
+      "pass": true,
+      "attemptsUsed": 1,
+      "reason": "matched",
+      "latencyMs": 2190,
+      "usage": {
+        "promptTokens": 3062,
+        "completionTokens": 406,
+        "totalTokens": 3468
+      },
+      "rawOutput": {
+        "status": "ok",
+        "message": "This mandarin is overripe, as evidenced by the skin caving in under pressure.",
+        "afterPurchase": {
+          "readyInDays": {
+            "min": 0,
+            "max": 0
+          },
+          "eatWithinDays": {
+            "min": 1,
+            "max": 2
+          },
+          "eatWithinLabel": "1-2 days",
+          "storage": {
+            "beforeCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Fridge",
+              "tip": "Store in the fridge to slow further softening."
+            },
+            "afterCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Fridge in airtight container",
+              "tip": "Keep in an airtight container to prevent drying out."
+            }
+          }
+        },
+        "abstentionReason": null,
+        "produce": {
+          "type": "mandarin",
+          "displayName": "Mandarin",
+          "variety": "Mandarin"
+        },
+        "ripeness": {
+          "state": "overripe",
+          "confidence": 0.95
+        },
+        "evidence": [
+          "skin caves in deeply with radial creases under finger pressure",
+          "peel appears loose and puffy",
+          "squashes flat under light pressure"
+        ],
+        "quality": {
+          "sufficientVisualEvidence": true,
+          "viewCoverage": "good",
+          "reason": null
+        },
+        "manualChecks": null,
+        "recommendation": {
+          "eatWhen": "today_or_tomorrow"
+        },
+        "schemaVersion": "1.0",
+        "promptVersion": "deep_scan_v1",
+        "modelId": "gemini-3.1-flash-lite"
       }
     }
   ],
