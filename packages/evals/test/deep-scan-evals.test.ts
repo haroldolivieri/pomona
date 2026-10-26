@@ -41,6 +41,7 @@ describe("deep-scan eval wiring (offline)", () => {
       "ds-08-soft-press-avocado.jpg",
       "ds-09-overripe-mandarin.jpg",
       "ds-10-overripe-puffy-mandarin.jpg",
+      "ds-11-underripe-pear.jpg",
     ] as const;
     for (const filename of expected) {
       const file = path.join(datasetRoot, filename);
@@ -93,6 +94,14 @@ describe("deep-scan eval wiring (offline)", () => {
     expect(overripePuffyMandarinArm.expectedStatus).toBe("ok");
     expect(overripePuffyMandarinArm.expectedState).toBe("overripe");
     expect(overripePuffyMandarinArm.maxVisualScore).toBe(4.5);
+
+    const underripePear = parsed.find((row) => row.id === "ds-11-underripe-pear");
+    expect(underripePear).toBeDefined();
+    expect(underripePear!.arm).toBe("live");
+    const underripePearArm = underripePear!.perLocale.find((row) => row.locale === "en-GB")!;
+    expect(underripePearArm.expectedStatus).toBe("ok");
+    expect(underripePearArm.expectedState).toBe("unripe");
+    expect(underripePearArm.expectManualChecks).toBe(false);
 
     expect(resolveDeepScanVisualScore({ state: "overripe", confidence: 0.95 })).toBeLessThanOrEqual(4.5);
     expect(resolveDeepScanVisualScore({ state: "ripe", confidence: 0.95 })).toBeGreaterThanOrEqual(9.0);

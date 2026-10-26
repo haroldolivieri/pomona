@@ -142,5 +142,19 @@
     ],
     "imagePath": "dataset/deep-scan/ds-10-overripe-puffy-mandarin.jpg",
     "arm": "live"
+  },
+  {
+    "id": "ds-11-underripe-pear",
+    "description": "Numbered 2x3 montage of an underripe green pear held upright and rotated while the thumb rests against its tapered neck/side without any inward skin deformation; must not hallucinate press give from the natural pear silhouette and must classify as unripe.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "ok",
+        "expectedState": "unripe",
+        "expectManualChecks": false
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-11-underripe-pear.jpg",
+    "arm": "live"
   }
 ]
