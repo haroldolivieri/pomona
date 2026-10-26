@@ -134,16 +134,18 @@ describe("scan label asks the shopper to gently press while rotating", () => {
   const read = (locale: string) =>
     JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../apps/web/src/i18n/locales/${locale}.json`), "utf8")).deepScan;
 
-  it("en and pt-BR capture labels both carry the gentle press cue and never ask for hard squeezing", () => {
+  it("en and pt-BR capture labels advise showing top and bottom while gently pressing, and never ask for hard squeezing", () => {
     const en = read("en");
     const pt = read("pt-BR");
     for (const text of [en.captureInstruction, en.captureScanningSubtitle]) {
       expect(text.toLowerCase()).toContain("gently press");
+      expect(text.toLowerCase()).toContain("top and bottom");
       expect(text.toLowerCase()).not.toMatch(/squeeze|hard|firmly/);
     }
     for (const text of [pt.captureInstruction, pt.captureScanningSubtitle]) {
       expect(text.toLowerCase()).toContain("pression");
       expect(text.toLowerCase()).toContain("de leve");
+      expect(text.toLowerCase()).toContain("topo e base");
     }
   });
 });
