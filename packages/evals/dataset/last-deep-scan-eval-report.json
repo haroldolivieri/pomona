@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-10-25T19:06:14.249Z",
+  "timestamp": "2026-10-26T11:58:39.466Z",
   "model": "google:gemini-3.8-flash",
   "maxAttempts": 2,
-  "passed": 4,
-  "total": 4,
+  "passed": 5,
+  "total": 5,
   "results": [
     {
       "id": "ds-01-ideal-avocado",
@@ -12,37 +12,37 @@
       "pass": true,
       "attemptsUsed": 1,
       "reason": "matched",
-      "latencyMs": 5882,
+      "latencyMs": 5938,
       "usage": {
-        "promptTokens": 2393,
+        "promptTokens": 2777,
         "completionTokens": 443,
-        "totalTokens": 2836
+        "totalTokens": 3220
       },
       "rawOutput": {
         "status": "ok",
-        "message": "This Hass avocado has an even, dark purplish-black skin indicating full ripeness.",
+        "message": "This Hass avocado has darkened to an even, deep purplish-black colour and is ready to enjoy.",
         "afterPurchase": {
           "readyInDays": {
             "min": 0,
             "max": 1
           },
           "eatWithinDays": {
-            "min": 1,
+            "min": 2,
             "max": 3
           },
-          "eatWithinLabel": "1-3 days",
+          "eatWithinLabel": "2-3 days",
           "storage": {
             "beforeCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Refrigerate whole",
-              "tip": "Store in the fridge to slow down further softening and preserve ripeness."
+              "summary": "Fridge / whole",
+              "tip": "Refrigerate whole to maintain ripeness and prevent over-softening."
             },
             "afterCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Airtight in fridge",
-              "tip": "Squeeze lemon or lime juice over exposed flesh and seal tightly in film."
+              "summary": "Fridge / airtight",
+              "tip": "Squeeze lemon or lime juice over the cut flesh and seal tightly."
             }
           }
         },
@@ -54,13 +54,13 @@
         },
         "ripeness": {
           "state": "ripe",
-          "confidence": 0.94
+          "confidence": 0.92
         },
         "evidence": [
-          "Uniform dark purplish-black pebbled skin",
-          "Absence of bright green undertones across all sides",
-          "Intact stem button seated firmly in stem cavity",
-          "Plump, taut skin without sunken indentations or collapse"
+          "Uniform deep purplish-black pebbled skin",
+          "Intact stem button firmly seated",
+          "Taut pebbled rind with no shrivelling or sunken soft spots",
+          "Absence of residual bright green patches across the skin"
         ],
         "quality": {
           "sufficientVisualEvidence": true,
@@ -83,37 +83,37 @@
       "pass": true,
       "attemptsUsed": 1,
       "reason": "matched",
-      "latencyMs": 4565,
+      "latencyMs": 5416,
       "usage": {
-        "promptTokens": 2393,
-        "completionTokens": 413,
-        "totalTokens": 2806
+        "promptTokens": 2777,
+        "completionTokens": 436,
+        "totalTokens": 3213
       },
       "rawOutput": {
         "status": "ok",
-        "message": "This avocado is bright green and firm, indicating it is unripe.",
+        "message": "This avocado has bright green, pebbled skin with no softening and needs several days to ripen.",
         "afterPurchase": {
           "readyInDays": {
             "min": 4,
             "max": 6
           },
           "eatWithinDays": {
-            "min": 5,
-            "max": 8
+            "min": 2,
+            "max": 3
           },
-          "eatWithinLabel": "5-8 days",
+          "eatWithinLabel": "2-3 days once ripe",
           "storage": {
             "beforeCut": {
               "where": "counter",
               "whereLabel": "Countertop",
-              "summary": "Room temperature whole",
-              "tip": "Ripen at room temperature away from direct sunlight until the skin darkens."
+              "summary": "Room temperature",
+              "tip": "Keep at room temperature until the skin darkens and yields to gentle thumb pressure."
             },
             "afterCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Refrigerate airtight",
-              "tip": "Brush cut flesh with lemon juice and store in a sealed container."
+              "summary": "Airtight container",
+              "tip": "Squeeze lemon juice on the exposed flesh and store tightly wrapped in the fridge."
             }
           }
         },
@@ -128,9 +128,10 @@
           "confidence": 0.95
         },
         "evidence": [
-          "Uniform bright green pebbled skin",
-          "No darkening or purplish black tones",
-          "Intact stem button firmly attached"
+          "Uniform bright emerald-green skin colour",
+          "Firm, tight pebbled skin texture",
+          "Firm stem cap intact without shrinking",
+          "No visible softening or give across the contour"
         ],
         "quality": {
           "sufficientVisualEvidence": true,
@@ -153,15 +154,15 @@
       "pass": true,
       "attemptsUsed": 1,
       "reason": "matched",
-      "latencyMs": 5294,
+      "latencyMs": 4439,
       "usage": {
-        "promptTokens": 2393,
-        "completionTokens": 414,
-        "totalTokens": 2807
+        "promptTokens": 2777,
+        "completionTokens": 420,
+        "totalTokens": 3197
       },
       "rawOutput": {
         "status": "ok",
-        "message": "This avocado is overripe with deep sunken indentations indicating internal breakdown.",
+        "message": "This avocado is overripe with deep sunken hollows and collapsing flesh.",
         "afterPurchase": {
           "readyInDays": {
             "min": 0,
@@ -176,14 +177,14 @@
             "beforeCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Fridge / whole",
-              "tip": "Refrigerate immediately to slow further decay and use as soon as possible."
+              "summary": "Refrigerate whole",
+              "tip": "Chill immediately to slow further internal browning and decay."
             },
             "afterCut": {
               "where": "fridge",
               "whereLabel": "Fridge",
-              "summary": "Fridge / airtight",
-              "tip": "Store in an airtight container with a squeeze of lemon juice."
+              "summary": "Airtight container",
+              "tip": "Store any usable flesh with lemon juice in an airtight container."
             }
           }
         },
@@ -198,10 +199,10 @@
           "confidence": 0.95
         },
         "evidence": [
-          "deep prominent dents and collapsed skin",
-          "dark brown to blackened pebbled skin",
-          "shrivelled and wrinkled skin texture",
-          "sunken hollow area around body"
+          "Dark blackened-purple pebbled skin",
+          "Deep, prominent sunken indentations",
+          "Visible collapse of internal flesh structure",
+          "Loose, shrivelled skin wrinkling near indentations"
         ],
         "quality": {
           "sufficientVisualEvidence": true,
@@ -210,7 +211,7 @@
         },
         "manualChecks": null,
         "recommendation": {
-          "eatWhen": "avoid"
+          "eatWhen": "today_or_tomorrow"
         },
         "schemaVersion": "1.0",
         "promptVersion": "deep_scan_v1",
@@ -224,15 +225,15 @@
       "pass": true,
       "attemptsUsed": 1,
       "reason": "matched",
-      "latencyMs": 20840,
+      "latencyMs": 12512,
       "usage": {
-        "promptTokens": 2393,
-        "completionTokens": 2599,
-        "totalTokens": 4992
+        "promptTokens": 2777,
+        "completionTokens": 1397,
+        "totalTokens": 4174
       },
       "rawOutput": {
         "status": "insufficient_evidence",
-        "message": "Please turn the avocado to capture the other side.",
+        "message": "Turn the avocado over to show the hidden underside.",
         "afterPurchase": null,
         "abstentionReason": "same_side_only",
         "produce": {
@@ -248,16 +249,91 @@
         "quality": {
           "sufficientVisualEvidence": false,
           "viewCoverage": "poor",
-          "reason": "Only one side of the avocado is shown across all views."
+          "reason": "Only one side of the avocado is visible across all views."
         },
         "manualChecks": [
           {
-            "trait": "Firmness",
-            "how": "Gently squeeze the avocado in the palm of your hand without poking with fingertips.",
-            "whatItMeans": "Yielding slightly to gentle pressure indicates it is ripe and ready to eat."
+            "trait": "Gentle palm pressure",
+            "how": "Cradle the fruit in your palm and apply gentle pressure using the base of your thumb.",
+            "whatItMeans": "A slight, gentle give indicates it is ready to eat, whereas feeling completely firm means it requires more time."
+          },
+          {
+            "trait": "Stem cap check",
+            "how": "Gently wiggle or flick the dry stem button at the top.",
+            "whatItMeans": "If it comes away easily to reveal fresh green underneath, it is ripe; if brown, it is past its best."
           }
         ],
         "recommendation": null,
+        "schemaVersion": "1.0",
+        "promptVersion": "deep_scan_v1",
+        "modelId": "gemini-3.8-flash"
+      }
+    },
+    {
+      "id": "ds-08-soft-press-avocado",
+      "locale": "en-GB",
+      "model": "google:gemini-3.8-flash",
+      "pass": true,
+      "attemptsUsed": 2,
+      "reason": "matched",
+      "latencyMs": 15052,
+      "usage": {
+        "promptTokens": 2804,
+        "completionTokens": 253,
+        "totalTokens": 3057
+      },
+      "rawOutput": {
+        "status": "ok",
+        "message": "This green-skin avocado yields gently under press and is ready to enjoy now.",
+        "afterPurchase": {
+          "readyInDays": {
+            "min": 0,
+            "max": 0
+          },
+          "eatWithinDays": {
+            "min": 1,
+            "max": 2
+          },
+          "eatWithinLabel": "1-2 days",
+          "storage": {
+            "beforeCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Refrigerate whole",
+              "tip": "Chill to slow down softening and preserve optimal freshness."
+            },
+            "afterCut": {
+              "where": "fridge",
+              "whereLabel": "Fridge",
+              "summary": "Airtight container",
+              "tip": "Leave stone in, squeeze lemon or lime juice over flesh, and seal tightly."
+            }
+          }
+        },
+        "abstentionReason": null,
+        "produce": {
+          "type": "avocado",
+          "displayName": "Avocado",
+          "variety": "Greenskin"
+        },
+        "ripeness": {
+          "state": "ripe",
+          "confidence": 0.88
+        },
+        "evidence": [
+          "Vibrant green skin with typical dark speckles and surface russeting",
+          "Skin visibly yields and indents slightly beneath gentle thumb pressure",
+          "Firm, intact contour with no signs of widespread collapse or overripe decay"
+        ],
+        "quality": {
+          "sufficientVisualEvidence": true,
+          "viewCoverage": "good",
+          "reason": null
+        },
+        "manualChecks": null,
+        "recommendation": {
+          "eatWhen": "today_or_tomorrow"
+        },
         "schemaVersion": "1.0",
         "promptVersion": "deep_scan_v1",
         "modelId": "gemini-3.8-flash"

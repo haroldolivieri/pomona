@@ -96,5 +96,21 @@
     ],
     "imagePath": "dataset/deep-scan/ds-05-same-side-avocado.jpg",
     "arm": "live"
+  },
+  {
+    "id": "ds-08-soft-press-avocado",
+    "description": "Numbered 2x3 montage of one dark-speckled Hass avocado rotated while a fingertip presses it; the skin visibly dents under the press in several tiles. Visible give must count as softness evidence: confident ripe call, ready to eat now (readyInDays.min 0, max at most 1). Labelled from the shopper report that the fruit was soft to touch.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "ok",
+        "expectedState": "ripe",
+        "expectManualChecks": false,
+        "expectReadyNow": true,
+        "maxReadyInDays": 1
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-08-soft-press-avocado.jpg",
+    "arm": "live"
   }
 ]

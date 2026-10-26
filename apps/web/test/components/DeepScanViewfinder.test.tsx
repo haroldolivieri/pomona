@@ -21,7 +21,7 @@ describe("DeepScanViewfinder", () => {
     render(<DeepScanViewfinder onComplete={vi.fn()} onCancel={vi.fn()} />);
 
     expect(screen.getByText("Put a fruit on the frame and start the scan")).toBeInTheDocument();
-    expect(screen.getByText("Hold steady and rotate slowly, showing the whole surface")).toBeInTheDocument();
+    expect(screen.getByText("Hold steady and rotate slowly, gently pressing the fruit as you turn")).toBeInTheDocument();
     expect(screen.queryByTestId("ds-cancel-button")).not.toBeInTheDocument();
     expect(screen.getByTestId("mode-tab-compare")).toBeInTheDocument();
     expect(screen.getByTestId("ds-oval")).toBeInTheDocument();

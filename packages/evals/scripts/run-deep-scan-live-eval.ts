@@ -19,6 +19,10 @@ interface DeepScanGroundTruth {
     expectedStatus: "ok" | "insufficient_evidence" | "no_produce" | "unclear_photo";
     expectedState: "unripe" | "nearly_ripe" | "ripe" | "overripe" | "spoiled" | "unknown" | null;
     expectManualChecks: boolean;
+    /** Ripe-and-ready scenarios: afterPurchase.readyInDays must start at 0 (eat now). */
+    expectReadyNow?: boolean;
+    /** Upper bound for afterPurchase.readyInDays.max, a small read in range. */
+    maxReadyInDays?: number;
   }[];
 }
 
@@ -32,6 +36,7 @@ function assertEnvelopeArm(
     ripeness?: { state?: string };
     manualChecks?: unknown[] | null;
     message?: string | null;
+    afterPurchase?: { readyInDays?: { min?: number; max?: number } } | null;
   };
   if (arm.expectedStatus !== "ok" && envelope.status !== arm.expectedStatus) {
     return { pass: false, reason: `expected status ${arm.expectedStatus}, got ${envelope.status}` };
@@ -47,6 +52,13 @@ function assertEnvelopeArm(
     // A confident veredict never co-renders manual checks.
     if ((envelope.manualChecks?.length ?? 0) > 0) {
       return { pass: false, reason: "manualChecks leaked into a confident verdict" };
+    }
+    const ready = envelope.afterPurchase?.readyInDays;
+    if (arm.expectReadyNow && ready?.min !== 0) {
+      return { pass: false, reason: `expected ready now (readyInDays.min 0), got ${JSON.stringify(ready)}` };
+    }
+    if (typeof arm.maxReadyInDays === "number" && (typeof ready?.max !== "number" || ready.max > arm.maxReadyInDays)) {
+      return { pass: false, reason: `expected readyInDays.max <= ${arm.maxReadyInDays}, got ${JSON.stringify(ready)}` };
     }
     if (!envelope.produce?.displayName) {
       return { pass: false, reason: `missing localized produce displayName for ${arm.locale}` };

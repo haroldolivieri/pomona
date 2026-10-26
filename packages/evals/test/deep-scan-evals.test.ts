@@ -14,6 +14,8 @@ type GroundTruthEntry = {
     expectedStatus: string;
     expectedState: string | null;
     expectManualChecks: boolean;
+    expectReadyNow?: boolean;
+    maxReadyInDays?: number;
   }[];
   imagePath: string;
   arm: "live" | "gate";
@@ -35,6 +37,7 @@ describe("deep-scan eval wiring (offline)", () => {
       "ds-05-same-side-avocado.jpg",
       "ds-06-underripe-avocado.jpg",
       "ds-07-overripe-avocado.jpg",
+      "ds-08-soft-press-avocado.jpg",
     ] as const;
     for (const filename of expected) {
       const file = path.join(datasetRoot, filename);
@@ -62,6 +65,15 @@ describe("deep-scan eval wiring (offline)", () => {
     expect(overripe).toBeDefined();
     expect(overripe!.arm).toBe("live");
     expect(overripe!.perLocale.find((row) => row.locale === "en-GB")!.expectedState).toBe("overripe");
+
+    const softPress = parsed.find((row) => row.id === "ds-08-soft-press-avocado");
+    expect(softPress).toBeDefined();
+    expect(softPress!.arm).toBe("live");
+    const softPressArm = softPress!.perLocale.find((row) => row.locale === "en-GB")!;
+    expect(softPressArm.expectedStatus).toBe("ok");
+    expect(softPressArm.expectedState).toBe("ripe");
+    expect(softPressArm.expectReadyNow).toBe(true);
+    expect(softPressArm.maxReadyInDays).toBe(1);
 
     const empty = parsed.find((row) => row.id === "ds-02-empty-oval");
     expect(empty!.arm).toBe("gate");

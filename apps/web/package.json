@@ -1,7 +1,7 @@
 {
   "name": "@pomona/web",
-  "version": "2.1.0",
-  "releaseDescription": "Deep Scan multi-angle fruit inspection, interactive bottom sheet gestures, and refined scan flows",
+  "version": "2.2.0",
+  "releaseDescription": "Deep Scan evaluates visible fingertip press yield while rotating and guides shoppers to gently press",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ScanResponseModelSchema, resolveAbstentionReason, type ScanRequest, lookupProduceSeasonality } from "@pomona/contract";
 import { verifyAndResolveScanResponse, v1PromptConfig } from "@pomona/proxy";
@@ -124,6 +126,24 @@ describe("Portuguese model and prompt evaluations", () => {
       // In the UI, this flags isSingleProduce = true and displays the dedicated inspect guidance
       const isSingleProduce = result.response.candidates.length <= 1 || /single/i.test(result.response.message ?? "");
       expect(isSingleProduce).toBe(true);
+    }
+  });
+});
+
+describe("scan label asks the shopper to gently press while rotating", () => {
+  const read = (locale: string) =>
+    JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../apps/web/src/i18n/locales/${locale}.json`), "utf8")).deepScan;
+
+  it("en and pt-BR capture labels both carry the gentle press cue and never ask for hard squeezing", () => {
+    const en = read("en");
+    const pt = read("pt-BR");
+    for (const text of [en.captureInstruction, en.captureScanningSubtitle]) {
+      expect(text.toLowerCase()).toContain("gently press");
+      expect(text.toLowerCase()).not.toMatch(/squeeze|hard|firmly/);
+    }
+    for (const text of [pt.captureInstruction, pt.captureScanningSubtitle]) {
+      expect(text.toLowerCase()).toContain("pression");
+      expect(text.toLowerCase()).toContain("de leve");
     }
   });
 });

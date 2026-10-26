@@ -97,3 +97,35 @@ describe("deepScanProviderSchema", () => {
     expect(deepScanProviderSchema.safeParse(payload)).toMatchObject({ success: true });
   });
 });
+
+describe("deep_scan_v1 press cue (visible give while the shopper presses and rotates)", () => {
+  const system = deepScanPromptConfig.buildSystemPrompt(request);
+  const user = deepScanPromptConfig.buildUserPrompt(request);
+
+  it("acceptance: visible dents under a fingertip support a ripe ready-now state, while a press with no dent is never firmness evidence", () => {
+    expect(system).toContain("PRESS CUE");
+    expect(system).toContain("thumb visibly sinks into the fruit, flattens the curved outline");
+    expect(system).toContain("soft and ready to eat now");
+    expect(system).toContain("with no visible dent is NOT evidence of firmness");
+    expect(system).toContain("judge firmness only from colour and surface cues");
+    expect(user).toContain("sinks into the fruit's outline or dimples the adjacent skin");
+  });
+
+  it("failure cases: hidden presses are ignored and never inferred, and localised press dents are not mistaken for overripe collapse", () => {
+    expect(system).toContain("no finger is pressing");
+    expect(system).toContain("never infer give that you cannot see");
+    expect(system).toContain("Reserve 'overripe' only for severe, widespread collapsed craters");
+  });
+
+  it("keeps the abstention and touch guards: no smell, taste or unseen claims, no destructive checks", () => {
+    expect(system).toContain("Never claim smell, taste or unseen internal quality from images");
+    expect(system).toContain("claim touch only as allowed by the PRESS CUE rule");
+    expect(system).toContain("Never infer hidden traits to force a verdict");
+    expect(system).toContain("insufficient_evidence");
+    expect(system.toLowerCase()).toContain("no cutting");
+  });
+
+  it("press evidence stays shopper-facing and never mentions tiles or the capture", () => {
+    expect(system).toContain("without mentioning tiles, views or the capture");
+  });
+});
