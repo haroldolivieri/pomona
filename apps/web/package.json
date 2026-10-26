@@ -1,7 +1,7 @@
 {
   "name": "@pomona/web",
-  "version": "2.1.0",
-  "releaseDescription": "Deep Scan multi-angle fruit inspection, interactive bottom sheet gestures, and refined scan flows",
+  "version": "2.2.0",
+  "releaseDescription": "Compare scans now reject blurry or badly lit photos on device before calling the model",
   "type": "module",
   "scripts": {
     "dev": "vite",
