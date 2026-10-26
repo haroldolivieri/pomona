@@ -130,6 +130,8 @@ test.describe("Pomona E2E Journeys & WCAG 2.2 AA Accessibility Audits", () => {
     // Force mock mode to false in browser so it executes against intercepted routes
     await page.addInitScript(() => {
       window.localStorage.setItem("pomona-mock-mode", "false");
+      // Synthetic flat fallback frames would fail the compare pre-flight check; these journeys test later stages.
+      (window as any).__POMONA_BYPASS_LOCAL_REJECT = true;
     });
 
     // Intercept quota endpoint

@@ -15,6 +15,8 @@ const successfulScan = (round: number) => ({
 });
 
 test.beforeEach(async ({page}) => {
+  // Synthetic flat fallback frames would fail the compare pre-flight check; these journeys test later stages.
+  await page.addInitScript(() => { (window as any).__POMONA_BYPASS_LOCAL_REJECT = true; });
   await page.route("**/api/v1/quota", route => route.fulfill({json:{remainingDeviceScans:10,budgetOpen:true}}));
 });
 
