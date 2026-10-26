@@ -3,13 +3,16 @@ export {
   type DeepScanSelectionParams,
   type DeepScanSelectionStats,
   type DeepScanLocalRejectReason,
+  type CompareLocalRejectReason,
   DEEP_SCAN_SELECTION,
+  COMPARE_FRAME_VALIDATION,
   EXPOSURE_FAIL_MIN,
   sharpnessScore,
   exposureScore,
   similarityScore,
   selectFrames,
   evaluateFrameRejection,
+  evaluateCompareFrame,
 } from "@pomona/contract";
 
 export type { CollectedFrame } from "./deep-scan-capture";
@@ -115,3 +118,50 @@ export async function collectDeepScanFrames(
   }
   return collected;
 }
+
+/**
+ * Extracts a 64x64 luminance Float32Array from an image data URL or ImageBitmap/Canvas/Video.
+ * Used for pre-flight local single-frame quality validation in Compare mode.
+ */
+export async function extractSingleFrameLuminance(
+  source: string | HTMLVideoElement | HTMLCanvasElement,
+  w = 64,
+  h = 64
+): Promise<Float32Array> {
+  const gray = new Float32Array(w * h).fill(128);
+  if (typeof document === "undefined") {
+    return gray;
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return gray;
+  }
+
+  if (typeof source === "string") {
+    await new Promise<void>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      };
+      img.onerror = () => reject(new Error("Failed to load frame image for pre-flight check"));
+      img.src = source;
+    });
+  } else {
+    ctx.drawImage(source, 0, 0, w, h);
+  }
+
+  const { data } = ctx.getImageData(0, 0, w, h);
+  for (let i = 0; i < gray.length; i++) {
+    gray[i] = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
+  }
+  return gray;
+}
+

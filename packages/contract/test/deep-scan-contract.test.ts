@@ -3,6 +3,7 @@ import {
   DeepScanAbstentionReasonSchema,
   DeepScanRequestSchema,
   DeepScanResponseModelSchema,
+  evaluateCompareFrame,
 } from "../src/index";
 
 const validRequest = {
@@ -184,5 +185,36 @@ describe("DeepScanAbstentionReasonSchema", () => {
       "insufficient_view_coverage",
       "same_side_only",
     ]);
+  });
+});
+
+describe("evaluateCompareFrame", () => {
+  it("returns null for a sharp and well-exposed frame", () => {
+    const w = 16;
+    const h = 16;
+    const gray = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        gray[y * w + x] = ((x ^ y) & 1) === 0 ? 240 : 15;
+      }
+    }
+    const result = evaluateCompareFrame(gray, w, h);
+    expect(result).toBeNull();
+  });
+
+  it("returns too_dark_or_bright when frame is underexposed", () => {
+    const w = 16;
+    const h = 16;
+    const darkGray = new Float32Array(w * h).fill(2);
+    const result = evaluateCompareFrame(darkGray, w, h);
+    expect(result).toBe("too_dark_or_bright");
+  });
+
+  it("returns all_blurry when frame has low edge gradient / blur", () => {
+    const w = 16;
+    const h = 16;
+    const blurryGray = new Float32Array(w * h).fill(128);
+    const result = evaluateCompareFrame(blurryGray, w, h);
+    expect(result).toBe("all_blurry");
   });
 });

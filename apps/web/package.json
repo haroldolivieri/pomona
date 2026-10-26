@@ -1,7 +1,7 @@
 {
   "name": "@pomona/web",
   "version": "2.2.0",
-  "releaseDescription": "Deep Scan evaluates visible fingertip press yield while rotating and guides shoppers to gently press",
+  "releaseDescription": "Compare local blur and exposure pre-flight check plus Deep Scan gentle press cue inspection and labels",
   "type": "module",
   "scripts": {
     "dev": "vite",
