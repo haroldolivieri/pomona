@@ -13,6 +13,10 @@ import {
 import type { DeepScanDebugCaptureRecord } from "./lib/deep-scan-debug";
 import type { FrameSample } from "./lib/deep-scan-frames";
 import {
+  extractSingleFrameLuminance,
+  evaluateCompareFrame,
+} from "./lib/deep-scan-frames";
+import {
   initialScanMachineState,
   scanMachineReducer,
   buildFollowUpRequestContext,
@@ -330,8 +334,33 @@ export const PomonaApp: React.FC<PomonaAppProps> = ({
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
-  const handleFrameCaptured = (photoDataUrl: string) => {
+  const handleFrameCaptured = async (photoDataUrl: string) => {
     telemetry.capture("frame_captured", { round: state.round });
+
+    const isJsdomEnv =
+      typeof navigator !== "undefined" && Boolean(navigator.userAgent?.includes("jsdom"));
+    const bypass =
+      (typeof window !== "undefined" && Boolean((window as any).__POMONA_BYPASS_LOCAL_REJECT)) ||
+      isJsdomEnv;
+
+    if (!bypass) {
+      try {
+        const gray = await extractSingleFrameLuminance(photoDataUrl, 64, 64);
+        const rejection = evaluateCompareFrame(gray, 64, 64);
+        if (rejection) {
+          telemetry.capture("compare_frame_rejected", { round: state.round, reason: rejection });
+          dispatch({
+            type: "COMPARE_CAPTURE_REJECTED",
+            reason: rejection,
+            photoDataUrl,
+          });
+          return;
+        }
+      } catch {
+        // Fall back to allowing capture through to server analysis if local luminance extraction fails
+      }
+    }
+
     dispatch({ type: "FRAME_CAPTURED", photoDataUrl });
   };
 

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, it, expect } from "vitest";
-import { ManualCheckSchema, DeepScanResponseSchema } from "@pomona/contract";
+import { ManualCheckSchema, DeepScanResponseSchema, resolveDeepScanVisualScore } from "@pomona/contract";
 
 const evalRoot = path.resolve(__dirname, "..");
 const datasetRoot = path.join(evalRoot, "dataset/deep-scan");
@@ -14,6 +14,9 @@ type GroundTruthEntry = {
     expectedStatus: string;
     expectedState: string | null;
     expectManualChecks: boolean;
+    expectReadyNow?: boolean;
+    maxReadyInDays?: number;
+    maxVisualScore?: number;
   }[];
   imagePath: string;
   arm: "live" | "gate";
@@ -35,6 +38,10 @@ describe("deep-scan eval wiring (offline)", () => {
       "ds-05-same-side-avocado.jpg",
       "ds-06-underripe-avocado.jpg",
       "ds-07-overripe-avocado.jpg",
+      "ds-08-soft-press-avocado.jpg",
+      "ds-09-overripe-mandarin.jpg",
+      "ds-10-overripe-puffy-mandarin.jpg",
+      "ds-11-underripe-pear.jpg",
     ] as const;
     for (const filename of expected) {
       const file = path.join(datasetRoot, filename);
@@ -62,6 +69,42 @@ describe("deep-scan eval wiring (offline)", () => {
     expect(overripe).toBeDefined();
     expect(overripe!.arm).toBe("live");
     expect(overripe!.perLocale.find((row) => row.locale === "en-GB")!.expectedState).toBe("overripe");
+
+    const softPress = parsed.find((row) => row.id === "ds-08-soft-press-avocado");
+    expect(softPress).toBeDefined();
+    expect(softPress!.arm).toBe("live");
+    const softPressArm = softPress!.perLocale.find((row) => row.locale === "en-GB")!;
+    expect(softPressArm.expectedStatus).toBe("ok");
+    expect(softPressArm.expectedState).toBe("ripe");
+    expect(softPressArm.expectReadyNow).toBe(true);
+    expect(softPressArm.maxReadyInDays).toBe(1);
+
+    const overripeMandarin = parsed.find((row) => row.id === "ds-09-overripe-mandarin");
+    expect(overripeMandarin).toBeDefined();
+    expect(overripeMandarin!.arm).toBe("live");
+    const overripeMandarinArm = overripeMandarin!.perLocale.find((row) => row.locale === "en-GB")!;
+    expect(overripeMandarinArm.expectedStatus).toBe("ok");
+    expect(overripeMandarinArm.expectedState).toBe("overripe");
+    expect(overripeMandarinArm.maxVisualScore).toBe(4.5);
+
+    const overripePuffyMandarin = parsed.find((row) => row.id === "ds-10-overripe-puffy-mandarin");
+    expect(overripePuffyMandarin).toBeDefined();
+    expect(overripePuffyMandarin!.arm).toBe("live");
+    const overripePuffyMandarinArm = overripePuffyMandarin!.perLocale.find((row) => row.locale === "en-GB")!;
+    expect(overripePuffyMandarinArm.expectedStatus).toBe("ok");
+    expect(overripePuffyMandarinArm.expectedState).toBe("overripe");
+    expect(overripePuffyMandarinArm.maxVisualScore).toBe(4.5);
+
+    const underripePear = parsed.find((row) => row.id === "ds-11-underripe-pear");
+    expect(underripePear).toBeDefined();
+    expect(underripePear!.arm).toBe("live");
+    const underripePearArm = underripePear!.perLocale.find((row) => row.locale === "en-GB")!;
+    expect(underripePearArm.expectedStatus).toBe("ok");
+    expect(underripePearArm.expectedState).toBe("unripe");
+    expect(underripePearArm.expectManualChecks).toBe(false);
+
+    expect(resolveDeepScanVisualScore({ state: "overripe", confidence: 0.95 })).toBeLessThanOrEqual(4.5);
+    expect(resolveDeepScanVisualScore({ state: "ripe", confidence: 0.95 })).toBeGreaterThanOrEqual(9.0);
 
     const empty = parsed.find((row) => row.id === "ds-02-empty-oval");
     expect(empty!.arm).toBe("gate");

@@ -156,7 +156,7 @@ describe("CameraViewfinder (State 1 Parity)", () => {
     expect(screen.getByTestId("ds-prompt-card-loading")).toBeInTheDocument();
     expect(screen.getByTestId("prompt-card-3d-scan")).toBeInTheDocument();
     expect(screen.getByText("Scanning produce…")).toBeInTheDocument();
-    expect(screen.getByText("Keep rotating produce full circle…")).toBeInTheDocument();
+    expect(screen.getByText("Keep rotating to show all sides, top and bottom, gently pressing as you turn…")).toBeInTheDocument();
     expect(screen.queryByTestId("ds-notice")).not.toBeInTheDocument();
     expect(screen.queryByTestId("camera-mode-switcher")).not.toBeInTheDocument();
     expect(goBtn).toBeDisabled();

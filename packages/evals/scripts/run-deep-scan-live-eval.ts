@@ -3,7 +3,7 @@ import { loadApiKeyFromEnvFiles } from "./env";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createGeminiVisionAdapter, createOpenAIVisionAdapter, runVerifiedDeepScan } from "@pomona/proxy";
-import type { DeepScanRequest } from "@pomona/contract";
+import { resolveDeepScanVisualScore, type DeepScanRequest } from "@pomona/contract";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const evalRoot = path.resolve(scriptDir, "..");
@@ -19,6 +19,12 @@ interface DeepScanGroundTruth {
     expectedStatus: "ok" | "insufficient_evidence" | "no_produce" | "unclear_photo";
     expectedState: "unripe" | "nearly_ripe" | "ripe" | "overripe" | "spoiled" | "unknown" | null;
     expectManualChecks: boolean;
+    /** Ripe-and-ready scenarios: afterPurchase.readyInDays must start at 0 (eat now). */
+    expectReadyNow?: boolean;
+    /** Upper bound for afterPurchase.readyInDays.max, a small read in range. */
+    maxReadyInDays?: number;
+    /** Upper bound for the resolved 0..10 visual score on overripe/spoiled outcomes. */
+    maxVisualScore?: number;
   }[];
 }
 
@@ -29,9 +35,10 @@ function assertEnvelopeArm(
   const envelope = response as {
     status?: string;
     produce?: { displayName?: string; type?: string } | null;
-    ripeness?: { state?: string };
+    ripeness?: { state?: string; confidence?: number };
     manualChecks?: unknown[] | null;
     message?: string | null;
+    afterPurchase?: { readyInDays?: { min?: number; max?: number } } | null;
   };
   if (arm.expectedStatus !== "ok" && envelope.status !== arm.expectedStatus) {
     return { pass: false, reason: `expected status ${arm.expectedStatus}, got ${envelope.status}` };
@@ -47,6 +54,22 @@ function assertEnvelopeArm(
     // A confident veredict never co-renders manual checks.
     if ((envelope.manualChecks?.length ?? 0) > 0) {
       return { pass: false, reason: "manualChecks leaked into a confident verdict" };
+    }
+    const ready = envelope.afterPurchase?.readyInDays;
+    if (arm.expectReadyNow && ready?.min !== 0) {
+      return { pass: false, reason: `expected ready now (readyInDays.min 0), got ${JSON.stringify(ready)}` };
+    }
+    if (typeof arm.maxReadyInDays === "number" && (typeof ready?.max !== "number" || ready.max > arm.maxReadyInDays)) {
+      return { pass: false, reason: `expected readyInDays.max <= ${arm.maxReadyInDays}, got ${JSON.stringify(ready)}` };
+    }
+    if (typeof arm.maxVisualScore === "number") {
+      const visualScore = resolveDeepScanVisualScore({
+        state: envelope.ripeness?.state ?? "unknown",
+        confidence: envelope.ripeness?.confidence ?? 0,
+      });
+      if (visualScore > arm.maxVisualScore) {
+        return { pass: false, reason: `expected visualScore <= ${arm.maxVisualScore}, got ${visualScore}` };
+      }
     }
     if (!envelope.produce?.displayName) {
       return { pass: false, reason: `missing localized produce displayName for ${arm.locale}` };
@@ -71,7 +94,7 @@ async function runDeepScanLiveBenchmark() {
   const adapter = geminiKey
     ? createGeminiVisionAdapter({
         apiKey: geminiKey,
-        modelId: process.env.EVAL_MODEL || "gemini-3.8-flash",
+        modelId: process.env.EVAL_MODEL || "gemini-3.1-flash-lite",
       })
     : createOpenAIVisionAdapter({
         apiKey: openaiKey!,

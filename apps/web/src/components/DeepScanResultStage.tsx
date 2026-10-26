@@ -16,7 +16,12 @@ import {
   CircularScoreMeter,
   TactileChecksCard,
 } from "./ResultCards";
-import { resolveTactileChecks, type DeepScanResponse, type DeepScanLocalRejectReason } from "@pomona/contract";
+import {
+  resolveTactileChecks,
+  resolveDeepScanVisualScore as computeDeepScanVisualScore,
+  type DeepScanResponse,
+  type DeepScanLocalRejectReason,
+} from "@pomona/contract";
 
 // Defensive: the supplier-facing evidence may still name the composite position that
 // surfaced a trait ("Tile 3: blue-black skin"); surface only the trait part.
@@ -49,6 +54,20 @@ function recommendationLabel(eatWhen: string): string {
     case "avoid": return uiCopy("deepScan.recommendation.avoid");
     default: return "";
   }
+}
+
+export function resolveDeepScanVisualScore(response: DeepScanResponse): number {
+  return computeDeepScanVisualScore(response.ripeness);
+}
+
+export function resolveDeepScanScoreStrokeColor(state: string): string | undefined {
+  if (state === "overripe" || state === "spoiled") {
+    return "#EA580C";
+  }
+  if (state === "unripe") {
+    return "#2563EB";
+  }
+  return undefined;
 }
 
 export function resolvePeakRipeness(response: DeepScanResponse | null): string | null {
@@ -419,7 +438,10 @@ export const DeepScanResultStage: React.FC<DeepScanResultStageProps> = ({
                   </p>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <CircularScoreMeter score={Math.round(response.ripeness.confidence * 100) / 10} />
+                  <CircularScoreMeter
+                    score={resolveDeepScanVisualScore(response)}
+                    strokeColor={resolveDeepScanScoreStrokeColor(response.ripeness.state)}
+                  />
                   <span
                     data-testid="ds-visual-score-label"
                     style={{

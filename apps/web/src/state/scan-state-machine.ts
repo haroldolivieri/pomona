@@ -77,6 +77,7 @@ export type ScanMachineAction =
     }
   | { type: "SCAN_SUCCEEDED"; response: ScanResponse }
   | { type: "SCAN_FAILED"; error: string }
+  | { type: "COMPARE_CAPTURE_REJECTED"; reason: "all_blurry" | "too_dark_or_bright"; photoDataUrl: string }
   | { type: "DISMISS_ERROR" }
   | { type: "DRAW_FOCUS_AFTER_ERROR" }
   | { type: "SET_TARGET_RIPENESS"; targetRipeness: TargetRipenessWindow }
@@ -290,6 +291,20 @@ export function scanMachineReducer(
         phase: "S_ScanError",
         status: "analysis_failed",
         errorMessage: action.error,
+      };
+    }
+
+    case "COMPARE_CAPTURE_REJECTED": {
+      return {
+        ...state,
+        phase: "S_ScanError",
+        status: "unclear_photo",
+        currentPhotoDataUrl: action.photoDataUrl,
+        round1PhotoDataUrl: state.round1PhotoDataUrl || action.photoDataUrl,
+        errorMessage:
+          action.reason === "too_dark_or_bright"
+            ? uiCopy("deepScan.localTooDark", undefined, currentDisplayLocale())
+            : uiCopy("deepScan.localTooBlurry", undefined, currentDisplayLocale()),
       };
     }
 

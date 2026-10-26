@@ -7,6 +7,7 @@ import {
   exposureScore,
   selectFrames,
   evaluateFrameRejection,
+  evaluateCompareFrame,
   DEEP_SCAN_SELECTION,
   type FrameSample,
   type DeepScanSelectionParams,
@@ -517,6 +518,27 @@ describe("photo-checker deterministic evals", () => {
         const decision = evaluateFrameRejection(stats, kept.length);
         expect(decision).toBeNull();
       }
+    });
+
+    it("evaluates single-frame compare pre-flight validation on real fixtures", () => {
+      // 1. Blurry real image should trigger all_blurry
+      const blurryBuf = fs.readFileSync(path.join(datasetDir, "ds-03-blurry-avocado.jpg"));
+      const blurryTiles = extractTilesFromJpeg(blurryBuf).tiles;
+      // Evaluate the most degraded blurry tile as a single capture
+      const blurryReject = evaluateCompareFrame(blurryTiles[0].gray, blurryTiles[0].grayW, blurryTiles[0].grayH);
+      expect(blurryReject).toBe("all_blurry");
+
+      // 2. Dark real image should trigger too_dark_or_bright
+      const darkBuf = fs.readFileSync(path.join(datasetDir, "ds-02-empty-oval.jpg"));
+      const darkTiles = extractTilesFromJpeg(darkBuf).tiles;
+      const darkReject = evaluateCompareFrame(darkTiles[0].gray, darkTiles[0].grayW, darkTiles[0].grayH);
+      expect(darkReject).toBe("too_dark_or_bright");
+
+      // 3. Clear, well-lit real produce frame should pass cleanly (return null)
+      const idealBuf = fs.readFileSync(path.join(datasetDir, "ds-01-ideal-avocado.jpg"));
+      const idealTiles = extractTilesFromJpeg(idealBuf).tiles;
+      const idealPass = evaluateCompareFrame(idealTiles[0].gray, idealTiles[0].grayW, idealTiles[0].grayH);
+      expect(idealPass).toBeNull();
     });
   });
 });

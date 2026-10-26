@@ -96,5 +96,65 @@
     ],
     "imagePath": "dataset/deep-scan/ds-05-same-side-avocado.jpg",
     "arm": "live"
+  },
+  {
+    "id": "ds-08-soft-press-avocado",
+    "description": "Numbered 2x3 montage of one dark-speckled Hass avocado rotated while a fingertip presses it; the skin visibly dents under the press in several tiles. Visible give must count as softness evidence: confident ripe call, ready to eat now (readyInDays.min 0, max at most 1). Labelled from the shopper report that the fruit was soft to touch.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "ok",
+        "expectedState": "ripe",
+        "expectManualChecks": false,
+        "expectReadyNow": true,
+        "maxReadyInDays": 1
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-08-soft-press-avocado.jpg",
+    "arm": "live"
+  },
+  {
+    "id": "ds-09-overripe-mandarin",
+    "description": "Numbered 2x3 montage of an overripe mandarin rotated while pressed; tiles 1 and 2 show deep horizontal surface creases and puffy loose peel around the stem, and tile 3 shows the peel folding and collapsing under finger pressure. Must classify as overripe with a low visual score (<= 4.5).",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "ok",
+        "expectedState": "overripe",
+        "expectManualChecks": false,
+        "maxVisualScore": 4.5
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-09-overripe-mandarin.jpg",
+    "arm": "live"
+  },
+  {
+    "id": "ds-10-overripe-puffy-mandarin",
+    "description": "Numbered 2x3 montage of a second overripe mandarin whose unpressed outer peel appears round in tiles 1, 2 and 6, but in tiles 3, 4 and 5 finger pressure causes a deep hollow cave-in with concentric radial skin folds around the pressing thumb. Must classify as overripe with a low visual score (<= 4.5).",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "ok",
+        "expectedState": "overripe",
+        "expectManualChecks": false,
+        "maxVisualScore": 4.5
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-10-overripe-puffy-mandarin.jpg",
+    "arm": "live"
+  },
+  {
+    "id": "ds-11-underripe-pear",
+    "description": "Numbered 2x3 montage of an underripe green pear held upright and rotated while the thumb rests against its tapered neck/side without any inward skin deformation; must not hallucinate press give from the natural pear silhouette and must classify as unripe.",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "ok",
+        "expectedState": "unripe",
+        "expectManualChecks": false
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-11-underripe-pear.jpg",
+    "arm": "live"
   }
 ]

@@ -315,4 +315,38 @@ describe("10-state ScanStateMachine", () => {
     s = scanMachineReducer(s, { type: "RESET" });
     expect(s.targetRipeness).toBe("ready_now");
   });
+
+  it("handles COMPARE_CAPTURE_REJECTED transition to S_ScanError with unclear_photo status", () => {
+    let s = initialScanMachineState();
+    s = scanMachineReducer(s, {
+      type: "COMPARE_CAPTURE_REJECTED",
+      reason: "all_blurry",
+      photoDataUrl: "data:image/webp;base64,blurry",
+    });
+    expect(s.phase).toBe("S_ScanError");
+    expect(s.status).toBe("unclear_photo");
+    expect(s.currentPhotoDataUrl).toBe("data:image/webp;base64,blurry");
+    expect(typeof s.errorMessage).toBe("string");
+    expect(s.errorMessage?.length).toBeGreaterThan(0);
+
+    // Dismissing error returns cleanly to S1_LiveCamera
+    const dismissed = scanMachineReducer(s, { type: "DISMISS_ERROR" });
+    expect(dismissed.phase).toBe("S1_LiveCamera");
+    expect(dismissed.status).toBeNull();
+    expect(dismissed.errorMessage).toBeNull();
+  });
+
+  it("handles COMPARE_CAPTURE_REJECTED with too_dark_or_bright", () => {
+    let s = initialScanMachineState();
+    s = scanMachineReducer(s, {
+      type: "COMPARE_CAPTURE_REJECTED",
+      reason: "too_dark_or_bright",
+      photoDataUrl: "data:image/webp;base64,dark",
+    });
+    expect(s.phase).toBe("S_ScanError");
+    expect(s.status).toBe("unclear_photo");
+    expect(s.currentPhotoDataUrl).toBe("data:image/webp;base64,dark");
+    expect(typeof s.errorMessage).toBe("string");
+    expect(s.errorMessage?.length).toBeGreaterThan(0);
+  });
 });

@@ -33,7 +33,36 @@ export const DEEP_SCAN_SELECTION: DeepScanSelectionParams = {
 
 export type DeepScanLocalRejectReason = "all_blurry" | "too_dark_or_bright" | "not_rotated";
 
+export type CompareLocalRejectReason = "all_blurry" | "too_dark_or_bright";
+
+export interface CompareFrameValidationParams {
+  blurRejectQuantile: number;
+  exposureFailMin: number;
+}
+
+export const COMPARE_FRAME_VALIDATION: CompareFrameValidationParams = {
+  blurRejectQuantile: 0.08,
+  exposureFailMin: 0.05,
+};
+
 export const EXPOSURE_FAIL_MIN = 0.05;
+
+export function evaluateCompareFrame(
+  gray: Float32Array,
+  w: number,
+  h: number,
+  params: CompareFrameValidationParams = COMPARE_FRAME_VALIDATION
+): CompareLocalRejectReason | null {
+  const exposure = exposureScore(gray);
+  if (exposure < params.exposureFailMin) {
+    return "too_dark_or_bright";
+  }
+  const sharp = sharpnessScore(gray, w, h);
+  if (sharp < params.blurRejectQuantile) {
+    return "all_blurry";
+  }
+  return null;
+}
 
 export function sharpnessScore(gray: Float32Array, w: number, h: number): number {
   if (w < 3 || h < 3) return 0;

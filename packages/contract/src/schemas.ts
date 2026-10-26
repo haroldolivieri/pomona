@@ -175,6 +175,32 @@ export const DeepScanRipenessSchema = z.object({
   confidence: z.number().min(0).max(1),
 });
 
+export function resolveDeepScanVisualScore(ripeness: { state: string; confidence: number }): number {
+  const conf = Math.min(1, Math.max(0, ripeness.confidence));
+  let raw: number;
+  switch (ripeness.state) {
+    case "ripe":
+      raw = conf * 10;
+      break;
+    case "nearly_ripe":
+      raw = Math.min(8.6, Math.max(6.8, conf * 10));
+      break;
+    case "unripe":
+      raw = Math.min(5.8, Math.max(3.8, 3.8 + conf * 1.8));
+      break;
+    case "overripe":
+      raw = Math.min(4.2, Math.max(2.2, 4.2 - conf * 1.4));
+      break;
+    case "spoiled":
+      raw = Math.min(2.0, Math.max(1.0, 2.2 - conf * 1.0));
+      break;
+    default:
+      raw = conf * 10;
+      break;
+  }
+  return Math.round(raw * 10) / 10;
+}
+
 export const DeepScanRequestSchema = ScanRequestSchema.pick({
   schemaVersion: true,
   sessionId: true,
