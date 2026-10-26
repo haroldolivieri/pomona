@@ -110,15 +110,16 @@ describe("DeepScanResultStage", () => {
     expect(screen.getByTestId("storage-peak-ripeness-card")).toHaveTextContent("Ready now");
   });
 
-  it("formats peak ripeness for past peak / overripe", () => {
+  it("formats peak ripeness for past peak / overripe and renders a low visual score", () => {
     const overripeResp: DeepScanResponse = {
       ...confident,
-      ripeness: { state: "overripe", confidence: 0.88 },
+      ripeness: { state: "overripe", confidence: 0.95 },
       recommendation: { eatWhen: "avoid" },
     };
     render(<DeepScanResultStage response={overripeResp} errorMessage={null} onNewScan={vi.fn()} />);
     expect(screen.getByTestId("ds-peak-ripeness-badge")).toHaveTextContent("Peak ripeness: Past peak");
     expect(screen.getByTestId("storage-peak-ripeness-card")).toHaveTextContent("Past peak");
+    expect(screen.getByTestId("circular-score-meter")).toHaveTextContent("2.9");
   });
 
   it("falls back to recommendation when afterPurchase is absent", () => {

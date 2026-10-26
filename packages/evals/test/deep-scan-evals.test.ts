@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, it, expect } from "vitest";
-import { ManualCheckSchema, DeepScanResponseSchema } from "@pomona/contract";
+import { ManualCheckSchema, DeepScanResponseSchema, resolveDeepScanVisualScore } from "@pomona/contract";
 
 const evalRoot = path.resolve(__dirname, "..");
 const datasetRoot = path.join(evalRoot, "dataset/deep-scan");
@@ -16,6 +16,7 @@ type GroundTruthEntry = {
     expectManualChecks: boolean;
     expectReadyNow?: boolean;
     maxReadyInDays?: number;
+    maxVisualScore?: number;
   }[];
   imagePath: string;
   arm: "live" | "gate";
@@ -38,6 +39,7 @@ describe("deep-scan eval wiring (offline)", () => {
       "ds-06-underripe-avocado.jpg",
       "ds-07-overripe-avocado.jpg",
       "ds-08-soft-press-avocado.jpg",
+      "ds-09-overripe-mandarin.jpg",
     ] as const;
     for (const filename of expected) {
       const file = path.join(datasetRoot, filename);
@@ -74,6 +76,16 @@ describe("deep-scan eval wiring (offline)", () => {
     expect(softPressArm.expectedState).toBe("ripe");
     expect(softPressArm.expectReadyNow).toBe(true);
     expect(softPressArm.maxReadyInDays).toBe(1);
+
+    const overripeMandarin = parsed.find((row) => row.id === "ds-09-overripe-mandarin");
+    expect(overripeMandarin).toBeDefined();
+    expect(overripeMandarin!.arm).toBe("live");
+    const overripeMandarinArm = overripeMandarin!.perLocale.find((row) => row.locale === "en-GB")!;
+    expect(overripeMandarinArm.expectedStatus).toBe("ok");
+    expect(overripeMandarinArm.expectedState).toBe("overripe");
+    expect(overripeMandarinArm.maxVisualScore).toBe(4.5);
+    expect(resolveDeepScanVisualScore({ state: "overripe", confidence: 0.95 })).toBeLessThanOrEqual(4.5);
+    expect(resolveDeepScanVisualScore({ state: "ripe", confidence: 0.95 })).toBeGreaterThanOrEqual(9.0);
 
     const empty = parsed.find((row) => row.id === "ds-02-empty-oval");
     expect(empty!.arm).toBe("gate");

@@ -3,7 +3,7 @@ import { loadApiKeyFromEnvFiles } from "./env";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createGeminiVisionAdapter, createOpenAIVisionAdapter, runVerifiedDeepScan } from "@pomona/proxy";
-import type { DeepScanRequest } from "@pomona/contract";
+import { resolveDeepScanVisualScore, type DeepScanRequest } from "@pomona/contract";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const evalRoot = path.resolve(scriptDir, "..");
@@ -23,6 +23,8 @@ interface DeepScanGroundTruth {
     expectReadyNow?: boolean;
     /** Upper bound for afterPurchase.readyInDays.max, a small read in range. */
     maxReadyInDays?: number;
+    /** Upper bound for the resolved 0..10 visual score on overripe/spoiled outcomes. */
+    maxVisualScore?: number;
   }[];
 }
 
@@ -33,7 +35,7 @@ function assertEnvelopeArm(
   const envelope = response as {
     status?: string;
     produce?: { displayName?: string; type?: string } | null;
-    ripeness?: { state?: string };
+    ripeness?: { state?: string; confidence?: number };
     manualChecks?: unknown[] | null;
     message?: string | null;
     afterPurchase?: { readyInDays?: { min?: number; max?: number } } | null;
@@ -59,6 +61,15 @@ function assertEnvelopeArm(
     }
     if (typeof arm.maxReadyInDays === "number" && (typeof ready?.max !== "number" || ready.max > arm.maxReadyInDays)) {
       return { pass: false, reason: `expected readyInDays.max <= ${arm.maxReadyInDays}, got ${JSON.stringify(ready)}` };
+    }
+    if (typeof arm.maxVisualScore === "number") {
+      const visualScore = resolveDeepScanVisualScore({
+        state: envelope.ripeness?.state ?? "unknown",
+        confidence: envelope.ripeness?.confidence ?? 0,
+      });
+      if (visualScore > arm.maxVisualScore) {
+        return { pass: false, reason: `expected visualScore <= ${arm.maxVisualScore}, got ${visualScore}` };
+      }
     }
     if (!envelope.produce?.displayName) {
       return { pass: false, reason: `missing localized produce displayName for ${arm.locale}` };

@@ -111,10 +111,12 @@ describe("deep_scan_v1 press cue (visible give while the shopper presses and rot
     expect(user).toContain("sinks into the fruit's outline or dimples the adjacent skin");
   });
 
-  it("failure cases: hidden presses are ignored and never inferred, and localised press dents are not mistaken for overripe collapse", () => {
+  it("failure cases: hidden presses are ignored and never inferred, and press yield with deep creases or puffy separated skin is overripe while dark speckles on taut green skin are not", () => {
     expect(system).toContain("no finger is pressing");
     expect(system).toContain("never infer give that you cannot see");
-    expect(system).toContain("Reserve 'overripe' only for severe, widespread collapsed craters");
+    expect(system).toContain("deep horizontal or surface creases, folds, wrinkles, puffy/loose skin separating from the flesh");
+    expect(system).toContain("classify as 'overripe' (never 'ripe')");
+    expect(system).toContain("Do not mistake natural dark surface speckling or russeting on a taut, uncreased green skin for overripe decay");
   });
 
   it("keeps the abstention and touch guards: no smell, taste or unseen claims, no destructive checks", () => {

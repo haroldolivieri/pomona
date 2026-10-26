@@ -112,5 +112,20 @@
     ],
     "imagePath": "dataset/deep-scan/ds-08-soft-press-avocado.jpg",
     "arm": "live"
+  },
+  {
+    "id": "ds-09-overripe-mandarin",
+    "description": "Numbered 2x3 montage of an overripe mandarin rotated while pressed; tiles 1 and 2 show deep horizontal surface creases and puffy loose peel around the stem, and tile 3 shows the peel folding and collapsing under finger pressure. Must classify as overripe with a low visual score (<= 4.5).",
+    "perLocale": [
+      {
+        "locale": "en-GB",
+        "expectedStatus": "ok",
+        "expectedState": "overripe",
+        "expectManualChecks": false,
+        "maxVisualScore": 4.5
+      }
+    ],
+    "imagePath": "dataset/deep-scan/ds-09-overripe-mandarin.jpg",
+    "arm": "live"
   }
 ]
