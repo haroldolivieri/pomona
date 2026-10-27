@@ -1,7 +1,7 @@
 {
   "name": "@pomona/web",
-  "version": "2.3.0",
-  "releaseDescription": "Apple HIG inset tonal UI revamp with monochrome vector icons, bottom-sheet tactile dialog, and yellow Inspect CTA",
+  "version": "2.3.1",
+  "releaseDescription": "Apple HIG inset tonal UI revamp with monochrome vector icons and yellow Inspect CTA",
   "type": "module",
   "scripts": {
     "dev": "vite",
