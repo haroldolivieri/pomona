@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { SeasonalityStrip } from "./SeasonalityStrip";
+import { IconClose, IconRetake, IconHand, IconChevronRight } from "./Icons";
 import type { AfterPurchase, SeasonalityInfo, ManualCheck } from "@pomona/contract";
 
 /**
@@ -18,26 +19,34 @@ export interface StorageCardsRowProps {
 export const StorageCardsRow: React.FC<StorageCardsRowProps> = ({ afterPurchase, eatWithinOverride, peakRipenessText }) => {
   const { t } = useTranslation();
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "2px" }}>
+    <div
+      style={{
+        backgroundColor: "var(--surface-group, #F2EFE6)",
+        borderRadius: "16px",
+        padding: "10px 12px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+        marginTop: "2px",
+      }}
+    >
       {peakRipenessText ? (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
-          {/* Card 1: 🎯 Peak ripeness */}
-          <div
-            data-testid="storage-peak-ripeness-card"
-            style={{
-              backgroundColor: "var(--surface-card)",
-              border: "1px solid var(--surface-card-border)",
-              borderRadius: "13px",
-              padding: "8px 10px",
-            }}
-          >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "12px",
+            paddingBottom: "8px",
+            borderBottom: "1px solid var(--surface-group-divider, rgba(26, 38, 29, 0.08))",
+          }}
+        >
+          {/* Cell 1: Peak ripeness */}
+          <div data-testid="storage-peak-ripeness-card">
             <span
               style={{
-                fontSize: "9.5px",
-                fontWeight: 700,
-                letterSpacing: "0.06em",
+                fontSize: "10.5px",
+                fontWeight: 500,
                 color: "var(--text-muted)",
-                textTransform: "uppercase",
                 display: "block",
               }}
             >
@@ -45,34 +54,31 @@ export const StorageCardsRow: React.FC<StorageCardsRowProps> = ({ afterPurchase,
             </span>
             <strong
               style={{
-                fontSize: "12.5px",
-                fontWeight: 700,
+                fontSize: "12px",
+                fontWeight: 600,
                 display: "block",
-                marginTop: "3px",
+                marginTop: "2px",
                 color: "var(--text-primary)",
+                lineHeight: 1.35,
               }}
             >
               {peakRipenessText}
             </strong>
           </div>
 
-          {/* Card 2: 🗓 Eat within */}
+          {/* Cell 2: Eat within */}
           <div
             data-testid="storage-eat-within-card"
             style={{
-              backgroundColor: "var(--surface-card)",
-              border: "1px solid var(--surface-card-border)",
-              borderRadius: "13px",
-              padding: "8px 10px",
+              paddingLeft: "12px",
+              borderLeft: "1px solid var(--surface-group-divider, rgba(26, 38, 29, 0.08))",
             }}
           >
             <span
               style={{
-                fontSize: "9.5px",
-                fontWeight: 700,
-                letterSpacing: "0.06em",
+                fontSize: "10.5px",
+                fontWeight: 500,
                 color: "var(--text-muted)",
-                textTransform: "uppercase",
                 display: "block",
               }}
             >
@@ -80,11 +86,12 @@ export const StorageCardsRow: React.FC<StorageCardsRowProps> = ({ afterPurchase,
             </span>
             <strong
               style={{
-                fontSize: "12.5px",
-                fontWeight: 700,
+                fontSize: "12px",
+                fontWeight: 600,
                 display: "block",
-                marginTop: "3px",
+                marginTop: "2px",
                 color: "var(--text-primary)",
+                lineHeight: 1.35,
               }}
             >
               {eatWithinOverride || afterPurchase.eatWithinLabel}
@@ -92,27 +99,23 @@ export const StorageCardsRow: React.FC<StorageCardsRowProps> = ({ afterPurchase,
           </div>
         </div>
       ) : (
-        /* Full-width card: 🗓 Eat within (left) - {eatWithinLabel} (right bold) */
+        /* Full-width row: Eat within */
         <div
           data-testid="storage-eat-within-card"
           style={{
-            backgroundColor: "var(--surface-card)",
-            border: "1px solid var(--surface-card-border)",
-            borderRadius: "13px",
-            padding: "8px 12px",
             display: "grid",
             gridTemplateColumns: "minmax(0, 1fr)",
-            gap: "4px",
+            gap: "2px",
             alignItems: "center",
+            paddingBottom: "8px",
+            borderBottom: "1px solid var(--surface-group-divider, rgba(26, 38, 29, 0.08))",
           }}
         >
           <span
             style={{
-              fontSize: "10px",
-              fontWeight: 700,
-              letterSpacing: "0.06em",
+              fontSize: "10.5px",
+              fontWeight: 500,
               color: "var(--text-muted)",
-              textTransform: "uppercase",
             }}
           >
             {t("result.eatWithin")}
@@ -123,24 +126,15 @@ export const StorageCardsRow: React.FC<StorageCardsRowProps> = ({ afterPurchase,
         </div>
       )}
 
-      {/* Row 2: Two equal side-by-side cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
-        {/* Card 1: 🧺 Before cut */}
-        <div
-          style={{
-            backgroundColor: "var(--surface-card)",
-            border: "1px solid var(--surface-card-border)",
-            borderRadius: "13px",
-            padding: "8px 10px",
-          }}
-        >
+      {/* Row 2: Two equal side-by-side cells */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+        {/* Cell 1: Before cut */}
+        <div>
           <span
             style={{
-              fontSize: "9.5px",
-              fontWeight: 700,
-              letterSpacing: "0.06em",
+              fontSize: "10.5px",
+              fontWeight: 500,
               color: "var(--text-muted)",
-              textTransform: "uppercase",
               display: "block",
             }}
           >
@@ -148,33 +142,30 @@ export const StorageCardsRow: React.FC<StorageCardsRowProps> = ({ afterPurchase,
           </span>
           <strong
             style={{
-              fontSize: "12.5px",
-              fontWeight: 700,
+              fontSize: "12px",
+              fontWeight: 600,
               display: "block",
-              marginTop: "3px",
+              marginTop: "2px",
               color: "var(--text-primary)",
+              lineHeight: 1.35,
             }}
           >
             {afterPurchase.storage.beforeCut.summary}
           </strong>
         </div>
 
-        {/* Card 2: ❄️ After cut */}
+        {/* Cell 2: After cut */}
         <div
           style={{
-            backgroundColor: "var(--surface-card)",
-            border: "1px solid var(--surface-card-border)",
-            borderRadius: "13px",
-            padding: "8px 10px",
+            paddingLeft: "12px",
+            borderLeft: "1px solid var(--surface-group-divider, rgba(26, 38, 29, 0.08))",
           }}
         >
           <span
             style={{
-              fontSize: "9.5px",
-              fontWeight: 700,
-              letterSpacing: "0.06em",
+              fontSize: "10.5px",
+              fontWeight: 500,
               color: "var(--text-muted)",
-              textTransform: "uppercase",
               display: "block",
             }}
           >
@@ -182,11 +173,12 @@ export const StorageCardsRow: React.FC<StorageCardsRowProps> = ({ afterPurchase,
           </span>
           <strong
             style={{
-              fontSize: "12.5px",
-              fontWeight: 700,
+              fontSize: "12px",
+              fontWeight: 600,
               display: "block",
-              marginTop: "3px",
+              marginTop: "2px",
               color: "var(--text-primary)",
+              lineHeight: 1.35,
             }}
           >
             {afterPurchase.storage.afterCut.summary}
@@ -211,10 +203,9 @@ export const SeasonalityPanelCard: React.FC<SeasonalityPanelCardProps> = ({ seas
     <div
       data-testid="seasonality-panel"
       style={{
-        backgroundColor: "var(--surface-card)",
-        border: "1px solid var(--surface-card-border)",
-        borderRadius: "13px",
-        padding: "8px 10px",
+        backgroundColor: "var(--surface-group, #F2EFE6)",
+        borderRadius: "14px",
+        padding: "8px 12px",
         marginTop: "6px",
         overflow: "hidden",
       }}
@@ -240,12 +231,12 @@ export const TraitChips: React.FC<TraitChipsProps> = ({ labels }) => {
         <span
           key={`${trait}-${idx}`}
           style={{
-            padding: "4px 9px",
-            borderRadius: "6px",
-            backgroundColor: "var(--surface-chip)",
+            padding: "4px 10px",
+            borderRadius: "999px",
+            backgroundColor: "var(--surface-group, #F2EFE6)",
             color: "var(--surface-chip-text)",
             fontSize: "11px",
-            fontWeight: 600,
+            fontWeight: 500,
           }}
         >
           {trait}
@@ -264,7 +255,7 @@ export interface ResultTopBarProps {
 }
 
 // Contextual top bar pinned above the result photo: verbatim from ResultStage
-// (close ✕, produce chip, retake ↻) so every scan result stage shares one style.
+// (close, produce chip, retake) so every scan result stage shares one style.
 export const ResultTopBar: React.FC<ResultTopBarProps> = ({ onClose, closeAria, onRetake, retakeAria, chip }) => {
   return (
     <div
@@ -301,7 +292,7 @@ export const ResultTopBar: React.FC<ResultTopBarProps> = ({ onClose, closeAria, 
           boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
         }}
       >
-        ✕
+        <IconClose size={15} />
       </button>
 
       {chip ? (
@@ -348,7 +339,7 @@ export const ResultTopBar: React.FC<ResultTopBarProps> = ({ onClose, closeAria, 
           boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
         }}
       >
-        ↻
+        <IconRetake size={15} />
       </button>
     </div>
   );
@@ -469,8 +460,7 @@ export const TactileChecksCard: React.FC<TactileChecksCardProps> = ({
         data-testid={testId}
         style={{
           marginTop: "4px",
-          background: "var(--surface-hint-ok, #EFF7EF)",
-          border: "1px solid var(--surface-hint-ok-border, #BFD9BF)",
+          background: "var(--surface-group, #F2EFE6)",
           borderRadius: "14px",
           padding: "10px 12px",
         }}
@@ -499,12 +489,10 @@ export const TactileChecksCard: React.FC<TactileChecksCardProps> = ({
             gap: "8px",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
-            <span aria-hidden="true" style={{ fontSize: "16px", lineHeight: 1, flexShrink: 0 }}>
-              ✋
-            </span>
+          <div style={{ display: "flex", alignItems: "center", gap: "9px", minWidth: 0 }}>
+            <IconHand size={16} color="var(--eyebrow-accent, #2F5D34)" />
             <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-              <span style={{ fontSize: "12.5px", fontWeight: 700, color: "var(--text-primary)" }}>
+              <span style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--text-primary)" }}>
                 {headerTitle}
               </span>
               <span
@@ -524,20 +512,21 @@ export const TactileChecksCard: React.FC<TactileChecksCardProps> = ({
             data-testid={`${testId}-chevron`}
             aria-hidden="true"
             style={{
-              fontSize: "16px",
               color: "var(--text-muted)",
               lineHeight: 1,
               userSelect: "none",
               flexShrink: 0,
               marginLeft: "4px",
+              display: "inline-flex",
+              alignItems: "center",
             }}
           >
-            ›
+            <IconChevronRight size={15} />
           </span>
         </button>
       </div>
 
-      {/* Tactile Checks Modal Dialog */}
+      {/* Tactile Checks Bottom Sheet Dialog */}
       {isOpen && (
         <div
           role="dialog"
@@ -552,13 +541,13 @@ export const TactileChecksCard: React.FC<TactileChecksCardProps> = ({
             position: "fixed",
             inset: 0,
             zIndex: 9999,
-            backgroundColor: "rgba(0, 0, 0, 0.55)",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
             backdropFilter: "blur(4px)",
             WebkitBackdropFilter: "blur(4px)",
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-end",
             justifyContent: "center",
-            padding: "20px",
+            padding: 0,
           }}
         >
           <div
@@ -566,30 +555,43 @@ export const TactileChecksCard: React.FC<TactileChecksCardProps> = ({
             style={{
               backgroundColor: "var(--surface-sheet, #FBFAF6)",
               color: "var(--text-primary, #1A261D)",
-              borderRadius: "20px",
-              padding: "20px",
-              maxWidth: "420px",
+              borderRadius: "26px 26px 0 0",
+              paddingTop: "10px",
+              paddingLeft: "20px",
+              paddingRight: "20px",
+              paddingBottom: "max(24px, env(safe-area-inset-bottom))",
+              maxWidth: "480px",
               width: "100%",
               maxHeight: "85vh",
               overflowY: "auto",
-              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
+              boxShadow: "0 -12px 36px rgba(0, 0, 0, 0.3)",
               display: "flex",
               flexDirection: "column",
               gap: "12px",
             }}
           >
+            {/* Sheet grabber bar */}
+            <div
+              style={{
+                width: "36px",
+                height: "4px",
+                borderRadius: "4px",
+                backgroundColor: "rgba(107, 106, 101, 0.38)",
+                margin: "0 auto 4px",
+              }}
+            />
+
             {/* Header: Title and Close button */}
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span aria-hidden="true" style={{ fontSize: "20px", lineHeight: 1 }}>
-                  ✋
-                </span>
+                <IconHand size={18} color="var(--eyebrow-accent, #2F5D34)" />
                 <h2
                   id={`${testId}-dialog-title`}
+                  className="font-serif"
                   style={{
                     margin: 0,
-                    fontSize: "16px",
-                    fontWeight: 700,
+                    fontSize: "20px",
+                    fontWeight: 600,
                     color: "var(--text-primary)",
                   }}
                 >
@@ -602,21 +604,20 @@ export const TactileChecksCard: React.FC<TactileChecksCardProps> = ({
                 onClick={() => setIsOpen(false)}
                 aria-label={closeLabel}
                 style={{
-                  background: "rgba(0, 0, 0, 0.06)",
+                  background: "var(--surface-group, #F2EFE6)",
                   border: "none",
                   borderRadius: "50%",
-                  width: "28px",
-                  height: "28px",
+                  width: "30px",
+                  height: "30px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: "pointer",
-                  fontSize: "14px",
                   color: "var(--text-muted)",
                   flexShrink: 0,
                 }}
               >
-                ✕
+                <IconClose size={14} />
               </button>
             </div>
 
@@ -628,47 +629,67 @@ export const TactileChecksCard: React.FC<TactileChecksCardProps> = ({
                 fontSize: "12px",
                 lineHeight: 1.45,
                 color: "var(--text-muted)",
-                backgroundColor: "var(--surface-hint-warn, #FFF4D6)",
-                border: "1px solid var(--surface-hint-warn-border, #E8D48B)",
-                borderRadius: "10px",
-                padding: "8px 12px",
               }}
             >
               {headerDisclaimer}
             </p>
 
-            {/* Checks list */}
+            {/* Checks list inside unified Apple HIG inset group */}
             <ul
               data-testid={`${testId}-list`}
               style={{
                 margin: 0,
                 padding: 0,
                 listStyle: "none",
+                backgroundColor: "var(--surface-group, #F2EFE6)",
+                borderRadius: "16px",
+                overflow: "hidden",
                 display: "flex",
                 flexDirection: "column",
-                gap: "10px",
               }}
             >
               {checks.map((check, i) => (
                 <li
                   key={i}
                   style={{
-                    backgroundColor: "var(--surface-hint-ok, #EFF7EF)",
-                    border: "1px solid var(--surface-hint-ok-border, #BFD9BF)",
-                    borderRadius: "12px",
-                    padding: "10px 12px",
+                    padding: "12px 14px",
                     fontSize: "12.5px",
                     lineHeight: 1.4,
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "12px",
+                    borderTop: i > 0 ? "1px solid var(--surface-group-divider, rgba(26, 38, 29, 0.08))" : "none",
                   }}
                 >
-                  <strong style={{ color: "var(--text-primary)", display: "block", marginBottom: "2px" }}>
-                    {check.trait}
-                  </strong>
-                  <div style={{ color: "var(--text-muted)", fontSize: "12px" }}>
-                    {check.how}
-                  </div>
-                  <div style={{ color: "#2E7D32", fontSize: "11.5px", fontWeight: 600, marginTop: "4px" }}>
-                    → {check.whatItMeans}
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: "22px",
+                      height: "22px",
+                      borderRadius: "50%",
+                      backgroundColor: "var(--cta-primary, #2F5D34)",
+                      color: "#FFFFFF",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      marginTop: "1px",
+                    }}
+                  >
+                    {i + 1}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <strong style={{ color: "var(--text-primary)", display: "block", marginBottom: "2px", fontWeight: 600 }}>
+                      {check.trait}
+                    </strong>
+                    <div style={{ color: "var(--text-muted)", fontSize: "12px" }}>
+                      {check.how}
+                    </div>
+                    <div style={{ color: "var(--eyebrow-accent, #2F5D34)", fontSize: "11.5px", fontWeight: 500, marginTop: "3px" }}>
+                      {check.whatItMeans}
+                    </div>
                   </div>
                 </li>
               ))}
@@ -680,14 +701,14 @@ export const TactileChecksCard: React.FC<TactileChecksCardProps> = ({
               data-testid={`${testId}-dismiss-button`}
               onClick={() => setIsOpen(false)}
               style={{
-                marginTop: "4px",
+                marginTop: "2px",
                 width: "100%",
-                padding: "10px",
-                borderRadius: "12px",
-                backgroundColor: "#142117",
+                padding: "12px",
+                borderRadius: "14px",
+                backgroundColor: "var(--cta-primary, #2F5D34)",
                 color: "#FFFFFF",
                 border: "none",
-                fontSize: "13.5px",
+                fontSize: "14px",
                 fontWeight: 600,
                 cursor: "pointer",
                 textAlign: "center",

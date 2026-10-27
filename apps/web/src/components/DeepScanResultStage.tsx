@@ -16,6 +16,7 @@ import {
   CircularScoreMeter,
   TactileChecksCard,
 } from "./ResultCards";
+import { ErrorVectorIcon, IconInfo, type ErrorVisualKind } from "./Icons";
 import {
   resolveTactileChecks,
   resolveDeepScanVisualScore as computeDeepScanVisualScore,
@@ -176,21 +177,21 @@ function resolveOutcomeHeadline(
 function resolveErrorIcon(
   response: DeepScanResponse | null,
   localRejectReason?: DeepScanLocalRejectReason | null
-): string {
+): ErrorVisualKind {
   if (localRejectReason === "all_blurry" || localRejectReason === "too_dark_or_bright") {
-    return "📷";
+    return "camera";
   }
   if (localRejectReason === "not_rotated") {
-    return "🔄";
+    return "rotate";
   }
-  if (!response) return "⚠️";
-  if (response.status === "no_produce" || isNoProduceOutcome(response)) return "🍎";
-  if (response.status === "unclear_photo" || isUnclearPhotoOutcome(response)) return "📷";
-  if (response.status === "multiple_types") return "🧺";
-  if (response.status === "rate_limited") return "⏳";
-  if (response.status === "insufficient_evidence") return "🔎";
-  if (response.status === "analysis_failed") return "⚠️";
-  return "🔎";
+  if (!response) return "alert";
+  if (response.status === "no_produce" || isNoProduceOutcome(response)) return "produce";
+  if (response.status === "unclear_photo" || isUnclearPhotoOutcome(response)) return "camera";
+  if (response.status === "multiple_types") return "layers";
+  if (response.status === "rate_limited") return "clock";
+  if (response.status === "insufficient_evidence") return "search";
+  if (response.status === "analysis_failed") return "alert";
+  return "search";
 }
 
 function resolveErrorEyebrow(
@@ -357,6 +358,7 @@ export const DeepScanResultStage: React.FC<DeepScanResultStageProps> = ({
       {!confidentVerdict && (
         <div
           data-testid="error-center-icon"
+          data-icon={resolveErrorIcon(response, localRejectReason)}
           style={{
             position: "absolute",
             top: "30%",
@@ -371,19 +373,20 @@ export const DeepScanResultStage: React.FC<DeepScanResultStageProps> = ({
         >
           <div
             style={{
-              width: "80px",
-              height: "80px",
+              width: "68px",
+              height: "68px",
               borderRadius: "50%",
-              backgroundColor: "rgba(251, 250, 246, 0.95)",
+              backgroundColor: "rgba(251, 250, 246, 0.92)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "36px",
-              boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
-              border: "3px solid #F5D547",
+              boxShadow: "0 8px 28px rgba(0,0,0,0.32)",
+              border: "2px solid rgba(255, 255, 255, 0.55)",
             }}
           >
-            {resolveErrorIcon(response, localRejectReason)}
+            <ErrorVectorIcon kind={resolveErrorIcon(response, localRejectReason)} size={28} color="#1A261D" />
           </div>
         </div>
       )}
@@ -445,12 +448,10 @@ export const DeepScanResultStage: React.FC<DeepScanResultStageProps> = ({
                   <span
                     data-testid="ds-visual-score-label"
                     style={{
-                      fontSize: "9.5px",
-                      fontWeight: 600,
+                      fontSize: "10px",
+                      fontWeight: 500,
                       color: "var(--text-muted)",
                       marginTop: "3px",
-                      letterSpacing: "0.03em",
-                      textTransform: "uppercase",
                     }}
                   >
                     {uiCopy("deepScan.visualScoreLabel")}
@@ -466,16 +467,14 @@ export const DeepScanResultStage: React.FC<DeepScanResultStageProps> = ({
                     gap: "5px",
                     marginTop: "6px",
                     marginBottom: "4px",
-                    padding: "3px 9px",
+                    padding: "4px 10px",
                     borderRadius: "999px",
-                    backgroundColor: "var(--surface-badge, rgba(0, 0, 0, 0.05))",
-                    border: "1px solid var(--surface-card-border, rgba(0, 0, 0, 0.08))",
+                    backgroundColor: "var(--surface-group, #F2EFE6)",
                     fontSize: "12px",
                     fontWeight: 600,
                     color: "var(--text-primary)",
                   }}
                 >
-                  <span aria-hidden="true">🎯</span>{" "}
                   <span style={{ color: "var(--text-muted)", fontWeight: 500 }}>
                     {uiCopy("deepScan.peakRipeness.badgeLabel")}
                   </span>{" "}
@@ -508,17 +507,16 @@ export const DeepScanResultStage: React.FC<DeepScanResultStageProps> = ({
                   <div
                     data-testid="ds-error-tip-box"
                     style={{
-                      backgroundColor: "var(--surface-hint-warn, #FFF4D6)",
-                      border: "1px solid var(--surface-hint-warn-border, #E8D48B)",
+                      backgroundColor: "var(--surface-group, #F2EFE6)",
                       borderRadius: "14px",
-                      padding: "10px 14px",
+                      padding: "10px 12px",
                       display: "flex",
                       alignItems: "flex-start",
                       gap: "10px",
                       margin: "4px 0",
                     }}
                   >
-                    <span style={{ fontSize: "16px", lineHeight: 1.2 }}>💡</span>
+                    <IconInfo size={16} color="var(--text-muted)" style={{ marginTop: "1px" }} />
                     <span
                       style={{
                         fontFamily: "Inter, system-ui, sans-serif",
@@ -555,17 +553,16 @@ export const DeepScanResultStage: React.FC<DeepScanResultStageProps> = ({
                   <div
                     data-testid="ds-error-tip-box"
                     style={{
-                      backgroundColor: "var(--surface-hint-warn, #FFF4D6)",
-                      border: "1px solid var(--surface-hint-warn-border, #E8D48B)",
+                      backgroundColor: "var(--surface-group, #F2EFE6)",
                       borderRadius: "14px",
-                      padding: "10px 14px",
+                      padding: "10px 12px",
                       display: "flex",
                       alignItems: "flex-start",
                       gap: "10px",
                       margin: "4px 0",
                     }}
                   >
-                    <span style={{ fontSize: "16px", lineHeight: 1.2 }}>💡</span>
+                    <IconInfo size={16} color="var(--text-muted)" style={{ marginTop: "1px" }} />
                     <span
                       style={{
                         fontFamily: "Inter, system-ui, sans-serif",
@@ -618,24 +615,21 @@ export const DeepScanResultStage: React.FC<DeepScanResultStageProps> = ({
                 <div
                   data-testid="ds-recommendation-card"
                   style={{
-                    backgroundColor: "var(--surface-card)",
-                    border: "1px solid var(--surface-card-border)",
-                    borderRadius: "13px",
-                    padding: "8px 12px",
+                    backgroundColor: "var(--surface-group, #F2EFE6)",
+                    borderRadius: "14px",
+                    padding: "9px 12px",
                     display: "grid",
                     gridTemplateColumns: "minmax(0, 1fr)",
-                    gap: "4px",
+                    gap: "2px",
                     alignItems: "center",
                     marginTop: "4px",
                   }}
                 >
                   <span
                     style={{
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      letterSpacing: "0.06em",
+                      fontSize: "10.5px",
+                      fontWeight: 500,
                       color: "var(--text-muted)",
-                      textTransform: "uppercase",
                     }}
                   >
                     {uiCopy("deepScan.peakRipeness.title")}

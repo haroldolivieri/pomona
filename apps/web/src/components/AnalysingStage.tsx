@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { Point } from "@pomona/contract";
 import type { CropRect } from "../lib/image-pipeline";
 import { ThreeDScanAnimation } from "./CameraCaptureUi";
+import { IconClose } from "./Icons";
 
 export type CoordinatePoint = Point | { x: number; y: number };
 
@@ -340,8 +341,8 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
           data-testid="cancel-button"
           aria-label={uiCopy("copy.cancelAnalysis")}
           style={{
-            width: "30px",
-            height: "30px",
+            width: "36px",
+            height: "36px",
             borderRadius: "50%",
             backgroundColor: "rgba(251, 250, 246, 0.88)",
             color: "#142117",
@@ -357,7 +358,7 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
             cursor: "pointer",
           }}
         >
-          ✕
+          <IconClose size={15} />
         </button>
 
 
@@ -437,8 +438,8 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
             style={{
               marginTop: "12px",
               padding: "10px 12px",
-              backgroundColor: "var(--surface-chip)",
-              borderRadius: "12px",
+              backgroundColor: "var(--surface-group, #F2EFE6)",
+              borderRadius: "14px",
               display: "flex",
               alignItems: "flex-start",
               gap: "8px",
@@ -450,7 +451,7 @@ export const AnalysingStage: React.FC<AnalysingStageProps> = ({
                 fontSize: "10px",
                 textTransform: "uppercase",
                 letterSpacing: "0.08em",
-                color: "#9A740A",
+                color: "var(--eyebrow-accent, #2F5D34)",
                 fontWeight: 700,
                 flexShrink: 0,
                 marginTop: "1px",

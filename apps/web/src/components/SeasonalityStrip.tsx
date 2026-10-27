@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { SeasonalityInfo, SeasonalityStatus } from "@pomona/contract";
+import { IconLeaf, IconCalendar, IconGlobe } from "./Icons";
 
 export interface SeasonalityStripProps {
   seasonality: SeasonalityInfo;
@@ -8,11 +9,11 @@ export interface SeasonalityStripProps {
   onSelectOrigin: (code: string | null) => void;
 }
 
-const BADGE_STYLES: Record<SeasonalityStatus, { bg: string; fg: string; icon: string }> = {
-  peak: { bg: "#DDF3E4", fg: "#166534", icon: "🌿" },
-  in_season: { bg: "#DDF3E4", fg: "#166534", icon: "🌿" },
-  off_season: { bg: "#FEF3C7", fg: "#92400E", icon: "🍂" },
-  imported_year_round: { bg: "#E8E5DC", fg: "#494843", icon: "🌍" },
+const BADGE_STYLES: Record<SeasonalityStatus, { bg: string; fg: string; kind: "leaf" | "calendar" | "globe" }> = {
+  peak: { bg: "#DDF3E4", fg: "#166534", kind: "leaf" },
+  in_season: { bg: "#DDF3E4", fg: "#166534", kind: "leaf" },
+  off_season: { bg: "#FEF3C7", fg: "#92400E", kind: "calendar" },
+  imported_year_round: { bg: "#E8E5DC", fg: "#494843", kind: "globe" },
 };
 
 const stop = (e: React.SyntheticEvent) => e.stopPropagation();
@@ -59,7 +60,13 @@ export const SeasonalityStrip: React.FC<SeasonalityStripProps> = ({
             color: style.fg,
           }}
         >
-          <span aria-hidden="true">{style.icon}</span>
+          {style.kind === "leaf" ? (
+            <IconLeaf size={11} color={style.fg} />
+          ) : style.kind === "calendar" ? (
+            <IconCalendar size={11} color={style.fg} />
+          ) : (
+            <IconGlobe size={11} color={style.fg} />
+          )}
           {active.badgeText}
         </span>
         <span

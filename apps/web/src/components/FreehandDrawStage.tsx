@@ -2,6 +2,7 @@ import { uiCopy } from "../i18n/copy";
 import React, { useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { Point } from "@pomona/contract";
+import { IconBack, IconUndo } from "./Icons";
 import {
   normalizeFreehandPolygon,
   computeObjectFitCoverRect,
@@ -160,8 +161,8 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
           data-testid="retake-button"
           aria-label={t("draw.retake")}
           style={{
-            width: "30px",
-            height: "30px",
+            width: "36px",
+            height: "36px",
             borderRadius: "50%",
             backgroundColor: "rgba(251, 250, 246, 0.88)",
             color: "#142117",
@@ -176,7 +177,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
             cursor: "pointer",
           }}
         >
-          ←
+          <IconBack size={16} />
         </button>
 
 
@@ -187,8 +188,8 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
           data-testid="reset-draw-button"
           aria-label={uiCopy("copy.resetDrawing")}
           style={{
-            width: "30px",
-            height: "30px",
+            width: "36px",
+            height: "36px",
             borderRadius: "50%",
             backgroundColor: "rgba(251, 250, 246, 0.88)",
             color: "#142117",
@@ -205,7 +206,7 @@ export const FreehandDrawStage: React.FC<FreehandDrawStageProps> = ({
             pointerEvents: points.length === 0 ? "none" : "auto",
           }}
         >
-          ↺
+          <IconUndo size={15} />
         </button>
       </div>
 

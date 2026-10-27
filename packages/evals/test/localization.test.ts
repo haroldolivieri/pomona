@@ -131,8 +131,9 @@ describe("Portuguese model and prompt evaluations", () => {
 });
 
 describe("scan label asks the shopper to gently press while rotating", () => {
-  const read = (locale: string) =>
-    JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../apps/web/src/i18n/locales/${locale}.json`), "utf8")).deepScan;
+  const readLocale = (locale: string) =>
+    JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../apps/web/src/i18n/locales/${locale}.json`), "utf8"));
+  const read = (locale: string) => readLocale(locale).deepScan;
 
   it("en and pt-BR capture labels advise showing top and bottom while gently pressing, and never ask for hard squeezing", () => {
     const en = read("en");
@@ -146,6 +147,29 @@ describe("scan label asks the shopper to gently press while rotating", () => {
       expect(text.toLowerCase()).toContain("pression");
       expect(text.toLowerCase()).toContain("de leve");
       expect(text.toLowerCase()).toContain("topo e base");
+    }
+  });
+
+  it("en and pt-BR result and UI copy avoid decorative emojis in favor of crisp vector icons", () => {
+    for (const locale of ["en", "pt-BR"]) {
+      const data = readLocale(locale);
+      const checkedStrings = [
+        data.draw.floatingPrompt,
+        data.result.eatWithin,
+        data.result.peakRipeness,
+        data.result.beforeCut,
+        data.result.afterCut,
+        data.result.importedFrom,
+        data.copy.counter,
+        data.copy.fridge,
+        data.copy["1stWinnerWinsBeatsRunnerUpVs"],
+        data.copy.newWinnerBeats1stWinnerVs,
+        data.copy.finalVerdict1stWinnerReclaimsTheWin,
+        data.copy.finalVerdictRunnerUpWinsVs,
+      ];
+      for (const str of checkedStrings) {
+        expect(str).not.toMatch(/[✍️🗓🎯🧺❄️☀️✓★]/u);
+      }
     }
   });
 });

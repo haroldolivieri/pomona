@@ -9,6 +9,9 @@
   --surface-chip-text: #1F3A2B;
   --surface-card: #FFFFFF;
   --surface-card-border: #E6E0D2;
+  --surface-group: #F2EFE6;
+  --surface-group-divider: rgba(26, 38, 29, 0.08);
+  --surface-control: #ECE8DD;
   --surface-hint-warn: #FFF6DB;
   --surface-hint-warn-border: #F3E3B0;
   --surface-hint-ok: #E8F3E8;
@@ -30,6 +33,9 @@
   --surface-chip-text: #D8EADC;
   --surface-card: #16281C;
   --surface-card-border: #26412F;
+  --surface-group: #182B1E;
+  --surface-group-divider: rgba(240, 244, 238, 0.09);
+  --surface-control: #1B3022;
   --surface-hint-warn: #232A18;
   --surface-hint-warn-border: #3D4722;
   --surface-hint-ok: #183020;

@@ -156,7 +156,7 @@ describe("DeepScanResultStage", () => {
 
   it("renders the not-enough-evidence card with the manual-touch header", () => {
     render(<DeepScanResultStage response={checks} errorMessage={null} onNewScan={vi.fn()} />);
-    expect(screen.getByTestId("error-center-icon")).toHaveTextContent("🔎");
+    expect(screen.getByTestId("error-center-icon")).toHaveAttribute("data-icon", "search");
     expect(screen.getByTestId("produce-name-chip")).toHaveTextContent("Avocado");
     expect(screen.getByTestId("ds-not-enough-card")).toBeInTheDocument();
     expect(screen.getByTestId("ds-not-enough-card")).toHaveTextContent(
@@ -189,7 +189,7 @@ describe("DeepScanResultStage", () => {
       manualChecks: null,
     };
     render(<DeepScanResultStage response={noProduce} errorMessage={null} onNewScan={vi.fn()} />);
-    expect(screen.getByTestId("error-center-icon")).toHaveTextContent("🍎");
+    expect(screen.getByTestId("error-center-icon")).toHaveAttribute("data-icon", "produce");
     expect(screen.getByTestId("ds-not-enough-card")).toBeInTheDocument();
     expect(screen.getByTestId("ds-not-enough-card")).toHaveTextContent("No fresh produce detected");
     expect(screen.getByTestId("ds-not-enough-card")).toHaveTextContent(
@@ -208,7 +208,7 @@ describe("DeepScanResultStage", () => {
       manualChecks: null,
     };
     render(<DeepScanResultStage response={unclear} errorMessage={null} onNewScan={vi.fn()} />);
-    expect(screen.getByTestId("error-center-icon")).toHaveTextContent("📷");
+    expect(screen.getByTestId("error-center-icon")).toHaveAttribute("data-icon", "camera");
     expect(screen.getByTestId("ds-not-enough-card")).toBeInTheDocument();
     expect(screen.getByTestId("ds-not-enough-card")).toHaveTextContent("Photo isn't clear enough");
     expect(screen.getByTestId("ds-error-tip-box")).toBeInTheDocument();
@@ -217,7 +217,7 @@ describe("DeepScanResultStage", () => {
 
   it("renders the failure card from a null envelope with the machine message", () => {
     render(<DeepScanResultStage response={null} errorMessage="Deep scan unavailable. Try again later." onNewScan={vi.fn()} />);
-    expect(screen.getByTestId("error-center-icon")).toHaveTextContent("⚠️");
+    expect(screen.getByTestId("error-center-icon")).toHaveAttribute("data-icon", "alert");
     expect(screen.getByTestId("ds-failure-card")).toBeInTheDocument();
     expect(screen.getByTestId("ds-failure-card")).toHaveTextContent(
       "Deep scan unavailable. Try again later."
@@ -263,7 +263,7 @@ describe("DeepScanResultStage", () => {
           onNewScan={vi.fn()}
         />
       );
-      expect(screen.getByTestId("error-center-icon")).toHaveTextContent("📷");
+      expect(screen.getByTestId("error-center-icon")).toHaveAttribute("data-icon", "camera");
       expect(screen.getByTestId("ds-result-background")).toBeInTheDocument();
       expect(screen.getByTestId("ds-failure-card")).toBeInTheDocument();
       expect(screen.getByTestId("ds-failure-card")).toHaveTextContent(/camera adjustment/i);
@@ -286,7 +286,7 @@ describe("DeepScanResultStage", () => {
           onNewScan={vi.fn()}
         />
       );
-      expect(screen.getByTestId("error-center-icon")).toHaveTextContent("📷");
+      expect(screen.getByTestId("error-center-icon")).toHaveAttribute("data-icon", "camera");
       expect(screen.getByTestId("ds-failure-card")).toHaveTextContent(/camera adjustment/i);
       expect(screen.getByTestId("ds-failure-card")).toHaveTextContent("Photo isn't clear enough");
       expect(screen.getByTestId("ds-failure-card")).toHaveTextContent(
@@ -304,7 +304,7 @@ describe("DeepScanResultStage", () => {
           onNewScan={vi.fn()}
         />
       );
-      expect(screen.getByTestId("error-center-icon")).toHaveTextContent("🔄");
+      expect(screen.getByTestId("error-center-icon")).toHaveAttribute("data-icon", "rotate");
       expect(screen.getByTestId("ds-failure-card")).toHaveTextContent(/another look needed/i);
       expect(screen.getByTestId("ds-failure-card")).toHaveTextContent(
         "Most of the fruit sides were not captured"

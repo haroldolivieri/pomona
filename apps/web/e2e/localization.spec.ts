@@ -118,7 +118,7 @@ for (const theme of ["light", "dark"] as const) {
       await page.setViewportSize({width, height: 852});
       for (const target of ["ready_now", "in_2_3_days", "later_this_week"]) {
         await page.getByTestId(`target-tab-${target}`).click();
-        const card = page.getByText("🗓 Consumir em", {exact:true}).locator("..");
+        const card = page.getByText("Consumir em", {exact:true}).locator("..");
         const layout = await card.evaluate(node => {
           const label=node.children[0].getBoundingClientRect();
           const value=node.children[1].getBoundingClientRect();

@@ -259,7 +259,7 @@ test.describe("Inspect (Deep Scan) E2E User Journeys", () => {
 
     // Result stage renders abstention UI
     await expect(page.getByTestId("stage-S_DS_Result")).toBeVisible({ timeout: 15000 });
-    await expect(page.getByTestId("error-center-icon")).toHaveText("🔎");
+    await expect(page.getByTestId("error-center-icon")).toHaveAttribute("data-icon", "search");
     await expect(page.getByTestId("produce-name-chip")).toHaveText("Avocado");
     await expect(page.getByTestId("ds-not-enough-card")).toBeVisible();
     await expect(page.getByTestId("ds-not-enough-card")).toHaveText(/Most of the fruit sides were not captured/i);
@@ -298,7 +298,7 @@ test.describe("Inspect (Deep Scan) E2E User Journeys", () => {
 
     // Result stage renders no produce error
     await expect(page.getByTestId("stage-S_DS_Result")).toBeVisible({ timeout: 15000 });
-    await expect(page.getByTestId("error-center-icon")).toHaveText("🍎");
+    await expect(page.getByTestId("error-center-icon")).toHaveAttribute("data-icon", "produce");
     await expect(page.getByTestId("ds-not-enough-card")).toHaveText(/No fresh produce detected/i);
     await expect(page.getByTestId("ds-error-tip-box")).toBeVisible();
   });
