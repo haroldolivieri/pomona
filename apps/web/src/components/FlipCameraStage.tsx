@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { ScanMachineState } from "../state/scan-state-machine";
 
 import { ProduceFlipGraphic } from "./ProduceFlipGraphic";
+import { IconBack, IconClose } from "./Icons";
 import { captureViewportCrop } from "../lib/image-pipeline";
 
 export interface FlipCameraStageProps {
@@ -210,7 +211,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
             boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
           }}
         >
-          ←
+          <IconBack size={16} />
         </button>
 
         {/* Top middle chip: Produce name ONLY */}
@@ -255,7 +256,7 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
             boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
           }}
         >
-          ✕
+          <IconClose size={15} />
         </button>
       </div>
 
@@ -601,11 +602,11 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
                 <div
                   data-testid="flip-goal-pill"
                   style={{
-                    backgroundColor: "#eee9dc",
+                    backgroundColor: "#EFECE2",
                     color: "#142117",
                     fontFamily: "Inter, sans-serif",
                     fontSize: "11px",
-                    fontWeight: 700,
+                    fontWeight: 600,
                     padding: "5px 12px",
                     borderRadius: "999px",
                     display: "inline-flex",
@@ -613,7 +614,6 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
                     gap: "5px",
                   }}
                 >
-                  <span>🎯</span>
                   <span>
                     {targetRipeness === "in_2_3_days"
                       ? uiCopy("copy.in23Days")
@@ -627,11 +627,11 @@ export const FlipCameraStage: React.FC<FlipCameraStageProps> = ({
                   data-testid="flip-score-pill"
                   style={{
                     display: "inline-block",
-                    backgroundColor: "#eee9dc",
+                    backgroundColor: "#EFECE2",
                     color: "#142117",
                     fontFamily: "Inter, sans-serif",
                     fontSize: "11px",
-                    fontWeight: 700,
+                    fontWeight: 600,
                     padding: "5px 12px",
                     borderRadius: "999px",
                   }}

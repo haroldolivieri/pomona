@@ -1,5 +1,6 @@
 import { uiCopy } from "../i18n/copy";
 import React, { Component, type ErrorInfo, type ReactNode } from "react";
+import { IconAlert } from "./Icons";
 
 interface Props {
   children: ReactNode;
@@ -42,7 +43,20 @@ export class ErrorBoundary extends Component<Props, State> {
             textAlign: "center",
           }}
         >
-          <div style={{ fontSize: "44px", marginBottom: "16px" }}>⚠️</div>
+          <div
+            style={{
+              width: "56px",
+              height: "56px",
+              borderRadius: "50%",
+              backgroundColor: "rgba(245, 213, 71, 0.14)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: "16px",
+            }}
+          >
+            <IconAlert size={28} color="#F5D547" />
+          </div>
           <h2 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>
             {uiCopy("copy.applicationError")}</h2>
           <p

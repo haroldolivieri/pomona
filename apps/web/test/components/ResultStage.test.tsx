@@ -123,11 +123,11 @@ describe("ResultStage (Mockup Parity)", () => {
     expect(screen.getByTestId("sheet-divider-bottom")).toBeInTheDocument();
 
     // Storage 2-row
-    expect(screen.getByText(/🗓 Eat within/i)).toBeInTheDocument();
+    expect(screen.getByText(/Eat within/i)).toBeInTheDocument();
     expect(screen.getByText("3–5 days")).toBeInTheDocument();
-    expect(screen.getByText(/🧺 Before cut/i)).toBeInTheDocument();
+    expect(screen.getByText(/Before cut/i)).toBeInTheDocument();
     expect(screen.getByText("Counter · whole")).toBeInTheDocument();
-    expect(screen.getByText(/❄️ After cut/i)).toBeInTheDocument();
+    expect(screen.getByText(/After cut/i)).toBeInTheDocument();
     expect(screen.getByText("Fridge · wrapped")).toBeInTheDocument();
 
     // Follow-up hint panel is removed (CTA button label is sufficient)
@@ -161,7 +161,7 @@ describe("ResultStage (Mockup Parity)", () => {
     fireEvent.click(screen.getByTestId("sheet-drag-area"));
 
     // Eyebrow & headline
-    expect(screen.getByText(/✓ 1ST WINNER BEATING RUNNER-UP \(8\.6 VS 7\.2\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/1ST WINNER BEATING RUNNER-UP \(8\.6 VS 7\.2\)/i)).toBeInTheDocument();
     expect(screen.getByText("Best available.")).toBeInTheDocument();
 
     // Tick marker on circular score meter for previous/other candidate score (7.2)
@@ -206,7 +206,7 @@ describe("ResultStage (Mockup Parity)", () => {
     // Expand bottom sheet to see headline and details
     fireEvent.click(screen.getByTestId("sheet-drag-area"));
 
-    expect(screen.getByText(/★ NEW WINNER · BEATS 1ST WINNER \(9\.0 VS 8\.6\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/NEW WINNER · BEATS 1ST WINNER \(9\.0 VS 8\.6\)/i)).toBeInTheDocument();
     expect(screen.getByText("Buy this Runner-Up.")).toBeInTheDocument();
 
     // Winner badge is 9.0
@@ -254,7 +254,7 @@ describe("ResultStage (Mockup Parity)", () => {
     const { rerender } = render(<ResultStage state={stateS7A} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} />);
     // Expand bottom sheet
     fireEvent.click(screen.getByTestId("sheet-drag-area"));
-    expect(screen.getByText(/★ FINAL VERDICT · 1ST WINNER RECLAIMS THE WIN \(9\.3 VS 9\.0\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/FINAL VERDICT · 1ST WINNER RECLAIMS THE WIN \(9\.3 VS 9\.0\)/i)).toBeInTheDocument();
     expect(screen.getByText("Best available.")).toBeInTheDocument();
     expect(screen.getByTestId("winner-score-badge")).toHaveTextContent("9.3");
     expect(screen.getByTestId("score-prev-mark")).toBeInTheDocument();
@@ -287,7 +287,7 @@ describe("ResultStage (Mockup Parity)", () => {
     };
 
     rerender(<ResultStage state={stateS7B} onCompareWithRunnerUp={vi.fn()} onStartFinalCheck={vi.fn()} onReset={vi.fn()} />);
-    expect(screen.getByText(/★ FINAL VERDICT · RUNNER-UP WINS \(9\.0 VS 8\.4\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/FINAL VERDICT · RUNNER-UP WINS \(9\.0 VS 8\.4\)/i)).toBeInTheDocument();
     expect(screen.getByText("Buy the Runner-Up.")).toBeInTheDocument();
     expect(screen.getByTestId("winner-score-badge")).toHaveTextContent("9.0");
     expect(screen.getByTestId("runner-up-tag")).toHaveTextContent("1st Winner · 8.4");
@@ -673,7 +673,8 @@ describe("ResultStage deep-scan banner", () => {
     expect(banner).toBeInTheDocument();
     expect(banner).toHaveTextContent("Double check this fruit");
     const cta = screen.getByTestId("ds-banner-cta");
-    expect(cta).toHaveTextContent("✦ Inspect Winner");
+    expect(cta).toHaveTextContent("Inspect Winner");
+    expect(cta.querySelector("svg")).not.toBeNull();
     fireEvent.click(cta);
     expect(onDeepScan).toHaveBeenCalledTimes(1);
   });

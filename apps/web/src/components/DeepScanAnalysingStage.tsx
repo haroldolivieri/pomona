@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { uiCopy } from "../i18n/copy";
 import { IvoryBottomSheet, SheetEyebrow, SheetHeadline, DeepScanOval, DEEP_SCAN_OVAL_STYLE, ThreeDScanAnimation } from "./CameraCaptureUi";
+import { IconClose } from "./Icons";
 
 export interface DeepScanAnalysingStageProps {
   backgroundUrl: string | null;
@@ -146,7 +147,7 @@ export const DeepScanAnalysingStage: React.FC<DeepScanAnalysingStageProps> = ({
             cursor: "pointer",
           }}
         >
-          ✕
+          <IconClose size={15} />
         </button>
       </div>
 
@@ -172,8 +173,8 @@ export const DeepScanAnalysingStage: React.FC<DeepScanAnalysingStageProps> = ({
             style={{
               marginTop: "4px",
               padding: "10px 12px",
-              backgroundColor: "var(--surface-chip)",
-              borderRadius: "12px",
+              backgroundColor: "var(--surface-group, #F2EFE6)",
+              borderRadius: "14px",
               display: "flex",
               alignItems: "flex-start",
               gap: "8px",
@@ -185,7 +186,7 @@ export const DeepScanAnalysingStage: React.FC<DeepScanAnalysingStageProps> = ({
                 fontSize: "10px",
                 textTransform: "uppercase",
                 letterSpacing: "0.08em",
-                color: "#9A740A",
+                color: "var(--eyebrow-accent, #2F5D34)",
                 fontWeight: 700,
                 flexShrink: 0,
                 marginTop: "1px",

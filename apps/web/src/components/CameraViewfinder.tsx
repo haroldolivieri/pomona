@@ -12,6 +12,7 @@ import {
   MorphingReticle,
   CameraModeSwitcher,
 } from "./CameraCaptureUi";
+import { IconFlash, IconClose } from "./Icons";
 import {
   collectDeepScanFrames,
   DEEP_SCAN_CAPTURE_DURATION_MS,
@@ -668,7 +669,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
               flexShrink: 0,
             }}
           >
-            ⚡
+            <IconFlash size={16} />
           </button>
 
           {onClose && (
@@ -694,7 +695,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
                 flexShrink: 0,
               }}
             >
-              ✕
+              <IconClose size={15} />
             </button>
           )}
         </div>

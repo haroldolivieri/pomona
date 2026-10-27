@@ -202,7 +202,8 @@ describe("ScanErrorStage deep-scan CTA row", () => {
       />
     );
     const gold = screen.getByTestId("error-deep-scan-cta");
-    expect(gold).toHaveTextContent("✦ Inspect Closer");
+    expect(gold).toHaveTextContent("Inspect Closer");
+    expect(gold.querySelector("svg")).not.toBeNull();
     expect(gold).toHaveStyle({ backgroundColor: "rgb(245, 213, 71)", flex: "1 1 0%" });
     const green = screen.getByTestId("error-primary-cta");
     expect(green).toHaveStyle({ flex: "1 1 0%" });

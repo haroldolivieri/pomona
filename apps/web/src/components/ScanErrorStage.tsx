@@ -2,6 +2,15 @@ import { uiCopy } from "../i18n/copy";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { AbstentionReason, ScanStatus } from "@pomona/contract";
+import {
+  IconBack,
+  IconClose,
+  IconInfo,
+  IconSparkle,
+  IconAlert,
+  ErrorVectorIcon,
+  type ErrorVisualKind,
+} from "./Icons";
 
 export interface ScanErrorStageProps {
   status: ScanStatus | "analysis_failed" | null;
@@ -27,7 +36,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
   const similarMaturity = status === "insufficient_evidence" && abstentionReason === "assessed_tie";
   const isSingle = status === "single_produce" || isSingleProduce;
 
-  let icon = "⚠️";
+  let iconKind: ErrorVisualKind = "alert";
   let title = t("errors.analysisFailedTitle");
   let explanation = t("errors.analysisFailed");
   let tip = t("errors.analysisFailedTip");
@@ -37,7 +46,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
 
   switch (status) {
     case "single_produce":
-      icon = "🔎";
+      iconKind = "search";
       title = t("errors.singleProduceCompareTitle");
       explanation = t("errors.singleProduceCompare");
       tip = t("errors.singleProduceCompareTip");
@@ -47,7 +56,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
 
     case "insufficient_evidence":
       if (similarMaturity) {
-        icon = "🧺";
+        iconKind = "layers";
         title = t("errors.similarMaturityTitle");
         explanation = t("errors.similarMaturity");
         tip = t("errors.similarMaturityTip");
@@ -55,7 +64,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
         break;
       }
       if (isSingleProduce) {
-        icon = "🔎";
+        iconKind = "search";
         title = t("errors.singleProduceCompareTitle");
         explanation = t("errors.singleProduceCompare");
         tip = t("errors.singleProduceCompareTip");
@@ -63,7 +72,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
         primaryAction = onRetake;
         break;
       }
-      icon = "🔎";
+      iconKind = "search";
       title = t("errors.insufficientEvidenceTitle");
       explanation = t("errors.insufficientEvidence");
       tip = t("errors.insufficientEvidenceTip");
@@ -72,7 +81,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
       break;
 
     case "unclear_photo":
-      icon = "📷";
+      iconKind = "camera";
       title = t("errors.unclearPhotoTitle");
       explanation = t("errors.unclearPhoto");
       tip = t("errors.unclearPhotoTip");
@@ -82,7 +91,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
       break;
 
     case "no_produce":
-      icon = "🍎";
+      iconKind = "produce";
       title = t("errors.noProduceTitle");
       explanation = t("errors.noProduce");
       tip = t("errors.noProduceTip");
@@ -91,7 +100,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
       break;
 
     case "multiple_types":
-      icon = "🧺";
+      iconKind = "layers";
       title = t("errors.multipleTypesTitle");
       explanation = t("errors.multipleTypes");
       tip = t("errors.multipleTypesTip");
@@ -101,7 +110,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
       break;
 
     case "rate_limited":
-      icon = "⏳";
+      iconKind = "clock";
       title = uiCopy("copy.scanLimitReached");
       explanation = t("errors.rateLimited");
       tip = t("errors.rateLimitedTip");
@@ -110,7 +119,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
       break;
 
     default:
-      icon = "⚠️";
+      iconKind = "alert";
       title = t("errors.analysisFailedTitle");
       explanation = t("errors.analysisFailed");
       tip = t("errors.analysisFailedTip");
@@ -185,7 +194,7 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
           }}
         >
-          ←
+          <IconBack size={16} />
         </button>
 
         <div
@@ -207,7 +216,11 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
           }}
         >
-          <span style={{ fontSize: "12px" }}>{similarMaturity ? "🧺" : "⚠️"}</span>
+          {similarMaturity ? (
+            <ErrorVectorIcon kind="layers" size={12} color="#2F5D34" />
+          ) : (
+            <IconAlert size={12} color="#8B2E2E" />
+          )}
           <span>{similarMaturity ? t("errors.similarMaturityPill") : uiCopy("copy.notice")}</span>
         </div>
 
@@ -233,12 +246,14 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
           }}
         >
-          ✕
+          <IconClose size={15} />
         </button>
       </div>
 
       {/* Floating Center Icon Graphic */}
       <div
+        data-testid="error-center-icon"
+        data-icon={iconKind}
         style={{
           position: "absolute",
           top: "30%",
@@ -253,19 +268,20 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
       >
         <div
           style={{
-            width: "80px",
-            height: "80px",
+            width: "68px",
+            height: "68px",
             borderRadius: "50%",
-            backgroundColor: "rgba(251, 250, 246, 0.95)",
+            backgroundColor: "rgba(251, 250, 246, 0.92)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: "36px",
-            boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
-            border: similarMaturity ? "3px solid #62B86C" : "3px solid #F5D547",
+            boxShadow: "0 8px 28px rgba(0,0,0,0.32)",
+            border: "2px solid rgba(255, 255, 255, 0.55)",
           }}
         >
-          {icon}
+          <ErrorVectorIcon kind={iconKind} size={28} color="#1A261D" />
         </div>
       </div>
 
@@ -350,17 +366,16 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
         {/* Helpful Tip Box */}
         <div
           style={{
-            backgroundColor: similarMaturity ? "var(--surface-hint-ok)" : "var(--surface-hint-warn)",
-            border: similarMaturity ? "1px solid var(--surface-hint-ok-border)" : "1px solid var(--surface-hint-warn-border)",
+            backgroundColor: "var(--surface-group, #F2EFE6)",
             borderRadius: "14px",
-            padding: "10px 14px",
+            padding: "10px 12px",
             display: "flex",
             alignItems: "flex-start",
             gap: "10px",
             margin: "4px 0",
           }}
         >
-          <span style={{ fontSize: "16px", lineHeight: 1.2 }}>💡</span>
+          <IconInfo size={16} color="var(--text-muted)" style={{ marginTop: "1px" }} />
           <span
             style={{
               fontFamily: "Inter, system-ui, sans-serif",
@@ -392,9 +407,14 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
                 cursor: "pointer",
                 boxShadow: "0 4px 14px rgba(245, 213, 71, 0.35)",
                 textAlign: "center",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
               }}
             >
-              ✦ {uiCopy("deepScan.inspectCloser")}
+              <IconSparkle size={15} color="#132418" />
+              <span>{uiCopy("deepScan.inspectCloser")}</span>
             </button>
           ) : (
             <>
@@ -415,9 +435,14 @@ export const ScanErrorStage: React.FC<ScanErrorStageProps> = ({
                     cursor: "pointer",
                     boxShadow: "0 4px 14px rgba(245, 213, 71, 0.35)",
                     textAlign: "center",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
                   }}
                 >
-                  ✦ {uiCopy("deepScan.inspectCloser")}
+                  <IconSparkle size={15} color="#132418" />
+                  <span>{uiCopy("deepScan.inspectCloser")}</span>
                 </button>
               )}
               {showDrawButton && onDrawFocus && (

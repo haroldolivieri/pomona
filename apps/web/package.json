@@ -1,7 +1,7 @@
 {
   "name": "@pomona/web",
-  "version": "2.2.0",
-  "releaseDescription": "Compare local blur and exposure pre-flight check plus Deep Scan gentle press cue inspection and labels",
+  "version": "2.3.0",
+  "releaseDescription": "Apple HIG inset tonal UI revamp with monochrome vector icons, bottom-sheet tactile dialog, and yellow Inspect CTA",
   "type": "module",
   "scripts": {
     "dev": "vite",

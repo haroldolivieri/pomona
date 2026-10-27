@@ -11,7 +11,8 @@ import {
 import type { ScanMachineState } from "../state/scan-state-machine";
 import { describeBoxPosition } from "../lib/spatial-a11y";
 import { SeasonalityStrip } from "./SeasonalityStrip";
-import { StorageCardsRow, SeasonalityPanelCard, ResultTopBar, CircularScoreMeter, TactileChecksCard } from "./ResultCards";
+import { StorageCardsRow, SeasonalityPanelCard, ResultTopBar, CircularScoreMeter, TactileChecksCard, TraitChips } from "./ResultCards";
+import { IconClock, IconAlert, IconCheck, IconSparkle } from "./Icons";
 import { computeObjectFitCoverRect, type RenderedCoverRect } from "../lib/image-pipeline";
 
 export interface ResultStageProps {
@@ -687,7 +688,11 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                     gap: "4px",
                   }}
                 >
-                  <span>{targetResolution.mismatchReason === "all_underripe" ? "⏱️" : "⚠️"}</span>
+                  {targetResolution.mismatchReason === "all_underripe" ? (
+                    <IconClock size={12} color="#FFFFFF" />
+                  ) : (
+                    <IconAlert size={12} color="#FFFFFF" />
+                  )}
                   <span>{targetResolution.badgeLabel}</span>
                 </span>
               )}
@@ -916,21 +921,21 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   }
                 }}
                 style={{
-                  backgroundColor: "var(--surface-card)",
-                  padding: "3.5px",
-                  borderRadius: "13px",
+                  backgroundColor: "var(--surface-control, #ECE8DD)",
+                  padding: "3px",
+                  borderRadius: "12px",
                   display: "grid",
                   gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                  gap: "4px",
-                  border: "1px solid var(--surface-card-border)",
+                  gap: "3px",
+                  border: "none",
                   touchAction: "none",
                 }}
               >
                 {(
                   [
-                    { id: "ready_now", label: uiCopy("copy.readyNow"), sub: uiCopy("copy.peakRipe"), dot: "#16A34A" },
-                    { id: "in_2_3_days", label: uiCopy("copy.in23Days"), sub: uiCopy("copy.almostRipe"), dot: "#D97706" },
-                    { id: "later_this_week", label: uiCopy("copy.laterThisWeek"), sub: uiCopy("copy.firmUnripe"), dot: "#2563EB" },
+                    { id: "ready_now", label: uiCopy("copy.readyNow"), sub: uiCopy("copy.peakRipe") },
+                    { id: "in_2_3_days", label: uiCopy("copy.in23Days"), sub: uiCopy("copy.almostRipe") },
+                    { id: "later_this_week", label: uiCopy("copy.laterThisWeek"), sub: uiCopy("copy.firmUnripe") },
                   ] as const
                 ).map((tab) => {
                   const isActive = targetRipeness === tab.id;
@@ -947,10 +952,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                       }}
                       style={{
                         border: "none",
-                        backgroundColor: isActive ? "var(--surface-sheet)" : "transparent",
+                        backgroundColor: isActive ? "var(--surface-card)" : "transparent",
                         color: isActive ? "var(--text-primary)" : "var(--text-muted)",
                         padding: "6px 4px",
-                        borderRadius: "10px",
+                        borderRadius: "9px",
                         cursor: "pointer",
                         display: "flex",
                         flexDirection: "column",
@@ -958,31 +963,18 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                         minWidth: 0,
                         textAlign: "center",
                         lineHeight: 1.15,
-                        boxShadow: isActive ? "0 2px 6px rgba(0, 0, 0, 0.12)" : "none",
+                        boxShadow: isActive ? "0 1px 4px rgba(0, 0, 0, 0.08)" : "none",
                         transition: "all 0.18s ease",
                       }}
                     >
-                      <span style={{ fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "2.3em", position: "relative", paddingInline: "9px" }}>
-                        {isActive && (
-                          <span
-                            style={{
-                              width: "6px",
-                              height: "6px",
-                              borderRadius: "50%",
-                              backgroundColor: tab.dot,
-                              position: "absolute",
-                              left: 0,
-                              display: "inline-block",
-                            }}
-                          />
-                        )}
+                      <span style={{ fontSize: "11px", fontWeight: isActive ? 700 : 600, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "2.3em", position: "relative", paddingInline: "4px" }}>
                         {tab.label}
                       </span>
                       <span
                         style={{
                           fontSize: "9.5px",
-                          fontWeight: 600,
-                          color: isActive ? "var(--text-primary)" : "var(--text-muted)",
+                          fontWeight: 500,
+                          color: "var(--text-muted)",
                           marginTop: "2px",
                         }}
                       >
@@ -1002,20 +994,19 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               <div
                 data-testid="locked-ripeness-goal"
                 style={{
-                  backgroundColor: "var(--surface-card)",
-                  border: "1px solid var(--surface-card-border)",
-                  borderRadius: "11px",
+                  backgroundColor: "var(--surface-group, #F2EFE6)",
+                  borderRadius: "12px",
                   padding: "7px 12px",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
                   fontSize: "11.5px",
-                  fontWeight: 700,
+                  fontWeight: 600,
                   color: "var(--text-primary)",
                 }}
               >
                 <span>
-                  {uiCopy("copy.shoppingFor")}{" "}
+                  <span style={{ color: "var(--text-muted)" }}>{uiCopy("copy.shoppingFor")}</span>{" "}
                   <strong>
                     {targetRipeness === "in_2_3_days"
                       ? uiCopy("copy.in23Days")
@@ -1030,9 +1021,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                     padding: "2px 8px",
                     borderRadius: "999px",
                     fontSize: "10.5px",
-                    fontWeight: 800,
+                    fontWeight: 700,
                     color: "var(--eyebrow-accent)",
-                    border: "1px solid var(--surface-card-border)",
                   }}
                 >
                   {targetRipeness === "in_2_3_days"
@@ -1050,12 +1040,11 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 data-testid="ripeness-mismatch-banner"
                 style={{
                   marginTop: "6px",
-                  padding: "6px 10px",
-                  borderRadius: "10px",
+                  padding: "7px 10px",
+                  borderRadius: "12px",
                   backgroundColor: targetResolution.mismatchReason === "all_already_ripe"
-                    ? "rgba(234, 88, 12, 0.12)"
-                    : "rgba(37, 99, 235, 0.12)",
-                  border: `1px solid ${targetResolution.mismatchReason === "all_already_ripe" ? "rgba(234, 88, 12, 0.3)" : "rgba(37, 99, 235, 0.3)"}`,
+                    ? "rgba(234, 88, 12, 0.1)"
+                    : "rgba(37, 99, 235, 0.1)",
                   color: targetResolution.mismatchReason === "all_already_ripe" ? "#C2410C" : "#1D4ED8",
                   fontSize: "11px",
                   fontWeight: 600,
@@ -1065,7 +1054,11 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   lineHeight: 1.25,
                 }}
               >
-                <span>{targetResolution.mismatchReason === "all_underripe" ? "⏱️" : "⚠️"}</span>
+                {targetResolution.mismatchReason === "all_underripe" ? (
+                  <IconClock size={14} color="#1D4ED8" />
+                ) : (
+                  <IconAlert size={14} color="#C2410C" />
+                )}
                 <span>{targetResolution.bannerNotice}</span>
               </div>
             )}
@@ -1075,8 +1068,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               data-testid="sheet-divider-top"
               style={{
                 height: "1px",
-                backgroundColor: "var(--surface-card-border)",
-                opacity: 0.6,
+                backgroundColor: "var(--surface-group-divider, rgba(26, 38, 29, 0.08))",
                 marginTop: "6px",
                 marginBottom: "6px",
               }}
@@ -1180,12 +1172,10 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                     <span
                       data-testid="compare-visual-score-label"
                       style={{
-                        fontSize: "9.5px",
-                        fontWeight: 600,
+                        fontSize: "10px",
+                        fontWeight: 500,
                         color: "var(--text-muted)",
                         marginTop: "3px",
-                        letterSpacing: "0.03em",
-                        textTransform: "uppercase",
                       }}
                     >
                       {uiCopy("result.visualScoreLabel")}
@@ -1195,23 +1185,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               </div>
               {/* Traits Chips (e.g. Creamy-yellow ground spot, Matte rind) above Seasonality */}
               {activeWinner?.traits && activeWinner.traits.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "6px" }}>
-                  {activeWinner.traits.map((trait, idx) => (
-                    <span
-                      key={idx}
-                      style={{
-                        padding: "4px 9px",
-                        borderRadius: "6px",
-                        backgroundColor: "var(--surface-chip)",
-                        color: "var(--surface-chip-text)",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {trait}
-                    </span>
-                  ))}
-                </div>
+                <TraitChips labels={activeWinner.traits} />
               )}
               {lastResponse.seasonality && (
                 <SeasonalityPanelCard
@@ -1227,8 +1201,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               data-testid="sheet-divider-second"
               style={{
                 height: "1px",
-                backgroundColor: "var(--surface-card-border)",
-                opacity: 0.6,
+                backgroundColor: "var(--surface-group-divider, rgba(26, 38, 29, 0.08))",
                 marginTop: "8px",
                 marginBottom: "4px",
               }}
@@ -1312,9 +1285,8 @@ export const ResultStage: React.FC<ResultStageProps> = ({
               alignItems: "center",
               gap: "10px",
               padding: "10px 12px",
-              borderRadius: "12px",
+              borderRadius: "14px",
               backgroundColor: "var(--surface-hint-ok)",
-              border: "1px solid var(--surface-hint-ok-border)",
               fontSize: "12px",
               lineHeight: 1.35,
               color: "var(--text-primary)",
@@ -1323,20 +1295,18 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           >
             <span
               style={{
-                width: "16px",
-                height: "16px",
+                width: "18px",
+                height: "18px",
                 borderRadius: "50%",
                 backgroundColor: "var(--cta-primary)",
                 color: "#FFFFFF",
-                fontSize: "10px",
-                fontWeight: 800,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
               }}
             >
-              ✓
+              <IconCheck size={11} color="#FFFFFF" />
             </span>
             <span>{confirmationBanner}</span>
           </div>
@@ -1352,18 +1322,17 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                 display: "flex",
                 alignItems: "center",
                 gap: "10px",
-                background: "var(--surface-hint-ok)",
-                border: "1px solid var(--surface-hint-ok-border)",
+                background: "var(--surface-group, #F2EFE6)",
                 borderRadius: "14px",
                 padding: "10px 12px",
                 margin: "4px 0",
               }}
             >
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-primary)" }}>
+                <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)" }}>
                   {t("deepScan.bannerTitle")}
                 </div>
-                <div style={{ fontSize: "11px", color: "var(--text-primary)", opacity: 0.8 }}>
+                <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
                   {t("deepScan.bannerBody")}
                 </div>
               </div>
@@ -1382,9 +1351,13 @@ export const ResultStage: React.FC<ResultStageProps> = ({
                   fontSize: "13px",
                   cursor: "pointer",
                   whiteSpace: "nowrap",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
                 }}
               >
-                ✦ {t("deepScan.inspectWinner")}
+                <IconSparkle size={14} color="#132418" />
+                <span>{t("deepScan.inspectWinner")}</span>
               </button>
             </div>
           )}
@@ -1394,8 +1367,7 @@ export const ResultStage: React.FC<ResultStageProps> = ({
           data-testid="sheet-divider-bottom"
           style={{
             height: "1px",
-            backgroundColor: "var(--surface-card-border)",
-            opacity: 0.6,
+            backgroundColor: "var(--surface-group-divider, rgba(26, 38, 29, 0.08))",
             marginTop: "3px",
             marginBottom: "1px",
           }}

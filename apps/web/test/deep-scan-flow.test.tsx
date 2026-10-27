@@ -231,7 +231,7 @@ describe("Deep Scan real triggers + telemetry", () => {
     fireEvent.click(screen.getByTestId("ds-go-button"));
     // Transitions to S_DS_Result with full error bottom sheet, center icon, and tip box
     expect(await screen.findByTestId("stage-S_DS_Result")).toBeTruthy();
-    expect(screen.getByTestId("error-center-icon")).toHaveTextContent("📷");
+    expect(screen.getByTestId("error-center-icon")).toHaveAttribute("data-icon", "camera");
     expect(screen.getByTestId("ds-failure-card")).toBeInTheDocument();
     expect(screen.getByTestId("ds-failure-card")).toHaveTextContent("Photo isn't clear enough");
     expect(screen.getByTestId("ds-error-tip-box")).toBeInTheDocument();
@@ -264,7 +264,7 @@ describe("Deep Scan real triggers + telemetry", () => {
     // Trigger capture which rejects with not_rotated
     fireEvent.click(screen.getByTestId("ds-go-button"));
     expect(await screen.findByTestId("stage-S_DS_Result")).toBeTruthy();
-    expect(screen.getByTestId("error-center-icon")).toHaveTextContent("🔄");
+    expect(screen.getByTestId("error-center-icon")).toHaveAttribute("data-icon", "rotate");
     expect(screen.getByTestId("ds-new-scan-cta")).toBeInTheDocument();
 
     // Clicking CTA returns back to Inspect mode capture, NOT Compare
